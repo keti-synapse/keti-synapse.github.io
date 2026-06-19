@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AND — Adaptive Network Daemon (전송 독립 네트워크 브리지) | SYNAPSE</title>
+<meta name="description" content="AND: 내부 in-process 버스(pypubsub)와 외부 전송 백엔드를 잇는 어댑터 데몬. Topic.Network.SEND/RECV ↔ backend. 전송 교체 가능 — 현재 백엔드는 robot-first WebRTC(rtc2kng).">
+<link rel="stylesheet" href="style.css">
+<style>
+/* bridge diagram */
+.bridge-row { display: flex; align-items: stretch; justify-content: center; gap: 0; flex-wrap: wrap; }
+.bridge-box { flex: 1; min-width: 160px; text-align: center; padding: 22px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }
+.bridge-box.mid { background: var(--acc-l); border-color: var(--acc-bd); }
+.bridge-box .ic { font-size: 26px; margin-bottom: 9px; }
+.bridge-box .ti { font-size: 15.5px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+.bridge-box.mid .ti { color: var(--acc-d); }
+.bridge-box .su { font-size: 12.5px; color: var(--text3); line-height: 1.55; }
+.bridge-box .su code { font-family: var(--mono); font-size: 11.5px; color: var(--text2); }
+.bridge-conn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; flex-shrink: 0; }
+.bridge-arrow { font-size: 20px; color: var(--border2); }
+.bridge-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+
+/* swap row */
+.swap-row { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.swap-pill { font-family: var(--mono); font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border2); background: #fff; color: var(--text2); }
+.swap-pill.cur { background: var(--acc-l); border-color: var(--acc-bd); color: var(--acc-d); font-weight: 700; }
+.swap-pill.ghost { border-style: dashed; color: var(--text3); }
+
+/* file list */
+.file-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+.file-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px 22px; }
+.file-card .fn { font-family: var(--mono); font-size: 14.5px; font-weight: 700; color: var(--acc-d); margin-bottom: 7px; }
+.file-card .fd { font-size: 15px; color: var(--text2); line-height: 1.65; }
+.file-card .fd strong { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .bridge-row { flex-direction: column; }
+  .bridge-conn { flex-direction: row; padding: 8px 0; }
+  .bridge-arrow { transform: rotate(90deg); }
+  .file-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="page-and">
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><div class="nav-logo-mark">S</div>SYNAPSE</a>
+  <ul class="nav-links">
+    <li><a href="index.html">홈</a></li>
+    <li><a href="synapse.html">synapse</a></li>
+    <li><a href="tom.html">TOM</a></li>
+    <li><a href="and.html" class="active">AND</a></li>
+    <li><a href="gerri.html">GERRI</a></li>
+    <li><a href="nexus.html">NEXUS</a></li>
+    <li><a href="demo.html">체험해보기</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="https://github.com/keti-ai" target="_blank" class="nav-gh">GitHub</a>
+    <a href="mailto:khkim1207@keti.re.kr" class="nav-cta">문의하기</a>
+  </div>
+  <div class="nav-hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" onclick="toggleMenu()">홈</a>
+  <a href="synapse.html" onclick="toggleMenu()">synapse</a>
+  <a href="tom.html" onclick="toggleMenu()">TOM</a>
+  <a href="and.html" onclick="toggleMenu()">AND</a>
+  <a href="gerri.html" onclick="toggleMenu()">GERRI</a>
+  <a href="nexus.html" onclick="toggleMenu()">NEXUS</a>
+  <a href="demo.html" onclick="toggleMenu()">체험해보기</a>
+  <a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a>
+</div>
+
+<!-- ════════ PROJECT HERO ════════ -->
+<section class="proj-hero">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">홈</a><span>/</span><span>AND</span></div>
+    <div class="proj-mark">🌐</div>
+    <h1 class="proj-name">AND</h1>
+    <p class="proj-full">Adaptive Network Daemon</p>
+    <p class="proj-lead"><span class="s"><code class="inline">tom_and_gerri</code> 레포의 <code class="inline">_and_/</code> 모듈이다.</span><span class="s">로봇 내부의 <strong>in-process 버스(pypubsub)</strong>와 <strong>외부 전송 백엔드</strong>를 잇는 얇은 어댑터 데몬으로, 제어 로직은 없고 <em>전달만</em> 한다.</span></p>
+    <div class="proj-badges">
+      <span class="badge badge-and">네트워크 데몬</span>
+      <span class="badge badge-and">WebRTC</span>
+      <span class="badge badge-gray">Transport 독립</span>
+      <span class="badge badge-gray">pypubsub</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 정의 & 역할 ════════ -->
+<section class="section" id="definition">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Definition &amp; Role</span>
+      <h2 class="section-title">전달만 하는 어댑터 데몬</h2>
+      <p class="section-lead"><span class="s">AND는 “로봇이 바깥과 어떻게 통신하는가”를 한 곳에 가둔다.</span><span class="s">GERRI(제어 SW)는 전송 수단을 전혀 모른 채 표준 토픽으로만 말하고, AND가 그것을 실제 네트워크로 옮긴다.</span></p>
+    </div>
+    <div class="prose">
+      <p class="lead-para"><strong>A</strong>daptive <strong>N</strong>etwork <strong>D</strong>aemon — synapse 내부 버스와 외부 transport 백엔드를 잇는 레이어다.</p>
+      <p>AND는 두 조각으로 나뉜다. <strong>브리지</strong>(<code class="inline">daemon.py</code>의 <code class="inline">AdaptiveNetworkDaemon</code>)는 synapse 토픽 <code class="inline">Topic.Network.SEND</code>/<code class="inline">Topic.Network.RECV</code>와 백엔드를 잇고, <strong>백엔드</strong>(<code class="inline">backend.py</code>의 <code class="inline">NetworkBackend</code> 인터페이스 + 구현)는 실제 전송 수단을 담당한다 — WebRTC(rtc2kng), 테스트용 loopback 등.</p>
+      <p>내부 버스는 <code class="inline">pypubsub</code>(in-process·동기 디스패치)이다. 브리지 자체에는 큐도 스레드도 상태도 없다(인스턴스 상태는 <code class="inline">self.backend</code> 하나뿐). 그저 한쪽 토픽에서 받은 것을 다른 쪽으로 넘긴다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 내부 버스 ↔ 외부 전송 브리지 ════════ -->
+<section class="section alt" id="bridge">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Bridge</span>
+      <h2 class="section-title">내부 버스 ↔ 외부 전송</h2>
+      <p class="section-lead">Base(게이트웨이)가 <code class="inline">Topic.Network.SEND</code>로 내보낸 메시지는 <code class="inline">backend.send()</code>로 흘러 나가고, 백엔드가 외부에서 받은 메시지는 <code class="inline">Topic.Network.RECV</code>로 다시 올라온다.</p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="bridge-row">
+          <div class="bridge-box">
+            <div class="ic">🎮</div>
+            <div class="ti">Base (GERRI)</div>
+            <div class="su">내부 버스에 발행<br><code>Topic.Network.SEND</code></div>
+          </div>
+          <div class="bridge-conn"><div class="bridge-arrow">→</div><div class="bridge-lbl">pypubsub (동기)</div></div>
+          <div class="bridge-box mid">
+            <div class="ic">🌐</div>
+            <div class="ti">AND 브리지</div>
+            <div class="su">AdaptiveNetworkDaemon<br>전달만 · 상태 없음</div>
+          </div>
+          <div class="bridge-conn"><div class="bridge-arrow">→</div><div class="bridge-lbl">backend.send()</div></div>
+          <div class="bridge-box">
+            <div class="ic">📡</div>
+            <div class="ti">Backend</div>
+            <div class="su">실제 전송<br>WebRTC / Loopback</div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:12.5px;color:var(--text3);margin:14px 0 2px;font-family:var(--mono);">▲ 외부 수신은 역방향 — backend → <code style="font-size:11.5px;">Topic.Network.RECV</code> → Base</div>
+      </div>
+      <p class="figcaption"><b>Figure 1.</b> AND 브리지 양방향 배선. 송신: Base가 <code class="inline">Network.SEND</code> 발행 → 브리지가 <code class="inline">backend.send()</code> 호출. 수신: backend가 외부 메시지 수신 → 브리지가 <code class="inline">Network.RECV</code>로 재발행. 변환·검증 없는 pass-through.</p>
+    </div>
+
+    <div class="prose mt-40">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>방향</th><th>흐름</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">송신</td><td>Base가 <code class="inline">Topic.Network.SEND</code>로 발행 → 브리지가 구독하고 있다가 <code class="inline">backend.send(message)</code> 호출 → 외부로 전송</td></tr>
+            <tr><td class="mono">수신</td><td>backend가 외부 메시지 수신 → 주입된 콜백이 <code class="inline">Topic.Network.RECV</code>로 재발행 → Base가 받아 처리</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note mt-20"><b>상태 없는 pass-through.</b> 브리지는 메시지를 <strong>변환·검증 없이 그대로</strong> 넘긴다. 생성 즉시 SEND 구독이 활성화되고 외부 수신 콜백이 백엔드에 주입되며, <code class="inline">connect()</code>/<code class="inline">disconnect()</code>는 전송 계층의 수립·정리를 백엔드에 위임한다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ Transport 독립 ════════ -->
+<section class="section" id="transport">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Transport-Agnostic</span>
+      <h2 class="section-title">전송은 갈아끼울 수 있다</h2>
+      <p class="section-lead"><span class="s">이것이 AND 존재 이유다.</span><span class="s">GERRI는 오직 <code class="inline">Topic.Network.SEND/RECV</code>하고만 대화하므로, 전송 백엔드를 WebRTC에서 다른 것으로 교체해도 <strong>GERRI 제어 로직은 한 줄도 바뀌지 않는다.</strong></span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="swap-row">
+          <span class="swap-pill cur">Rtc2kngBackend · WebRTC</span>
+          <span style="color:var(--text3);font-weight:700;">↔ 교체 가능 ↔</span>
+          <span class="swap-pill">LoopbackBackend · 테스트</span>
+          <span class="swap-pill ghost">MQTT?</span>
+          <span class="swap-pill ghost">gRPC?</span>
+        </div>
+        <div style="text-align:center;margin-top:18px;font-size:15px;color:var(--text2);">모두 동일한 <code class="inline">NetworkBackend</code> 인터페이스(<code class="inline">connect</code>/<code class="inline">send</code>/<code class="inline">disconnect</code> + <code class="inline">_deliver</code>)를 따른다.</div>
+      </div>
+      <p class="figcaption"><b>Figure 2.</b> 전송 독립. 백엔드만 갈아끼우면 된다(브리지·제어 코드는 불변 — 클린 아키텍처). <strong>현재 백엔드는 robot-first WebRTC(rtc2kng)</strong>이며, 단위 테스트는 실제 네트워크 없는 <code class="inline">LoopbackBackend</code>로 대체한다.</p>
+    </div>
+    <div class="prose mt-40">
+      <p>인터페이스 계약은 단순하다. 구현체는 <code class="inline">connect()</code>·<code class="inline">send(message)</code>를 채우고, 외부에서 메시지를 받으면 부모가 제공하는 <code class="inline">self._deliver(message)</code>를 호출해 브리지로 올린다. <code class="inline">disconnect()</code>는 추상 강제가 아닌 선택(no-op 기본) — 연결·전송은 필수, 정리는 선택이라는 의도적 비대칭이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ rtc2kng WebRTC 백엔드 ════════ -->
+<section class="section alt" id="rtc2kng">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">rtc2kng</span>
+      <h2 class="section-title">WebRTC 백엔드 — robot-first P2P</h2>
+      <p class="section-lead"><span class="s">현재 전송 백엔드는 <code class="inline">_and_/rtc2kng/</code>의 WebRTC 구현이다.</span><span class="s">로봇이 부팅 시 시그널링에 합류하고, operator의 <code class="inline">ready</code>를 받으면 <strong>로봇이 offer를 주도</strong>한다.</span><span class="s">단일 asyncio 루프(데몬 스레드)에서 1:N operator 연결을 관리한다.</span></p>
+    </div>
+    <div class="file-grid">
+      <div class="file-card">
+        <div class="fn">signaling.py</div>
+        <div class="fd"><strong>SignalingClient</strong> — WebSocket 시그널링 클라이언트. SDP offer/answer·ICE candidate의 <strong>전송 계층만</strong> 담당. P2P가 열리면 데이터 경로에서 빠진다.</div>
+      </div>
+      <div class="file-card">
+        <div class="fn">peer_connection.py</div>
+        <div class="fd"><strong>RobotPeerConnection</strong> — operator 1명과의 aiortc 연결. ICE 협상 + DataChannel(<code class="inline">"synapse"</code>)로 표준 메시지(JSON) 교환.</div>
+      </div>
+      <div class="file-card">
+        <div class="fn">rtc2kng_backend.py</div>
+        <div class="fd"><strong>Rtc2kngBackend</strong> — <code class="inline">NetworkBackend</code> 구현. robot-first, 여러 operator와 동시 1:N. asyncio 루프 스레드에서 시그널링·peer 구동.</div>
+      </div>
+      <div class="file-card">
+        <div class="fn">camera_track.py</div>
+        <div class="fd"><strong>CameraSource → VideoStreamTrack</strong> 어댑터. 카메라를 WebRTC로 송출하기 위한 변환층(현재 attach 지점만 배선).</div>
+      </div>
+    </div>
+    <div class="figure mt-40">
+      <div class="figure-frame">
+        <div style="font-family:var(--mono);font-size:14px;line-height:2;color:var(--text2);text-align:center;">
+          operator <span style="color:var(--and);font-weight:700;">ready</span> →
+          robot <span style="color:var(--and);font-weight:700;">offer</span> →
+          operator <span style="color:var(--and);font-weight:700;">answer</span> →
+          <span style="color:var(--and);font-weight:700;">candidate</span> 교환 →
+          <span style="color:var(--acc-d);font-weight:800;">P2P 직결</span>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 4.</b> robot-first 핸드셰이크. 시그널링이 끝나면 미디어·제어는 P2P로 직결되고 서버는 데이터 흐름에서 빠진다. aiortc는 non-trickle이라 로봇 ICE 후보를 offer SDP에 한 번에 담는다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ Sub 직접 통신 금지 규칙 ════════ -->
+<section class="section" id="rule">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Gateway Rule</span>
+      <h2 class="section-title">Sub는 네트워크를 직접 만지지 않는다</h2>
+      <p class="section-lead"><span class="s">AND/외부 토픽에 손댈 수 있는 것은 오직 Base(게이트웨이) 하나뿐이다.</span><span class="s">SubController는 외부 통신을 전혀 몰라야 한다.</span></p>
+    </div>
+    <div class="prose">
+      <div class="note"><span class="s"><b>규칙:</b> SubController는 <code class="inline">Topic.Network.SEND</code>/<code class="inline">RECV</code> 등 외부 토픽을 <strong>직접 사용하는 것이 금지</strong>된다.</span><span class="s">Sub는 자기 status를 내부 토픽으로만 발행하고, 외부와의 모든 송수신은 Base가 단일 창구로 중계한다.</span><span class="s">이렇게 해야 전송 교체가 Sub에 전혀 영향을 주지 않고, AND의 “전달만 하는 데몬” 경계가 유지된다.</span></div>
+      <p class="mt-24">즉 의존 방향은 <strong>Sub → (내부 토픽) → Base → (Network.SEND/RECV) → AND → backend → 네트워크</strong> 한 방향으로 흐른다. Sub가 이 규칙을 어기고 외부 토픽을 직접 건드리면 게이트웨이 정책이 깨지고, 백엔드 교체 시 Sub 코드까지 수정해야 하는 결합이 생긴다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ PREV / NEXT ════════ -->
+<div style="border-top:1px solid var(--border);padding:28px 0;">
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <a href="tom.html" class="btn btn-ghost btn-sm">← TOM</a>
+    <a href="gerri.html" class="btn btn-sm" style="background:var(--gerri);color:white;border-color:var(--gerri);">다음: GERRI →</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="index.html" class="logo"><div class="logo-mark">S</div>SYNAPSE</a>
+      <p>KETI 지능로보틱스연구센터<br>STAR TEAM</p>
+    </div>
+    <div class="footer-col"><h4>컴포넌트</h4><ul>
+      <li><a href="synapse.html">synapse (표준)</a></li><li><a href="tom.html">TOM</a></li>
+      <li><a href="and.html">AND</a></li><li><a href="gerri.html">GERRI</a></li>
+      <li><a href="nexus.html">NEXUS</a></li><li><a href="gerri.html#cockpit">COCKPIT</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>바로가기</h4><ul>
+      <li><a href="index.html#abstract">개요</a></li>
+      <li><a href="index.html#architecture">아키텍처</a></li>
+      <li><a href="index.html#comms">통신 구조</a></li>
+      <li><a href="index.html#mission">미션 시스템</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>연락처</h4><ul>
+      <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>
+      <li><a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a></li>
+    </ul></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 한국전자기술연구원(KETI) 지능로보틱스연구센터. All rights reserved.</span>
+    <span>SYNAPSE Platform · Technical Report</span>
+  </div>
+</footer>
+<script>function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}</script>
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>체험해보기 — NEXUS RTS 관제 | SYNAPSE</title>
+<!--
+  nexus_ui(rts.html) 디자인을 그대로 따른 체험 데모.
+  실제 백엔드 없이 도는 시뮬레이션이지만, 모든 조작은 synapse 표준 command.capability 로 생성된다.
+  - 드래그 박스 다중선택 · 클릭 단일선택 · Shift+클릭 토글
+  - 우클릭: 선택한 모바일 로봇에 navigate_to_pose 이동 명령
+  - 우하단 3×3 스킬 카드(폴더 드릴다운) · velocity_ctrl → 1:1 COCKPIT
+-->
+<style>
+  :root{ --bg:#0b0f0c; --panel:#11181300; --line:#2f4738; --accent:#6fe39a; --accent2:#e3b96f;
+         --ok:#6fe39a; --busy:#e3b96f; --err:#e36f6f; --help:#e3e36f; --off:#5a6b60; --ink:#cfe7d8; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font:13px/1.4 ui-sans-serif,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif; user-select:none; overflow:hidden; }
+  #app{ display:flex; flex-direction:column; height:100vh; }
+  header{ padding:6px 12px; border-bottom:1px solid var(--line); display:flex; gap:14px; align-items:center; }
+  header h1{ font-size:14px; margin:0; color:var(--accent); letter-spacing:.5px; white-space:nowrap; }
+  header .hint{ color:#7f9a89; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  header .conn{ font-size:11px; color:var(--accent); white-space:nowrap; }
+  header .hbtn{ font-size:11px; color:var(--ink); background:#0e1611; border:1px solid var(--line);
+    border-radius:5px; padding:4px 9px; cursor:pointer; white-space:nowrap; }
+  header .hbtn:hover{ border-color:var(--accent); color:var(--accent); }
+  header .back{ font-size:11px; color:#9fc3ad; text-decoration:none; border:1px solid var(--line);
+    border-radius:5px; padding:4px 9px; white-space:nowrap; }
+  header .back:hover{ border-color:var(--accent); color:var(--accent); }
+
+  #stage{ flex:1; display:flex; min-height:0; }
+  /* 맵 */
+  #map{ position:relative; flex:1; margin:8px; border:1px solid var(--line); border-radius:6px;
+    background:
+      radial-gradient(circle at 30% 30%, #14201a, #0c120e 70%),
+      repeating-linear-gradient(0deg,transparent 0 39px,#16241c80 39px 40px),
+      repeating-linear-gradient(90deg,transparent 0 39px,#16241c80 39px 40px);
+    overflow:hidden; cursor:crosshair; }
+  .dock{ position:absolute; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; font-size:14px; opacity:.8;
+    background:#0e1611; border:1px dashed var(--line); }
+  .goal{ position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; pointer-events:none; }
+  .goal::before,.goal::after{ content:''; position:absolute; background:var(--accent); }
+  .goal::before{ left:8px; top:0; width:2px; height:18px; } .goal::after{ top:8px; left:0; height:2px; width:18px; }
+  .unit{ position:absolute; width:40px; height:40px; margin:-20px 0 0 -20px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer;
+    background:#0e1611; border:2px solid var(--line); transition:box-shadow .1s; z-index:5; }
+  .unit:hover{ box-shadow:0 0 0 2px #3f5f4b; }
+  .unit .tag{ position:absolute; top:42px; left:50%; transform:translateX(-50%); white-space:nowrap;
+    font-size:10px; color:#9fc3ad; background:#0b0f0ccc; padding:0 3px; border-radius:3px; }
+  .unit.sel{ box-shadow:0 0 0 2px var(--accent), 0 0 12px #6fe39a66; border-color:var(--accent); }
+  .unit .st{ position:absolute; top:-4px; right:-4px; width:10px; height:10px; border-radius:50%; border:1px solid #0b0f0c; }
+  #selbox{ position:absolute; border:1px solid var(--accent); background:#6fe39a22; display:none; pointer-events:none; z-index:8; }
+  /* 우측 roster */
+  #roster{ width:116px; margin:8px 8px 8px 0; border:1px solid var(--line); border-radius:6px; padding:6px;
+    overflow-y:auto; display:flex; flex-direction:column; gap:5px; }
+  #roster .rtitle{ font-size:10px; color:#7f9a89; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
+  .thumb{ display:flex; align-items:center; gap:6px; padding:4px; border:1px solid var(--line); border-radius:5px;
+    background:#0e1611; cursor:pointer; font-size:11px; }
+  .thumb:hover{ border-color:#3f5f4b; }
+  .thumb.sel{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .thumb .ic{ font-size:16px; }
+  .thumb .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#bfe0cd; }
+  /* 하단 HUD */
+  #hud{ height:178px; border-top:2px solid var(--line); display:flex; gap:8px; padding:8px;
+    background:linear-gradient(#0d130f,#0b0f0c); }
+  .pane{ border:1px solid var(--line); border-radius:6px; background:#0e1611; }
+  #minimap{ width:210px; position:relative; }
+  #minimap canvas{ width:100%; height:100%; display:block; border-radius:6px; }
+  #minimap .lbl{ position:absolute; top:4px; left:6px; font-size:10px; color:#7f9a89; }
+  #selected{ flex:1; padding:8px; overflow:auto; }
+  #selected .lbl{ font-size:10px; color:#7f9a89; text-transform:uppercase; }
+  #selgrid{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .selicon{ width:48px; height:54px; border:1px solid var(--line); border-radius:6px; background:#0b110d; position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:18px; }
+  .selicon .n{ font-size:9px; color:#9fc3ad; margin-top:2px; max-width:46px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .selicon.focus{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  #selsummary{ font-size:12px; color:#bfe0cd; margin-top:2px; }
+  #selbat{ font-size:11px; color:#7f9a89; margin-top:3px; }
+  /* 스킬 카드 3×3 */
+  #cmd{ width:236px; padding:8px; }
+  #cmd .lbl{ font-size:10px; color:#7f9a89; text-transform:uppercase; display:flex; justify-content:space-between; }
+  #cmdgrid{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:5px; margin-top:6px; height:132px; }
+  .skill{ border:1px solid var(--line); border-radius:5px; background:#0b110d; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:#dceede; text-align:center; }
+  .skill:hover{ border-color:var(--accent); background:#10180f; }
+  .skill .k{ font-size:9px; color:#9fc3ad; margin-top:3px; text-align:center; line-height:1.1; max-width:64px; }
+  .skill.empty{ background:#0a0d0a; border-style:dashed; cursor:default; }
+  .skill.folder{ color:var(--accent2); }
+  .skill.back{ color:#9fc3ad; }
+  .skill.hot{ color:var(--accent2); border-color:#4a6b54; }
+  .log{ position:fixed; right:10px; bottom:188px; max-width:46vw; font-size:11px; color:#9fc3ad; opacity:.92; pointer-events:none; text-align:right; line-height:1.5; }
+
+  /* ── COCKPIT (1:1) — 같은 RTS 테마 ── */
+  #cockpit{ position:fixed; inset:0; z-index:50; background:#070a08f2; display:none; flex-direction:column; padding:10px; }
+  #cockpit.open{ display:flex; }
+  .ck-top{ display:flex; align-items:center; gap:12px; padding:4px 6px 8px; }
+  .ck-top .pill{ font-size:11px; color:var(--accent2); border:1px solid #4a6b54; border-radius:999px; padding:3px 10px; }
+  .ck-top .nm{ font-size:14px; color:var(--accent); font-weight:600; letter-spacing:.5px; }
+  .ck-top .ty{ font-size:11px; color:#7f9a89; }
+  .ck-exit{ margin-left:auto; font-size:12px; color:var(--ink); background:#0e1611; border:1px solid var(--line); border-radius:5px; padding:6px 12px; cursor:pointer; }
+  .ck-exit:hover{ border-color:var(--accent); color:var(--accent); }
+  .ck-main{ flex:1; display:grid; grid-template-columns:1fr 240px; gap:10px; min-height:0; }
+  .ck-cam{ position:relative; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:#05080640; }
+  .ck-cam canvas{ display:block; width:100%; height:100%; }
+  .ck-hud{ position:absolute; inset:0; pointer-events:none; }
+  .ck-hud .rec{ position:absolute; top:10px; left:12px; font-size:11px; color:#cfe7d8; display:flex; align-items:center; gap:6px; }
+  .ck-hud .rec .b{ width:8px; height:8px; border-radius:50%; background:var(--err); animation:bl 1s infinite; }
+  @keyframes bl{ 0%,100%{opacity:1}50%{opacity:.3} }
+  .ck-hud .ret{ position:absolute; top:50%; left:50%; width:58px; height:58px; transform:translate(-50%,-50%); border:1px solid #ffffff30; border-radius:50%; }
+  .ck-hud .ret::before,.ck-hud .ret::after{ content:''; position:absolute; background:#ffffff30; }
+  .ck-hud .ret::before{ left:50%; top:-8px; width:1px; height:74px; transform:translateX(-50%);}
+  .ck-hud .ret::after{ top:50%; left:-8px; height:1px; width:74px; transform:translateY(-50%);}
+  .ck-side{ display:flex; flex-direction:column; gap:10px; }
+  .ck-card{ border:1px solid var(--line); border-radius:6px; background:#0e1611; padding:12px; }
+  .ck-card h4{ margin:0 0 9px; font-size:10px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; color:#7f9a89; }
+  .ck-tel{ display:flex; justify-content:space-between; font-size:12px; padding:3px 0; color:#bfe0cd; }
+  .ck-tel b{ color:var(--accent); font-weight:600; }
+  .joy{ position:relative; width:140px; height:140px; margin:2px auto 0; border-radius:50%;
+    background:radial-gradient(circle,#13201a,#0a0f0c); border:1px solid var(--line); touch-action:none; cursor:grab; }
+  .joy .knob{ position:absolute; top:50%; left:50%; width:50px; height:50px; border-radius:50%; transform:translate(-50%,-50%);
+    background:var(--accent); box-shadow:0 0 14px #6fe39a66; }
+  .joy-hint{ text-align:center; font-size:10px; color:#7f9a89; margin-top:6px; }
+  .ck-caps{ display:flex; flex-wrap:wrap; gap:6px; }
+  .ck-cap{ font-size:11px; color:#dceede; background:#0b110d; border:1px solid var(--line); border-radius:5px; padding:6px 9px; cursor:pointer; }
+  .ck-cap:hover{ border-color:var(--accent); color:var(--accent); }
+
+  @media (max-width:820px){
+    #roster{ width:92px; }
+    #hud{ height:auto; flex-wrap:wrap; }
+    #minimap{ width:100%; height:120px; }
+    #cmd{ width:100%; }
+    .ck-main{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>◈ NEXUS · 플릿 관제</h1>
+    <span class="hint">드래그=박스선택 · 클릭=단일 · Shift+클릭=토글 · 우클릭=이동(navigate_to_pose) · 스킬=capability · velocity_ctrl→1:1 COCKPIT</span>
+    <button class="hbtn" id="btnMission">▶ 데모 미션</button>
+    <button class="hbtn" id="btnStop">■ 전체정지</button>
+    <span class="conn" id="conn">● 6대 connected</span>
+    <a class="back" href="index.html">← SYNAPSE</a>
+  </header>
+  <div id="stage">
+    <div id="map"><div id="selbox"></div></div>
+    <div id="roster"><div class="rtitle">로봇 (6)</div></div>
+  </div>
+  <div id="hud">
+    <div class="pane" id="minimap"><span class="lbl">미니맵</span><canvas></canvas></div>
+    <div class="pane" id="selected">
+      <div class="lbl">선택 <span id="selcount">0</span></div>
+      <div id="selsummary">로봇을 선택하세요.</div>
+      <div id="selbat"></div>
+      <div id="selgrid"></div>
+    </div>
+    <div class="pane" id="cmd">
+      <div class="lbl"><span id="cmdtitle">스킬</span><span id="cmdcat"></span></div>
+      <div id="cmdgrid"></div>
+    </div>
+  </div>
+</div>
+<div class="log" id="log"></div>
+
+<!-- ── COCKPIT (1:1) ── -->
+<div id="cockpit">
+  <div class="ck-top">
+    <span class="pill">● WebRTC P2P · 1:1 TELEOP</span>
+    <span class="nm" id="ckName">—</span>
+    <span class="ty" id="ckType"></span>
+    <button class="ck-exit" id="ckExit">← 플릿(N:N)으로 복귀</button>
+  </div>
+  <div class="ck-main">
+    <div class="ck-cam">
+      <canvas id="ckCanvas"></canvas>
+      <div class="ck-hud">
+        <div class="rec"><span class="b"></span> REC · CAM_FRONT</div>
+        <div class="ret"></div>
+      </div>
+    </div>
+    <div class="ck-side">
+      <div class="ck-card">
+        <h4>Telemetry</h4>
+        <div class="ck-tel"><span>base_state</span><b id="ckState">TELEOP</b></div>
+        <div class="ck-tel"><span>battery</span><b id="ckBat">100%</b></div>
+        <div class="ck-tel"><span>linear</span><b id="ckLin">0.00 m/s</b></div>
+        <div class="ck-tel"><span>angular</span><b id="ckAng">0.00 rad/s</b></div>
+      </div>
+      <div class="ck-card">
+        <h4>Drive · velocity_ctrl</h4>
+        <div class="joy" id="joy"><div class="knob" id="knob"></div></div>
+        <div class="joy-hint">드래그로 조종 · 놓으면 정지</div>
+      </div>
+      <div class="ck-card">
+        <h4>Quick capability</h4>
+        <div class="ck-caps" id="ckCaps"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== capability 카탈로그 (STANDARD_capability.md) — rts.html 과 동일 ===== */
+const CAT_SKILLS = {
+  mobile:       ["navigate_to_pose","navigate_to_waypoint","velocity_ctrl","dock","undock"],
+  manipulator:  ["joint_ctrl","cartesian_ctrl","gripper_ctrl","home_position","joint_preset"],
+  camera:       ["pan_tilt","pan_tilt_zoom"],
+  station:      ["make_americano"],
+};
+const SKILL_ICON = { navigate_to_pose:"🧭", navigate_to_waypoint:"📍", velocity_ctrl:"🕹️", dock:"🔌", undock:"⏏️",
+  joint_ctrl:"🦾", cartesian_ctrl:"✋", gripper_ctrl:"🤏", home_position:"🏠", joint_preset:"📐",
+  pan_tilt:"📷", pan_tilt_zoom:"🔭", make_americano:"☕", stop:"🛑" };
+const CAT_ICON = { mobile:"🚙", manipulator:"🦾", camera:"📷", humanoid:"🤖", station:"☕" };
+const STATE_COLOR = { IDLE:"--off", BUSY:"--busy", TELEOP:"--accent2", NEED_HELP:"--help", ERROR:"--err", OFFLINE:"--off" };
+
+const DOCKS = [{x:8,y:16},{x:8,y:50},{x:8,y:84}];
+const WAYPOINTS = { lobby:{x:50,y:20}, dock_a:{x:8,y:16}, charge:{x:8,y:50}, depot:{x:46,y:82} };
+
+function mkRobot(id, cats, x, y, state, bat){
+  const caps = []; cats.forEach(c => caps.push(...(CAT_SKILLS[c]||[])));
+  caps.push("stop");
+  const mobile = cats.includes("mobile");
+  return { robot_id:id, cats, x, y, theta:0, base_state:state, bat,
+           capabilities:[...new Set(caps)], icon: CAT_ICON[cats[0]] || "🤖",
+           mobile, target:null, vel:{l:0,a:0}, dock: mobile ? 0 : null };
+}
+function freshRobots(){ return [
+  mkRobot("mobile_01",     ["mobile"],                 22, 30, "IDLE", 92),
+  mkRobot("mobile_02",     ["mobile"],                 40, 55, "IDLE", 78),
+  mkRobot("patrol_03",     ["mobile","camera"],        16, 78, "IDLE", 64),
+  mkRobot("arm_01",        ["manipulator","camera"],   66, 26, "IDLE", 88),
+  mkRobot("coffee_01",     ["station"],                82, 60, "IDLE", 100),
+  mkRobot("humanoid_01",   ["mobile","manipulator","camera"], 56, 72, "IDLE", 71),
+]; }
+let ROBOTS = freshRobots();
+
+let selected = new Set();
+let focusId = null;
+let drill = null;
+let cockpitId = null;
+let tick = 0;
+
+const $ = s => document.querySelector(s);
+const map = $("#map"), roster = $("#roster"), selbox = $("#selbox");
+const byId = id => ROBOTS.find(r=>r.robot_id===id);
+function log(m){ const l=$("#log"); l.textContent = "▸ "+m; clearTimeout(log._t); log._t=setTimeout(()=>l.textContent="",3000); }
+function uuid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "ui-"+Math.random().toString(16).slice(2); }
+function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+
+/* synapse 표준 command.capability 생성(+토스트) */
+function fireCommand(ids, name, params){
+  const msgs = ids.map(id => ({
+    msg_info: { timestamp: Date.now()/1000, uuid: uuid(), sender:"nexus_ui", receiver:id },
+    topic: "command.capability", value: { name, params: params||{} },
+  }));
+  console.log("[command.capability]", msgs);
+  log(`▶ ${name} → ${ids.join(", ")} · command.capability ${msgs.length}건`);
+}
+
+/* ===== 렌더: 맵 유닛 (1회 생성 후 sync) ===== */
+function buildMap(){
+  map.querySelectorAll(".unit,.dock,.goal").forEach(e=>e.remove());
+  DOCKS.forEach(d=>{ const k=document.createElement("div"); k.className="dock"; k.style.left=d.x+"%"; k.style.top=d.y+"%"; k.textContent="🔌"; map.appendChild(k); });
+  for(const r of ROBOTS){
+    const u = document.createElement("div"); u.className="unit"; u.dataset.id=r.robot_id;
+    u.innerHTML = `${r.icon}<span class="st"></span><span class="tag">${r.robot_id}</span>`;
+    u.onmousedown = e => e.stopPropagation();
+    u.onclick = e => { e.stopPropagation(); pick(r.robot_id, e.shiftKey); };
+    map.appendChild(u);
+  }
+  syncMap();
+}
+function syncMap(){
+  map.querySelectorAll(".goal").forEach(e=>e.remove());
+  for(const r of ROBOTS){
+    const u = map.querySelector(`.unit[data-id="${r.robot_id}"]`); if(!u) continue;
+    u.style.left = r.x+"%"; u.style.top = r.y+"%";
+    u.classList.toggle("sel", selected.has(r.robot_id));
+    u.querySelector(".st").style.background = `var(${STATE_COLOR[r.base_state]})`;
+    if(r.target){ const g=document.createElement("div"); g.className="goal"; g.style.left=r.target.x+"%"; g.style.top=r.target.y+"%"; map.appendChild(g); }
+  }
+}
+/* ===== 우측 roster ===== */
+function renderRoster(){
+  roster.querySelectorAll(".thumb").forEach(e=>e.remove());
+  for(const r of ROBOTS){
+    const t = document.createElement("div"); t.className="thumb"+(selected.has(r.robot_id)?" sel":"");
+    t.innerHTML = `<span class="ic">${r.icon}</span><span class="nm">${r.robot_id}</span>
+      <span class="st" style="width:9px;height:9px;border-radius:50%;background:var(${STATE_COLOR[r.base_state]})"></span>`;
+    t.onclick = e => pick(r.robot_id, e.shiftKey);
+    roster.appendChild(t);
+  }
+}
+/* ===== 하단 선택 영역 ===== */
+function renderSelected(){
+  $("#selcount").textContent = selected.size;
+  const grid = $("#selgrid"); grid.innerHTML="";
+  const ids = [...selected];
+  if(ids.length===0){ $("#selsummary").textContent="로봇을 선택하세요."; $("#selbat").textContent=""; return; }
+  if(ids.length===1){ const r=byId(focusId);
+    $("#selsummary").textContent = `${focusId} · ${r.base_state} · ${r.cats.join("+")}`;
+    $("#selbat").textContent = `🔋 ${Math.round(r.bat)}%  ·  pose (${fmt(r.x/10)}, ${fmt(r.y/10)})`;
+  } else { $("#selsummary").textContent = `${ids.length}대 선택됨 — 아이콘 클릭 시 스킬 표시`; $("#selbat").textContent=""; }
+  for(const id of ids){ const r=byId(id);
+    const c=document.createElement("div"); c.className="selicon"+(id===focusId?" focus":"");
+    c.innerHTML = `${r.icon}<span class="st" style="position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:var(${STATE_COLOR[r.base_state]})"></span><span class="n">${id}</span>`;
+    c.onclick = () => { focusId=id; drill=null; renderAll(); };
+    grid.appendChild(c);
+  }
+}
+/* ===== 스킬 카드 3×3 (폴더 드릴다운) ===== */
+function renderCmd(){
+  const grid=$("#cmdgrid"); grid.innerHTML=""; $("#cmdcat").textContent="";
+  const r = focusId ? byId(focusId) : null;
+  if(!r){ $("#cmdtitle").textContent="스킬"; for(let i=0;i<9;i++) grid.appendChild(cell()); return; }
+  $("#cmdtitle").textContent = r.robot_id;
+  let cells=[]; const flat=r.capabilities;
+  if(drill){ $("#cmdcat").textContent=drill; cells.push(skillCell("◀ 뒤로","back",()=>{drill=null;renderCmd();}));
+    for(const s of CAT_SKILLS[drill]||[]) if(flat.includes(s)) cells.push(skillCell(s,r));
+  } else if(flat.length<=9){ for(const s of flat) cells.push(skillCell(s,r));
+  } else { for(const c of r.cats) cells.push(folderCell(c)); if(flat.includes("stop")) cells.push(skillCell("stop",r)); }
+  while(cells.length<9) cells.push(cell());
+  cells.slice(0,9).forEach(c=>grid.appendChild(c));
+}
+function cell(){ const d=document.createElement("div"); d.className="skill empty"; return d; }
+function skillCell(name, r, onclick){
+  const hot = (name==="velocity_ctrl"||name==="stop");
+  const d=document.createElement("div"); d.className="skill"+(r&&r!=="back"?"":"")+(onclick?" back":(hot?" hot":""));
+  if(r==="back") d.className="skill back";
+  d.innerHTML = `${SKILL_ICON[name]||"⚙️"}<span class="k">${name}</span>`;
+  d.onclick = onclick || (()=>doSkill(name));
+  return d;
+}
+function folderCell(cat){ const d=document.createElement("div"); d.className="skill folder";
+  d.innerHTML = `📁<span class="k">${cat}</span>`; d.onclick=()=>{drill=cat;renderCmd();}; return d; }
+
+/* ===== capability 실행 (시뮬레이션 반영) ===== */
+function doSkill(name){
+  const ids=[...selected]; if(!ids.length) return;
+  if(name==="velocity_ctrl"){ enterCockpit(focusId||ids[0]); return; }
+  fireCommand(ids, name, name==="navigate_to_waypoint"?{name:"lobby"}:{});
+  ids.forEach(id=>{ const r=byId(id);
+    if(name==="stop"){ r.target=null; r.vel={l:0,a:0}; r.base_state="IDLE"; }
+    else if(name==="dock"){ if(r.dock==null)r.dock=0; const d=DOCKS[r.dock]; r.target={x:d.x+5,y:d.y}; r.base_state="BUSY"; }
+    else if(name==="undock"){ r.target={x:r.x+16,y:r.y}; r.base_state="BUSY"; }
+    else if(name==="navigate_to_waypoint"){ const w=WAYPOINTS.lobby; r.target={x:w.x,y:w.y}; r.base_state="BUSY"; }
+    else if(name==="navigate_to_pose"){ log("우클릭으로 목표 좌표를 지정하세요"); }
+    else { r.base_state="BUSY"; busyThen(r, name==="make_americano"?2600:1300); }
+  });
+  renderAll();
+}
+function busyThen(r, ms){ setTimeout(()=>{ if(r.base_state==="BUSY"&&!r.target&&r.id!==cockpitId){ r.base_state="IDLE"; renderAll(); } }, ms); }
+
+/* ===== 미니맵 ===== */
+function renderMinimap(){
+  const cv=$("#minimap canvas"); const rect=cv.getBoundingClientRect();
+  cv.width=rect.width; cv.height=rect.height; const g=cv.getContext("2d");
+  g.fillStyle="#0c120e"; g.fillRect(0,0,cv.width,cv.height);
+  g.strokeStyle="#1c2c22"; for(let i=1;i<5;i++){ g.beginPath(); g.moveTo(cv.width*i/5,0); g.lineTo(cv.width*i/5,cv.height); g.moveTo(0,cv.height*i/5); g.lineTo(cv.width,cv.height*i/5); g.stroke(); }
+  for(const rb of ROBOTS){
+    g.beginPath(); g.arc(cv.width*rb.x/100, cv.height*rb.y/100, selected.has(rb.robot_id)?4:3, 0, 7);
+    g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(STATE_COLOR[rb.base_state]).trim()||"#6fe39a"; g.fill();
+    if(selected.has(rb.robot_id)){ g.strokeStyle="#fff"; g.lineWidth=1; g.stroke(); }
+  }
+}
+
+/* ===== 선택 로직 ===== */
+function pick(id, toggle){
+  if(toggle){ selected.has(id)?selected.delete(id):selected.add(id); }
+  else selected = new Set([id]);
+  focusId = selected.has(id) ? id : ([...selected][0]||null);
+  drill=null; renderAll();
+}
+function setSelection(ids){ selected=new Set(ids); focusId=ids[0]||null; drill=null; renderAll(); }
+
+/* ===== 드래그 박스 다중선택 ===== */
+let drag=null;
+map.addEventListener("mousedown", e=>{
+  if(e.button!==0) return;
+  const rect=map.getBoundingClientRect();
+  drag={ x:e.clientX-rect.left, y:e.clientY-rect.top, add:e.shiftKey, rect };
+  selbox.style.display="block"; updateBox(drag.x,drag.y);
+});
+window.addEventListener("mousemove", e=>{ if(drag) updateBox(e.clientX-drag.rect.left, e.clientY-drag.rect.top); });
+window.addEventListener("mouseup", e=>{
+  if(!drag) return;
+  const x2=e.clientX-drag.rect.left, y2=e.clientY-drag.rect.top, x1=drag.x, y1=drag.y;
+  const moved = Math.abs(x2-x1)>4 || Math.abs(y2-y1)>4;
+  selbox.style.display="none";
+  if(moved){
+    const lo={x:Math.min(x1,x2),y:Math.min(y1,y2)}, hi={x:Math.max(x1,x2),y:Math.max(y1,y2)};
+    const hit = ROBOTS.filter(r=>{ const px=drag.rect.width*r.x/100, py=drag.rect.height*r.y/100; return px>=lo.x&&px<=hi.x&&py>=lo.y&&py<=hi.y; }).map(r=>r.robot_id);
+    setSelection([...new Set([...(drag.add?[...selected]:[]), ...hit])]);
+    log(hit.length?`${hit.length}대 박스 선택`:"빈 선택");
+  } else if(!drag.add){ setSelection([]); }
+  drag=null;
+});
+function updateBox(x,y){ const x1=Math.min(drag.x,x), y1=Math.min(drag.y,y), w=Math.abs(x-drag.x), h=Math.abs(y-drag.y);
+  selbox.style.left=x1+"px"; selbox.style.top=y1+"px"; selbox.style.width=w+"px"; selbox.style.height=h+"px"; }
+
+/* ===== 우클릭 = navigate_to_pose 이동 명령 ===== */
+map.addEventListener("contextmenu", e=>{
+  e.preventDefault();
+  const rect=map.getBoundingClientRect();
+  const x=Math.max(2,Math.min(98,(e.clientX-rect.left)/rect.width*100));
+  const y=Math.max(2,Math.min(98,(e.clientY-rect.top)/rect.height*100));
+  const movers=[...selected].map(byId).filter(r=>r&&r.mobile);
+  if(!movers.length){ log("이동 가능한(모바일) 로봇을 먼저 선택하세요"); return; }
+  movers.forEach((r,i)=>{ const off=(i-(movers.length-1)/2)*5; r.target={x:Math.max(2,Math.min(98,x+off)),y}; r.base_state="BUSY"; });
+  fireCommand(movers.map(r=>r.robot_id), "navigate_to_pose", {x:+fmt(x/10),y:+fmt(y/10),theta:0});
+  renderAll();
+});
+
+function renderAll(){ syncMap(); renderRoster(); renderSelected(); renderCmd(); renderMinimap(); }
+window.addEventListener("resize", ()=>{ renderMinimap(); if(cockpitId) resizeCanvas(); });
+
+/* ===== 데모 미션 / 정지 ===== */
+$("#btnMission").addEventListener("click", ()=>{
+  log("FleetMission 'coffee_delivery' 시작 (DAG)");
+  const mob=byId("mobile_01"), coffee=byId("coffee_01"), arm=byId("arm_01");
+  mob.target={x:76,y:58}; mob.base_state="BUSY"; fireCommand(["mobile_01"],"navigate_to_pose",{x:7.6,y:5.8});
+  setTimeout(()=>{ coffee.base_state="BUSY"; fireCommand(["coffee_01"],"make_americano",{shots:2}); },2600);
+  setTimeout(()=>{ coffee.base_state="IDLE"; arm.base_state="BUSY"; fireCommand(["arm_01"],"gripper_ctrl",{percentage:100}); },5200);
+  setTimeout(()=>{ arm.base_state="IDLE"; mob.target={x:24,y:30}; mob.base_state="BUSY"; fireCommand(["mobile_01"],"navigate_to_pose",{x:2.4,y:3.0}); },6800);
+  setTimeout(()=>{ log("mission_succeeded · coffee_delivery"); },10800);
+});
+$("#btnStop").addEventListener("click", ()=>{ ROBOTS.forEach(r=>{ r.target=null; r.vel={l:0,a:0}; if(r.base_state!=="ERROR")r.base_state="IDLE"; }); fireCommand(ROBOTS.map(r=>r.robot_id),"stop",{}); renderAll(); });
+
+/* ===== COCKPIT (1:1) ===== */
+const ckEl=$("#cockpit"), cv2=$("#ckCanvas"), ctx=cv2.getContext("2d");
+function enterCockpit(id){ const r=byId(id); if(!r) return;
+  cockpitId=id; selected=new Set([id]); focusId=id; r.base_state="TELEOP";
+  fireCommand([id],"velocity_ctrl",{}); log(`teleop_started · ${id}`);
+  $("#ckName").textContent=r.robot_id; $("#ckType").textContent=r.cats.join("+");
+  $("#ckCaps").innerHTML = r.capabilities.filter(c=>c!=="velocity_ctrl"&&c!=="navigate_to_pose").slice(0,6)
+    .map(c=>`<button class="ck-cap" onclick="ckCap('${c}')">${SKILL_ICON[c]||"⚙️"} ${c}</button>`).join("");
+  ckEl.classList.add("open"); resizeCanvas(); renderAll();
+}
+function ckCap(name){ const id=cockpitId; if(!id) return; fireCommand([id],name,{}); }
+function exitCockpit(){ const r=byId(cockpitId); if(r){ r.base_state="IDLE"; r.vel={l:0,a:0}; log(`teleop_ended · ${r.robot_id}`);} cockpitId=null; ckEl.classList.remove("open"); renderAll(); }
+$("#ckExit").addEventListener("click", exitCockpit);
+document.addEventListener("keydown", e=>{ if(e.key==="Escape"&&cockpitId) exitCockpit(); });
+function resizeCanvas(){ const r=cv2.parentElement.getBoundingClientRect(); cv2.width=r.width; cv2.height=r.height; }
+let camOff=0;
+function drawCam(r){
+  const w=cv2.width,h=cv2.height; if(!w) return;
+  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,"#0c1410"); g.addColorStop(.5,"#0f1a14"); g.addColorStop(.5,"#070a08"); g.addColorStop(1,"#04060500");
+  ctx.fillStyle="#070a08"; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  const hz=h*0.5; camOff+=r.vel.l*6; const turn=r.vel.a*60;
+  for(let i=0;i<14;i++){ let z=((i*40-camOff)%560+560)%560; const p=z/560; const y=hz+(h-hz)*p*p; const a=0.5*(1-p);
+    ctx.strokeStyle=`rgba(111,227,154,${a})`; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+  for(let i=-6;i<=6;i++){ const vx=w/2+i*70-turn; ctx.strokeStyle="rgba(111,227,154,0.16)"; ctx.beginPath(); ctx.moveTo(w/2-turn,hz); ctx.lineTo(vx,h); ctx.stroke(); }
+  ctx.fillStyle="rgba(111,227,154,0.12)"; ctx.fillRect(0,hz-2,w,4);
+  for(let k=0;k<2;k++){ let z=((k*280+140-camOff)%560+560)%560; const p=z/560; const y=hz+(h-hz)*p*p; const size=10+p*p*120; const x=w/2+(k===0?-1:1)*(40+turn*0.5)*(0.3+p);
+    ctx.fillStyle=`rgba(227,${150-k*40},111,${0.25+0.5*p})`; ctx.fillRect(x-size/2,y-size,size,size); }
+}
+function updateCockpit(){ const r=byId(cockpitId); if(!r) return;
+  $("#ckState").textContent=r.base_state; $("#ckBat").textContent=Math.round(r.bat)+"%";
+  $("#ckLin").textContent=fmt(r.vel.l)+" m/s"; $("#ckAng").textContent=fmt(r.vel.a)+" rad/s"; drawCam(r); }
+/* 조이스틱 */
+const joy=$("#joy"), knob=$("#knob"); let jdrag=false;
+function joyMove(cx,cy){ const r=joy.getBoundingClientRect(); const dx=cx-(r.left+r.width/2), dy=cy-(r.top+r.height/2);
+  const max=r.width/2-18; const dist=Math.min(max,Math.hypot(dx,dy)); const ang=Math.atan2(dy,dx); const kx=Math.cos(ang)*dist, ky=Math.sin(ang)*dist;
+  knob.style.transform=`translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+  const rb=byId(cockpitId); if(rb){ rb.vel.l=-ky/max*1.6; rb.vel.a=kx/max*1.4; } }
+function joyEnd(){ jdrag=false; knob.style.transform="translate(-50%,-50%)"; const rb=byId(cockpitId); if(rb) rb.vel={l:0,a:0}; }
+joy.addEventListener("pointerdown",e=>{ jdrag=true; joy.setPointerCapture(e.pointerId); joyMove(e.clientX,e.clientY); });
+joy.addEventListener("pointermove",e=>{ if(jdrag) joyMove(e.clientX,e.clientY); });
+joy.addEventListener("pointerup",joyEnd); joy.addEventListener("pointercancel",joyEnd);
+
+/* ===== SIM TICK ===== */
+function step(){
+  tick++;
+  for(const r of ROBOTS){
+    if(r.target){ const dx=r.target.x-r.x, dy=r.target.y-r.y, d=Math.hypot(dx,dy);
+      if(d<1.2){ r.x=r.target.x; r.y=r.target.y; r.target=null; if(r.robot_id!==cockpitId) r.base_state="IDLE"; }
+      else { const sp=Math.min(1.1,d*0.18); r.x+=dx/d*sp; r.y+=dy/d*sp; r.theta=Math.atan2(dy,dx); } }
+    if(r.robot_id===cockpitId && (r.vel.l||r.vel.a)){ r.theta+=r.vel.a*0.07; r.x+=Math.cos(r.theta)*r.vel.l*0.7; r.y+=Math.sin(r.theta)*r.vel.l*0.7;
+      r.x=Math.max(2,Math.min(98,r.x)); r.y=Math.max(2,Math.min(98,r.y)); }
+    const moving = r.base_state==="BUSY" || (r.robot_id===cockpitId&&(r.vel.l||r.vel.a));
+    if(moving) r.bat=Math.max(0,r.bat-0.04); else r.bat=Math.max(0,r.bat-0.004);
+  }
+  syncMap();
+  if(tick%4===0){ renderRoster(); renderSelected(); renderMinimap(); }
+  if(cockpitId) updateCockpit();
+}
+
+/* ===== BOOT ===== */
+buildMap(); renderAll();
+log("NEXUS 시그널링 연결됨 · 6대 등록 (시뮬레이션)");
+setInterval(step, 90);
+</script>
+</body>
+</html>

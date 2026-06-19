@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — 단일 사이트 플릿 관제 서버 · WebRTC 시그널링 게이트웨이 | SYNAPSE</title>
+<meta name="description" content="NEXUS: FastAPI + Uvicorn 기반 단일 사이트 플릿 관제 서버이자 WebRTC 시그널링 게이트웨이. Edge-Authoritative — 로봇이 상태 원본을 소유하고 NEXUS는 뷰/캐시. python -m nexus 단일 명령 기동. KETI STAR TEAM.">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── NEXUS 전용 컴포넌트 (공유 클래스로 부족한 것만) ── */
+
+/* file chips (hero) */
+.file-chips { display:flex; flex-wrap:wrap; justify-content:center; gap:7px; margin-top:22px; }
+.file-chip {
+  display:inline-flex; align-items:center; gap:6px; font-family:var(--mono);
+  font-size:12px; font-weight:500; padding:5px 11px; border-radius:7px;
+  background:var(--bg2); border:1px solid var(--border); color:var(--text2);
+}
+.file-chip b { color:var(--acc-d); font-weight:600; }
+
+/* endpoint table: method pills + path mono */
+.tbl td .method {
+  display:inline-block; font-family:var(--mono); font-size:11px; font-weight:700;
+  letter-spacing:0.04em; padding:3px 9px; border-radius:6px; border:1px solid;
+}
+.method.get { background:var(--and-l); color:var(--and); border-color:var(--and-bd); }
+.method.ws  { background:var(--nexus-l); color:var(--nexus); border-color:var(--nexus-bd); }
+.tbl td .path { font-family:var(--mono); font-size:14px; color:var(--ink); font-weight:600; }
+.tbl td .ret { font-family:var(--mono); font-size:12px; color:var(--text3); }
+
+/* message-routing diagram */
+.route { display:flex; flex-direction:column; gap:0; }
+.route-row {
+  display:grid; grid-template-columns: 188px 44px 1fr; align-items:center;
+  gap:14px; padding:16px 0; border-bottom:1px dashed var(--border);
+}
+.route-row:last-child { border-bottom:none; }
+.route-in {
+  font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--ink);
+  background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+  padding:9px 12px; text-align:center; line-height:1.4;
+}
+.route-in span { display:block; font-size:10.5px; font-weight:500; color:var(--text3); margin-top:3px; }
+.route-arrow { font-size:18px; color:var(--border2); text-align:center; }
+.route-out {
+  border-radius:8px; padding:10px 14px; border:1px solid;
+  font-size:15px; line-height:1.55;
+}
+.route-out b { font-weight:700; }
+.route-out.cache  { background:var(--bg); border-color:var(--border); color:var(--text2); }
+.route-out.cache b { color:var(--ink); }
+.route-out.bcast  { background:var(--gerri-l); border-color:var(--gerri-bd); color:#92520a; }
+.route-out.bcast b { color:var(--gerri); }
+.route-out.unicast{ background:var(--nexus-l); border-color:var(--nexus-bd); color:#9b2424; }
+.route-out.unicast b { color:var(--nexus); }
+
+/* handshake step strip */
+.hs-steps { display:flex; flex-direction:column; gap:0; }
+.hs-step {
+  display:grid; grid-template-columns:36px 1fr; gap:16px; align-items:start;
+  padding:16px 0; border-bottom:1px solid var(--border); position:relative;
+}
+.hs-step:last-child { border-bottom:none; }
+.hs-num {
+  width:30px; height:30px; border-radius:50%; background:var(--acc); color:#fff;
+  font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; margin-top:1px;
+}
+.hs-actor {
+  font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:0.04em;
+  text-transform:uppercase; color:var(--acc); margin-bottom:4px;
+}
+.hs-title { font-size:15.5px; font-weight:700; color:var(--ink); margin-bottom:3px; }
+.hs-desc  { font-size:15px; color:var(--text2); line-height:1.65; }
+.hs-desc code.inline { font-size:0.86em; }
+.hs-step.p2p { background:var(--acc-l); border-radius:10px; padding:16px 16px; margin-top:8px; border:1px solid var(--acc-bd); }
+.hs-step.p2p .hs-num { background:var(--ink); }
+
+/* ws flow / topology mini-diagram */
+.flow {
+  display:flex; align-items:stretch; justify-content:center; gap:0; flex-wrap:wrap;
+}
+.flow-node {
+  flex:1; min-width:150px; text-align:center; padding:22px 16px;
+  border:1px solid var(--border); border-radius:12px; background:var(--white);
+}
+.flow-node.hub { background:var(--nexus-l); border-color:var(--nexus-bd); }
+.flow-node .ic { font-size:26px; margin-bottom:8px; }
+.flow-node .nm { font-size:15px; font-weight:800; color:var(--ink); margin-bottom:3px; }
+.flow-node.hub .nm { color:var(--nexus); }
+.flow-node .su { font-size:12.5px; color:var(--text3); line-height:1.5; }
+.flow-conn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:0 12px; flex-shrink:0; }
+.flow-line { width:46px; height:2px; background:var(--border2); }
+.flow-lbl { font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--text3); white-space:nowrap; text-align:center; line-height:1.4; }
+.flow-p2p {
+  margin-top:20px; padding-top:18px; border-top:1px dashed var(--border2);
+  display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap;
+}
+.flow-pill { background:var(--acc-l); border:1px solid var(--acc-bd); border-radius:8px; padding:9px 18px; font-size:14.5px; font-weight:700; color:var(--acc-d); }
+.flow-dash { flex:1; max-width:80px; height:2px; background:repeating-linear-gradient(90deg, var(--acc-bd) 0, var(--acc-bd) 6px, transparent 6px, transparent 12px); }
+.flow-cap { font-size:12.5px; color:var(--text3); text-align:center; line-height:1.5; }
+
+/* fact key-value cards */
+.kv-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0; border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; }
+.kv { padding:18px 22px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); }
+.kv:nth-child(2n) { border-right:none; }
+.kv:nth-last-child(-n+2) { border-bottom:none; }
+.kv .k { font-size:11.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text3); margin-bottom:6px; }
+.kv .v { font-size:15px; color:var(--text); line-height:1.55; }
+.kv .v code { font-family:var(--mono); font-size:14px; color:var(--acc-d); }
+
+/* responsibility split */
+.split { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.split-box { border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; }
+.split-box.does { background:var(--white); }
+.split-box.not  { background:var(--bg); }
+.split-box h4 { font-size:15px; font-weight:800; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.split-box.does h4 { color:var(--and); }
+.split-box.not  h4 { color:var(--text3); }
+.split-li { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:15px; color:var(--text2); line-height:1.6; }
+.split-li:last-child { border-bottom:none; }
+.split-li b { color:var(--ink); font-weight:700; }
+.split-li .mk { flex-shrink:0; }
+
+/* small file-tree */
+.tree { font-family:var(--mono); font-size:14px; line-height:1.85; color:var(--text2); }
+.tree .c { color:var(--text3); }
+.tree b { color:var(--ink); font-weight:600; }
+
+@media (max-width:900px){
+  .route-row { grid-template-columns:1fr; gap:8px; }
+  .route-arrow { display:none; }
+  .split { grid-template-columns:1fr; }
+  .kv-grid { grid-template-columns:1fr; }
+  .kv { border-right:none; }
+  .flow-conn { transform:rotate(90deg); padding:8px 0; }
+}
+</style>
+</head>
+<body class="page-nexus">
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><div class="nav-logo-mark">S</div>SYNAPSE</a>
+  <ul class="nav-links">
+    <li><a href="index.html">홈</a></li>
+    <li><a href="synapse.html">synapse</a></li>
+    <li><a href="tom.html">TOM</a></li>
+    <li><a href="and.html">AND</a></li>
+    <li><a href="gerri.html">GERRI</a></li>
+    <li><a href="nexus.html" class="active">NEXUS</a></li>
+    <li><a href="demo.html">체험해보기</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="https://github.com/keti-ai" target="_blank" class="nav-gh">GitHub</a>
+    <a href="mailto:khkim1207@keti.re.kr" class="nav-cta">문의하기</a>
+  </div>
+  <div class="nav-hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" onclick="toggleMenu()">홈</a>
+  <a href="synapse.html" onclick="toggleMenu()">synapse</a>
+  <a href="tom.html" onclick="toggleMenu()">TOM</a>
+  <a href="and.html" onclick="toggleMenu()">AND</a>
+  <a href="gerri.html" onclick="toggleMenu()">GERRI</a>
+  <a href="nexus.html" onclick="toggleMenu()">NEXUS</a>
+  <a href="demo.html" onclick="toggleMenu()">체험해보기</a>
+  <a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a>
+</div>
+
+<!-- ════════ PROJECT HERO ════════ -->
+<header class="proj-hero">
+  <div class="container">
+    <div class="breadcrumb" style="justify-content:center;">
+      <a href="index.html">홈</a><span>/</span><span>NEXUS</span>
+    </div>
+    <div class="proj-mark">🗄️</div>
+    <div class="proj-badges">
+      <span class="badge badge-nexus">플릿 관제 서버</span>
+      <span class="badge badge-gray">FastAPI</span>
+      <span class="badge badge-gray">Single-site</span>
+      <span class="badge badge-gray">API-first</span>
+    </div>
+    <h1 class="proj-name">NEXUS</h1>
+    <p class="proj-full"><em>한 사이트의 플릿 매니저 · WebRTC 시그널링 게이트웨이</em></p>
+    <p class="proj-lead">
+      <span class="s">단일 사이트의 로봇 플릿을 한곳에서 보는 <strong>관제 서버</strong>이자, 운영자↔로봇 P2P 연결을 이어주는 <strong>WebRTC 시그널링 릴레이</strong>.</span>
+      <span class="s">상태의 <em>원본</em>은 로봇(엣지)이 소유하고, NEXUS는 그 사본(뷰·캐시)만 들고 있는 <strong>Edge-Authoritative</strong> 설계다.</span>
+    </p>
+    <div class="file-chips">
+      <span class="file-chip"><b>python -m nexus</b></span>
+      <span class="file-chip">app.py</span>
+      <span class="file-chip">relay.py</span>
+      <span class="file-chip">registry.py</span>
+      <span class="file-chip">gateway.py</span>
+      <span class="file-chip">config.py</span>
+      <span class="file-chip">v0.0.1</span>
+    </div>
+    <div class="pub-links" style="margin-top:24px;">
+      <a href="demo.html" class="pill" style="background:var(--nexus);border-color:var(--nexus);"><span class="ic">🎮</span> 체험해보기 — 가상 플릿 관제</a>
+      <a href="https://github.com/keti-ai" target="_blank" class="pill ghost"><span class="ic">⭐</span> GitHub</a>
+    </div>
+    <p class="sim-note" style="font-size:13px;color:var(--text3);margin-top:12px;">실제 로봇 없이 nexus_ui 스타일 화면에서 직접 조종해 볼 수 있습니다.</p>
+  </div>
+</header>
+
+<!-- ════════ 개요 / 역할 ════════ -->
+<section class="section" id="overview">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Overview</span>
+      <h2 class="section-title">한 사이트를 책임지는 뷰·캐시 서버</h2>
+      <p class="section-lead"><span class="s">NEXUS 한 대 = 한 사이트의 플릿 매니저.</span><span class="s">상태의 진실은 로봇에 있고, 서버는 그 사본을 모아 보여줄 뿐이다.</span></p>
+    </div>
+    <div class="prose">
+      <p class="lead-para"><strong>NEXUS는 진실의 원본(SSOT)이 아니다.</strong> 각 로봇(TOM)이 자기 상태의 권위를 가지며, NEXUS는 WebSocket으로 받은 상태를 메모리에 캐시해 대시보드에 비춰주는 <em>뷰</em>다.</p>
+      <p>그래서 NEXUS의 책임은 둘로 좁다. 첫째, 연결된 로봇들의 <strong>status를 모아 캐시</strong>하고 REST로 노출한다(<code class="inline">/api/robots</code>). 둘째, 운영자와 로봇이 직접 만나도록 <strong>WebRTC 시그널링을 중계</strong>한다(<code class="inline">/ws/{room}</code>). 핸드셰이크가 끝나면 미디어·DataChannel은 P2P로 직결되고 NEXUS는 데이터 경로에서 빠진다 — 작은 시그널링 JSON만 오간다.</p>
+      <p>의존성도 좁다. NEXUS가 import하는 것은 공통 표준 <code class="inline">synapse</code> 하나뿐이며(메시지 토픽 <code class="inline">Topic</code> 사용), <code class="inline">tom_and_gerri</code>나 <code class="inline">tag_*</code> 같은 로봇 코드는 전혀 import하지 않는다 — <strong>코드 결합도 0</strong>, 오직 네트워크 메시지 표준으로만 대화한다.</p>
+      <div class="note mt-8"><span class="s"><b>Edge-Authoritative.</b> 연결 끊김(OFFLINE)조차 NEXUS가 단정하지 않는다.</span><span class="s"><code class="inline">/api/robots</code>는 <code class="inline">server_time</code>을 함께 내려주고, 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 로 스스로 판단한다.</span></div>
+    </div>
+
+    <div class="figure mt-40">
+      <div class="figure-frame">
+        <div class="kv-grid">
+          <div class="kv"><div class="k">역할</div><div class="v">단일 사이트 플릿 관제 + WebRTC 시그널링 게이트웨이</div></div>
+          <div class="kv"><div class="k">백엔드</div><div class="v">FastAPI + Uvicorn (ASGI) · pydantic ≥ 2.0 · <code>websockets</code></div></div>
+          <div class="kv"><div class="k">상태 저장</div><div class="v">in-memory dict 레지스트리 (P1) · SQLite(sqlmodel)는 P2 옵션, 아직 미사용</div></div>
+          <div class="kv"><div class="k">기동</div><div class="v"><code>python -m nexus</code> 단일 명령 · 빌드 없음</div></div>
+          <div class="kv"><div class="k">의존</div><div class="v">오직 <code>synapse</code> import (tom_and_gerri·tag 미import → 결합도 0)</div></div>
+          <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.0.1 · 13 tests passing</div></div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 1.</b> NEXUS 핵심 사실. 상태 원본은 로봇이 소유하고 NEXUS는 뷰/캐시 — P1은 메모리 레지스트리이며 영속 DB는 도입 전이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 기술 스택 & 기동 ════════ -->
+<section class="section alt" id="stack">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Stack &amp; Boot</span>
+      <h2 class="section-title">기술 스택과 단일 명령 기동</h2>
+      <p class="section-lead"><span class="s">실시간 제어는 엣지에, 미디어는 P2P에 맡기므로 NEXUS는 IO 중심이다.</span><span class="s">async·WebSocket·OpenAPI를 기본 제공하는 FastAPI + Uvicorn 한 켤레로 충분하다.</span></p>
+    </div>
+
+    <div class="prose">
+      <p>패키지는 6개 모듈로 단순하다. <code class="inline">__main__.py</code>가 <code class="inline">uvicorn.run(create_app())</code>을 띄우고, <code class="inline">app.py</code>의 <code class="inline">create_app()</code> 팩토리가 라우트와 <code class="inline">RelayHub</code>·<code class="inline">RobotRegistry</code>를 조립한다. <code class="inline">relay.py</code>는 룸 기반 시그널링 릴레이, <code class="inline">registry.py</code>는 <code class="inline">(robot_id, sub_id)</code> 상태 캐시, <code class="inline">gateway.py</code>는 콕핏 정적 서빙 + config 주입, <code class="inline">config.py</code>는 정적 Pydantic 설정을 담당한다. npm·webpack 같은 빌드 단계는 없다.</p>
+    </div>
+
+    <div class="figure mt-32">
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">terminal · 단일 프로세스 기동</span></div>
+        <pre><code><span class="cm"># synapse(공통 표준)는 editable 설치 — tom_and_gerri/tag 는 설치/그 import 불필요</span>
+<span class="kw">pip install</span> -e ./synapse
+<span class="kw">pip install</span> -e ./nexus      <span class="cm"># fastapi · uvicorn · websockets · pydantic&gt;=2</span>
+
+<span class="cm"># 서버 기동 (기본 http://0.0.0.0:8000)</span>
+<span class="kw">python</span> -m nexus
+<span class="kw">python</span> -m nexus --host <span class="num">0.0.0.0</span> --port <span class="num">8000</span></code></pre>
+      </div>
+      <p class="figcaption"><b>Figure 2.</b> <code class="inline">python -m nexus</code> 한 줄이 전부다. <code class="inline">--host</code>/<code class="inline">--port</code>는 선택, 기본값은 <code class="inline">0.0.0.0:8000</code>.</p>
+    </div>
+
+    <div class="figure mt-40">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr><th style="width:210px;">모듈</th><th>역할</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">__init__.py</td><td>공개 API — <code class="inline">RelayHub</code> · <code class="inline">RobotRegistry</code> · <code class="inline">load_config</code> · <code class="inline">SystemConfig</code>를 export.</td></tr>
+            <tr><td class="mono">__main__.py</td><td><code class="inline">python -m nexus</code> 진입점 — <code class="inline">uvicorn.run(create_app())</code>으로 서버를 띄운다.</td></tr>
+            <tr><td class="mono">app.py</td><td>FastAPI <code class="inline">create_app()</code> 팩토리 + 모든 라우트 조립.</td></tr>
+            <tr><td class="mono">relay.py</td><td><code class="inline">RelayHub</code> — 룸 기반(<code class="inline">room = robot_id</code>) 시그널링 릴레이.</td></tr>
+            <tr><td class="mono">registry.py</td><td><code class="inline">RobotRegistry</code> — <code class="inline">(robot_id, sub_id)</code> in-memory status 상태 캐시.</td></tr>
+            <tr><td class="mono">config.py</td><td><code class="inline">SystemConfig</code> / <code class="inline">SiteConfig</code> / <code class="inline">FloorConfig</code> (pydantic, 정적).</td></tr>
+            <tr><td class="mono">gateway.py</td><td>콕핏 정적 서빙 + <code class="inline">window.__COCKPIT__</code> 주입.</td></tr>
+            <tr><td class="mono">cockpit_default/</td><td><code class="inline">tag_{robot}/</code> 폴더가 없을 때의 폴백 콕핏.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 3.</b> 패키지 레이아웃 — 6 모듈 + 폴백 콕핏. SQLite(sqlmodel)는 <code class="inline">[db]</code> optional extra로 예약돼 있으나 P1 코드 경로에는 없다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ REST · WS API ════════ -->
+<section class="section" id="api">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">HTTP &amp; WebSocket API</span>
+      <h2 class="section-title">엔드포인트 한눈에</h2>
+      <p class="section-lead"><span class="s"><code class="inline">app.py</code>가 노출하는 전부 — REST 2개 + 게이트웨이 2개 + 통합 WS 1개다.</span><span class="s">site/floor는 URL 네임스페이스일 뿐, 콕핏 폴더는 robot id로 고른다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr><th style="width:60px;">메서드</th><th>경로</th><th>반환 · 동작</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/api/robots</span></td>
+              <td><span class="ret">{"robots":[{robot_id, subs:{sub_id:entry}, last_seen}…], "server_time":float}</span><br>등록 로봇을 robot_id로 묶어 반환. 클라이언트가 <b>server_time − last_seen</b>으로 OFFLINE 추론.</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/api/sites</span></td>
+              <td><span class="ret">SystemConfig.model_dump()</span><br>사이트 → 층(floor) → 맵 트리. 정적 config를 그대로 직렬화.</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/{site}/{floor}/tag_{robot}/</span></td>
+              <td>콕핏 <b>index.html</b> 반환 + <span class="ret">window.__COCKPIT__ = {robotId, signalingUrl, mode}</span> 주입. tag 폴더 없으면 <b>cockpit_default</b> 폴백.</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/{site}/{floor}/tag_{robot}/{filename}</span></td>
+              <td>콕핏 정적 자산을 <b>FileResponse</b>로 서빙 (mimetype 추론).</td>
+            </tr>
+            <tr>
+              <td><span class="method ws">WS</span></td>
+              <td><span class="path">/ws/{room}</span></td>
+              <td><b>room = robot_id.</b> 통합 시그널링 릴레이 + 상태 캐시. 운영자·로봇 모두 같은 room에 합류해 메시지를 교환한다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 4.</b> 전체 API 표면. <code class="inline">signalingUrl</code>은 요청 Host로부터 <code class="inline">ws(s)://{host}/ws/{robot}</code> 형태로 만들어 콕핏에 주입된다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 시그널링 릴레이 & 상태 캐시 ════════ -->
+<section class="section alt" id="relay">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Signaling Relay &amp; Status Cache</span>
+      <h2 class="section-title">하나의 WS, 세 갈래 처리</h2>
+      <p class="section-lead"><span class="s">단일 엔드포인트 <code class="inline">/ws/{room}</code>가 메시지 종류에 따라 캐시 / 브로드캐스트 / 1:1 라우팅으로 갈린다.</span><span class="s">시그널링 JSON은 해석 없이 원문 그대로 전달된다.</span></p>
+    </div>
+
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="route">
+          <div class="route-row">
+            <div class="route-in">topic == "robot.status"<span>로봇 → NEXUS</span></div>
+            <div class="route-arrow">→</div>
+            <div class="route-out cache"><b>캐시만 (릴레이 X).</b> <code class="inline">registry.upsert_status(value)</code>로 <code class="inline">(robot_id, sub_id)</code> 엔트리를 갱신. 대시보드용 사본일 뿐 다른 피어에 전달하지 않는다.</div>
+          </div>
+          <div class="route-row">
+            <div class="route-in">type == "ready" (+ sender)<span>운영자 입장</span></div>
+            <div class="route-arrow">→</div>
+            <div class="route-out bcast"><b>등록 후 브로드캐스트.</b> <code class="inline">hub.register_sender(sender, ws)</code>로 sender id를 등록하고, receiver가 없으므로 같은 room의 <b>나를 제외한 모두</b>에게 전파.</div>
+          </div>
+          <div class="route-row">
+            <div class="route-in">offer / answer / candidate (+ receiver)<span>핸드셰이크</span></div>
+            <div class="route-arrow">→</div>
+            <div class="route-out unicast"><b>1:1 유니캐스트.</b> receiver id로 등록된 그 피어에게만 전달. 원문 JSON을 <b>그대로 forward</b> — 재직렬화·해석 없음.</div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 5.</b> <code class="inline">RelayHub.targets()</code> + app WS 핸들러의 분기. receiver가 있으면 그 피어에게만, 없으면 room 전체로. status는 라우팅에서 빠져 캐시로 흡수된다.</p>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><span class="s"><b>한 줄 규칙.</b> 핸들러는 메시지의 <b>봉투</b>(<code class="inline">sender</code> / <code class="inline">receiver</code>)만 보고 JSON 원문을 그대로 중계한다 — SDP·ICE 페이로드는 들여다보지 않는다.</span><span class="s"><code class="inline">robot.status</code>만은 라우팅 대상에서 빠져 레지스트리에 캐시만 된다.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ Robot-first WebRTC 핸드셰이크 ════════ -->
+<section class="section" id="handshake">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Robot-first WebRTC</span>
+      <h2 class="section-title">로봇이 먼저 offer를 만드는 핸드셰이크</h2>
+      <p class="section-lead"><span class="s">운영자의 <code class="inline">ready</code> 신호를 받은 <em>로봇</em>이 offer를 만든다.</span><span class="s">설계상 NEXUS는 시그널링까지만 — 핸드셰이크 후 미디어·데이터는 P2P로 직결된다.</span></p>
+    </div>
+
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="flow">
+          <div class="flow-node">
+            <div class="ic">🧑‍💻</div>
+            <div class="nm">운영자 / COCKPIT</div>
+            <div class="su">웹 브라우저<br>WebRTC 클라이언트</div>
+          </div>
+          <div class="flow-conn"><div class="flow-line"></div><div class="flow-lbl">WS 시그널링</div></div>
+          <div class="flow-node hub">
+            <div class="ic">🗄️</div>
+            <div class="nm">NEXUS</div>
+            <div class="su">/ws/{room}<br>릴레이 + status 캐시</div>
+          </div>
+          <div class="flow-conn"><div class="flow-line"></div><div class="flow-lbl">WS 시그널링</div></div>
+          <div class="flow-node">
+            <div class="ic">🖥️</div>
+            <div class="nm">로봇 (TOM)</div>
+            <div class="su">상태 원본 소유자<br>offer 생성</div>
+          </div>
+        </div>
+        <div class="flow-p2p">
+          <div class="flow-pill">🧑‍💻 운영자</div>
+          <div class="flow-dash"></div>
+          <div class="flow-cap">핸드셰이크 후 <b>WebRTC P2P 직결</b><br>미디어 · DataChannel (NEXUS 안 거침)</div>
+          <div class="flow-dash"></div>
+          <div class="flow-pill">🖥️ 로봇</div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 7.</b> 시그널링은 NEXUS를 거치지만, 연결이 서면 데이터 경로에서 NEXUS는 빠진다.</p>
+    </div>
+
+    <div class="figure mt-40" style="max-width:760px;">
+      <div class="figure-frame">
+        <div class="hs-steps">
+          <div class="hs-step">
+            <div class="hs-num">1</div>
+            <div>
+              <div class="hs-actor">운영자 → room</div>
+              <div class="hs-title">ready 전송</div>
+              <div class="hs-desc">운영자가 <code class="inline">{type:"ready", sender:…}</code>로 입장. NEXUS는 sender를 등록하고 room의 로봇에게 브로드캐스트한다.</div>
+            </div>
+          </div>
+          <div class="hs-step">
+            <div class="hs-num">2</div>
+            <div>
+              <div class="hs-actor">로봇 → 운영자</div>
+              <div class="hs-title">offer 생성·전송</div>
+              <div class="hs-desc">ready를 받은 <b>로봇이 offer를 만든다</b>(robot-first). <code class="inline">receiver</code>를 운영자로 지정 → NEXUS가 1:1로 전달.</div>
+            </div>
+          </div>
+          <div class="hs-step">
+            <div class="hs-num">3</div>
+            <div>
+              <div class="hs-actor">운영자 → 로봇</div>
+              <div class="hs-title">answer 응답</div>
+              <div class="hs-desc">운영자가 answer를 돌려준다. 역시 <code class="inline">receiver</code> 지정 1:1 라우팅.</div>
+            </div>
+          </div>
+          <div class="hs-step">
+            <div class="hs-num">4</div>
+            <div>
+              <div class="hs-actor">양방향</div>
+              <div class="hs-title">ICE candidate 교환</div>
+              <div class="hs-desc"><code class="inline">candidate</code> 메시지를 서로 주고받으며 경로를 협상. 모두 receiver 지정 1:1.</div>
+            </div>
+          </div>
+          <div class="hs-step p2p">
+            <div class="hs-num">✓</div>
+            <div>
+              <div class="hs-actor">운영자 ⇄ 로봇</div>
+              <div class="hs-title">P2P 연결 — NEXUS 데이터 경로 이탈</div>
+              <div class="hs-desc">미디어·DataChannel이 직결되면 NEXUS는 작은 시그널링 JSON만 중계할 뿐 데이터 흐름에서 빠진다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 8.</b> Robot-first 핸드셰이크 단계. ready만 브로드캐스트, offer/answer/candidate는 receiver 지정 1:1 라우팅이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 데이터 모델 & 레지스트리 ════════ -->
+<section class="section alt" id="registry">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Data Model &amp; Registry</span>
+      <h2 class="section-title">(robot_id, sub_id)로 캐시하고 robot_id로 묶기</h2>
+      <p class="section-lead"><span class="s">레지스트리는 <code class="inline">(robot_id, sub_id)</code> 키로 status를 upsert한다.</span><span class="s">보통 1 로봇 = 1 base = 1 피어지만, 드물게 물리적으로 분리된 디바이스는 별도 sub로 발행한다.</span></p>
+    </div>
+
+    <div class="prose">
+      <p>한 로봇이 여러 sub(또는 분리 디바이스)로 status를 따로 발행해도, <code class="inline">/api/robots</code>는 이를 <strong>robot_id 기준으로 묶어</strong> 한 로봇처럼 보여준다. 묶인 그룹의 <code class="inline">last_seen</code>은 sub들 중 가장 최신 시각이다. 드물게 물리적으로 갈라진 경우에는 <code class="inline">mobile_01.arm</code> 같은 피어 id로 구분한다. <code class="inline">robot_id</code>가 없는 status는 라우팅 불가로 폐기되며(경고 로그), 잘못된 메시지가 서버를 죽이지 않게 한다.</p>
+    </div>
+
+    <div class="figure mt-32">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr><th style="width:230px;">필드</th><th>설명</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">robots[]</td><td>등록된 로봇 배열. 각 항목은 <code class="inline">robot_id</code>로 묶인 한 로봇.</td></tr>
+            <tr><td class="mono">robots[].robot_id</td><td>로봇 식별자 (그룹 키).</td></tr>
+            <tr><td class="mono">robots[].subs</td><td><code class="inline">{ sub_id: entry }</code> 맵. 각 <code class="inline">entry</code>는 <code class="inline">robot_info</code> · <code class="inline">robot_state</code> · <code class="inline">mission_info</code>를 담는다.</td></tr>
+            <tr><td class="mono">robots[].last_seen</td><td><code class="inline">float</code> — 묶인 sub들 중 가장 최신 수신 시각.</td></tr>
+            <tr><td class="mono">server_time</td><td><code class="inline">float</code> — 응답 생성 시각. 클라이언트의 OFFLINE 판정 기준.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 9.</b> <code class="inline">/api/robots</code> 응답 구조. 각 sub 엔트리는 <code class="inline">robot_info · robot_state · mission_info</code>를 담고, 상위에 <code class="inline">server_time</code>이 동봉된다.</p>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><span class="s"><b>OFFLINE은 클라이언트가 판정한다.</b> NEXUS는 단정하지 않고, 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 인지로 스스로 판단한다.</span></div>
+    </div>
+
+    <div class="split mt-40">
+      <div class="split-box does">
+        <h4>✅ NEXUS가 하는 것</h4>
+        <div class="split-li"><span class="mk">📊</span><span><b>status 수집·캐시</b> — (robot_id, sub_id) upsert, robot_id로 그룹화 노출</span></div>
+        <div class="split-li"><span class="mk">🔀</span><span><b>WebRTC 시그널링 릴레이</b> — ready 브로드캐스트, offer/answer/candidate 1:1</span></div>
+        <div class="split-li"><span class="mk">🗂️</span><span><b>콕핏 게이트웨이</b> — 정적 서빙 + window.__COCKPIT__ 주입</span></div>
+        <div class="split-li"><span class="mk">🌐</span><span><b>사이트/맵 config 제공</b> — /api/sites로 트리 노출</span></div>
+      </div>
+      <div class="split-box not">
+        <h4>🚫 NEXUS가 하지 않는 것</h4>
+        <div class="split-li"><span class="mk">💾</span><span><b>제어·미디어 중계 X</b> — 카메라·DataChannel은 P2P 직결</span></div>
+        <div class="split-li"><span class="mk">📌</span><span><b>상태 원본 보유 X</b> — SSOT는 로봇(엣지). NEXUS는 사본</span></div>
+        <div class="split-li"><span class="mk">🗃️</span><span><b>영속 DB X (P1)</b> — in-memory dict. SQLite는 P2 옵션</span></div>
+        <div class="split-li"><span class="mk">🌍</span><span><b>다중 사이트 X</b> — P1은 single-site 가정</span></div>
+      </div>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><span class="s"><b>config는 정적이다.</b> <code class="inline">config.py</code>의 <code class="inline">SITES</code> dict를 시작 시 한 번 <code class="inline">SystemConfig</code>로 검증한다.</span><span class="s"><code class="inline">.env</code>·핫리로드 없음 — 값을 바꾸면 서버를 재시작한다.</span><span class="s">예: <code class="inline">{"itp": {"name":"인천테크노파크", "floors":{"1f":…, "2f":…}}}</code>.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ FleetMission (설계/P3 예정) ════════ -->
+<section class="section" id="fleet">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Roadmap · P3</span>
+      <h2 class="section-title">FleetMission — 설계 단계 (아직 미구현)</h2>
+      <p class="section-lead"><span class="s">다중 로봇 조율은 P3 백로그다.</span><span class="s">아래는 <strong>현재 코드에 없는</strong> 계획상의 설계이며, NEXUS의 현 책임은 status 캐시와 시그널링 릴레이까지다.</span></p>
+    </div>
+
+    <div class="prose">
+      <div class="note"><b>아직 빌드되지 않았습니다.</b> 본 절은 P3 백로그의 <b>설계 의도</b>를 정리한 것으로, v0.0.1 코드 경로에는 <code class="inline">FleetMissionRunner</code>·<code class="inline">FleetClient</code>가 존재하지 않습니다.</div>
+      <p class="mt-16">설계상 NEXUS는 <strong>스케줄링을 조율(orchestrate)</strong>한다. <code class="inline">FleetMissionRunner</code>가 <code class="inline">depends_on</code> 기반 DAG를 풀고, 로봇별 어댑터 <code class="inline">FleetClient</code>가 각 로봇과 통신한다. 단, 미션 <strong>실행 주체는 로봇(TOM)</strong>이며, 데이터 모델 자체는 <code class="inline">synapse</code>에 정의된다(NEXUS에 두지 않는다). NEXUS는 <code class="inline">robot.status.mission_info</code>를 통해 진행을 <em>모니터링</em>하고, <code class="inline">mission.trigger</code>로 미션을 던지는 역할에 머문다.</p>
+      <p>요약하면 — <strong>NEXUS는 던지고 지켜보고, 로봇이 실행한다.</strong> 점유·실패 복구 같은 실행 책임은 엣지에 남기는 것이 Edge-Authoritative 원칙과 일관된다.</p>
+    </div>
+
+    <div class="figure mt-32">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr><th style="width:210px;">계획 컴포넌트</th><th>설계상 책임 · P3 미구현</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">FleetMissionRunner</td><td><code class="inline">depends_on</code> 기반 DAG를 풀어 다중 로봇 미션을 <b>조율(orchestrate)</b>. 예: 이동 → 제조 → 전달 → 배송 순서를 의존성으로 묶는다.</td></tr>
+            <tr><td class="mono">FleetClient</td><td>로봇별 <b>어댑터</b> — 각 로봇과 통신해 미션을 던지고 진행을 읽어온다.</td></tr>
+            <tr><td>FleetMission (데이터 모델)</td><td><code class="inline">synapse</code>에 정의 — NEXUS가 소유하지 않는다.</td></tr>
+            <tr><td>NEXUS의 역할</td><td><code class="inline">mission.trigger</code>로 미션을 던지고, <code class="inline">robot.status.mission_info</code>로 진행을 <b>모니터링</b>한다.</td></tr>
+            <tr><td>로봇 (TOM)의 역할</td><td>실제 Task <b>실행</b> · 점유 · 실패 복구 — 실행 책임은 엣지에 남는다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 10.</b> FleetMission 설계 — <b>P3 백로그(미구현)</b>. 현 NEXUS는 조율 엔진 없이 status 캐시·시그널링까지만 구현돼 있다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ PREV / NEXT ════════ -->
+<div style="border-top:1px solid var(--border);padding:28px 0;">
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <a href="gerri.html#cockpit" class="btn btn-ghost btn-sm">← COCKPIT (GERRI)</a>
+    <a href="index.html" class="btn btn-sm" style="background:var(--acc);color:white;border-color:var(--acc);">홈으로 →</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="index.html" class="logo"><div class="logo-mark">S</div>SYNAPSE</a>
+      <p>KETI 지능로보틱스연구센터<br>STAR TEAM</p>
+    </div>
+    <div class="footer-col"><h4>컴포넌트</h4><ul>
+      <li><a href="synapse.html">synapse (표준)</a></li><li><a href="tom.html">TOM</a></li>
+      <li><a href="and.html">AND</a></li><li><a href="gerri.html">GERRI</a></li>
+      <li><a href="nexus.html">NEXUS</a></li><li><a href="gerri.html#cockpit">COCKPIT</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>바로가기</h4><ul>
+      <li><a href="#overview">개요</a></li>
+      <li><a href="#api">REST · WS API</a></li>
+      <li><a href="#relay">시그널링 릴레이</a></li>
+      <li><a href="#handshake">WebRTC 핸드셰이크</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>연락처</h4><ul>
+      <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>
+      <li><a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a></li>
+    </ul></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 한국전자기술연구원(KETI) 지능로보틱스연구센터. All rights reserved.</span>
+    <span>NEXUS · SYNAPSE Platform · v0.0.1</span>
+  </div>
+</footer>
+<script>function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}</script>
+</body>
+</html>

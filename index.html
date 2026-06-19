@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — 이기종 멀티로봇을 위한 End-to-End 원격조작·플릿 관제 플랫폼 | KETI</title>
+<meta name="description" content="SYNAPSE: status·command를 단일 메시지 표준으로 통일하여 1:1 원격조작과 N:N 플릿 관제를 하나의 코드베이스로 지원하는 멀티로봇 플랫폼. KETI 지능로보틱스연구센터 STAR TEAM.">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── teaser system diagram ── */
+.teaser { margin-top: 8px; }
+.constellation { position: relative; width: 420px; height: 360px; margin: 0 auto; }
+.c-center {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 92px; height: 92px; background: var(--acc); border-radius: 18px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  box-shadow: 0 10px 30px rgba(79,70,229,0.28); z-index: 10; color: white;
+}
+.c-center .nm { font-size: 12px; font-weight: 800; letter-spacing: 0.02em; }
+.c-center .sub { font-size: 9px; opacity: 0.8; }
+.c-node {
+  position: absolute; width: 78px; height: 70px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  border: 1px solid; background: #fff; transition: transform 0.18s, box-shadow 0.18s;
+}
+.c-node:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(21,24,30,0.10); }
+.c-node .ic { font-size: 19px; }
+.c-node .nm { font-size: 11px; font-weight: 800; }
+.c-node .rl { font-size: 9px; color: var(--text3); }
+.c-node.tom     { top: 6px;  left: 50%; transform: translateX(-50%); border-color: var(--tom-bd);     color: var(--tom); }
+.c-node.and_n   { top: 44%;  right: 0;  border-color: var(--and-bd);     color: var(--and); }
+.c-node.gerri   { bottom: 6px; right: 22%; border-color: var(--gerri-bd);   color: var(--gerri); }
+.c-node.nexus   { bottom: 6px; left: 22%; border-color: var(--nexus-bd);   color: var(--nexus); }
+.c-node.cockpit { top: 44%;  left: 0;   border-color: var(--cockpit-bd); color: var(--cockpit); }
+.c-node:hover .rl { color: var(--text2); }
+.c-lines { position: absolute; inset: 0; z-index: 0; }
+
+/* ── problem cards ── */
+.prob-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.prob-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 26px; }
+.prob-card.sol { background: var(--acc-l); border-color: var(--acc-bd); }
+.prob-num { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 12px; }
+.prob-card.sol .prob-num { color: var(--acc-d); }
+.prob-ic { font-size: 26px; margin-bottom: 12px; }
+.prob-title { font-size: 18.5px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 10px; }
+.prob-desc { font-size: 15.5px; color: var(--text2); line-height: 1.75; }
+.prob-desc strong { color: var(--ink); }
+
+/* ── all-in-one steps ── */
+.ao-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.ao-step { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 26px; text-align: center; position: relative; }
+.ao-arrow { position: absolute; right: -13px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--border2); z-index: 2; background: #fff; }
+.ao-num { width: 32px; height: 32px; border-radius: 50%; background: var(--acc); color: #fff; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.ao-ic { font-size: 28px; margin-bottom: 12px; }
+.ao-title { font-size: 17.5px; font-weight: 800; color: var(--ink); margin-bottom: 7px; }
+.ao-desc { font-size: 15px; color: var(--text2); line-height: 1.7; }
+
+/* ── architecture layers ── */
+.arch-layer { margin-bottom: 14px; }
+.arch-label {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
+}
+.arch-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.arch-nodes { display: flex; gap: 9px; flex-wrap: wrap; }
+.arch-node {
+  display: flex; flex-direction: column; gap: 2px; padding: 11px 16px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 700; border: 1px solid; background: #fff; white-space: nowrap;
+}
+.arch-node span { font-size: 11.5px; font-weight: 400; color: var(--text3); }
+.arch-node.syn     { background: var(--syn-l);     border-color: var(--syn-bd);     color: var(--syn); }
+.arch-node.tom_n   { background: var(--tom-l);     border-color: var(--tom-bd);     color: var(--tom); }
+.arch-node.nexus_n { background: var(--nexus-l);   border-color: var(--nexus-bd);   color: var(--nexus); }
+.arch-node.cockpit_n { background: var(--cockpit-l); border-color: var(--cockpit-bd); color: var(--cockpit); }
+.arch-node.gray    { background: var(--bg2); border-color: var(--border); color: var(--text2); }
+.arch-flow { display: flex; align-items: center; gap: 9px; padding: 5px 0 5px 22px; font-size: 12.5px; color: var(--text3); }
+.arch-flow .v { width: 1.5px; height: 18px; background: var(--border2); }
+
+/* ── dependency graph (visual, not code) ── */
+.dep { display: flex; flex-direction: column; align-items: center; }
+.dep-top { white-space: normal; text-align: center; }
+.dep-imp { display: flex; gap: 90px; justify-content: center; font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--syn); padding: 10px 0; letter-spacing: 0.03em; }
+.dep-row { display: flex; gap: 18px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+.dep-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.dep-branch { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text3); padding: 8px 0; }
+.dep .arch-node { white-space: normal; text-align: center; align-items: center; }
+
+/* ── component cards ── */
+.comp-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.comp-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg);
+  overflow: hidden; color: inherit; display: flex; flex-direction: column;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.comp-card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(21,24,30,0.08); }
+.comp-accent { height: 3px; }
+.comp-body { padding: 24px; flex: 1; }
+.comp-ic { font-size: 26px; margin-bottom: 12px; }
+.comp-name { font-size: 22.5px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 3px; }
+.comp-abbr { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.02em; color: var(--text3); margin-bottom: 13px; }
+.comp-desc { font-size: 15.5px; color: var(--text2); line-height: 1.75; margin-bottom: 15px; }
+.comp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.comp-foot { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.comp-foot .lk { font-size: 13.5px; font-weight: 700; }
+.comp-foot .ar { font-size: 16px; color: var(--text3); transition: transform 0.18s; }
+.comp-card:hover .ar { transform: translate(3px,-3px); }
+
+/* ── comms diagram ── */
+.comm-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.comm-box { flex: 1; text-align: center; padding: 20px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+.comm-box.hl { background: var(--acc-l); border-color: var(--acc-bd); }
+.comm-box .ic { font-size: 24px; margin-bottom: 8px; }
+.comm-box .ti { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.comm-box .su { font-size: 12.5px; color: var(--text3); line-height: 1.5; }
+.comm-conn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 6px; flex-shrink: 0; }
+.comm-line { width: 40px; height: 1.5px; background: var(--border2); }
+.comm-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+.p2p-row { margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--border2); display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.p2p-pill { background: var(--acc-l); border: 1px solid var(--acc-bd); border-radius: 8px; padding: 9px 18px; font-size: 13.5px; font-weight: 700; color: var(--acc-d); }
+.p2p-dash { flex: 1; max-width: 70px; height: 2px; background: repeating-linear-gradient(90deg, var(--acc-bd) 0, var(--acc-bd) 6px, transparent 6px, transparent 12px); }
+.p2p-label { font-size: 12.5px; color: var(--text3); text-align: center; line-height: 1.5; }
+.comm-notes { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 18px; }
+.comm-note { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.comm-note.hl { background: var(--acc-l); border-color: var(--acc-bd); }
+.comm-note .k { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+.comm-note.hl .k { color: var(--acc-d); }
+.comm-note .v { font-size: 15px; color: var(--text2); line-height: 1.7; }
+
+/* ── user layers ── */
+.user-layers { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.user-layer { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 24px; }
+.user-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; margin-bottom: 13px; }
+.user-title { font-size: 17.5px; font-weight: 800; color: var(--ink); margin-bottom: 3px; }
+.user-sub { font-family: var(--mono); font-size: 12px; color: var(--text3); margin-bottom: 11px; }
+.user-desc { font-size: 15px; color: var(--text2); line-height: 1.75; }
+
+/* ── mission tiers ── */
+.mtiers { display: flex; flex-direction: column; gap: 10px; }
+.mtier { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px; border-radius: 12px; border: 1px solid; }
+.mtier-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px; color: #fff; }
+.mtier-name { font-size: 16.5px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+.mtier-desc { font-size: 14.5px; color: var(--text2); line-height: 1.7; }
+.mtier-owner { font-family: var(--mono); font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 5px; flex-shrink: 0; margin-left: auto; align-self: flex-start; }
+.mdelegate { padding: 4px 0 4px 40px; font-size: 13px; color: var(--text3); }
+
+/* ── sprint phases ── */
+.phase-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 13px; }
+.phase-item { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.phase-item.goal { background: var(--acc-l); border-color: var(--acc-bd); }
+.phase-label { font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 8px; }
+.phase-title { font-size: 15.5px; font-weight: 700; color: var(--ink); margin-bottom: 7px; }
+.phase-desc { font-size: 13.5px; color: var(--text2); line-height: 1.65; }
+
+/* ── cta ── */
+.cta-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.cta-block {
+  border: 1px solid var(--border); border-radius: var(--r-lg); padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 10px; transition: border-color 0.18s, transform 0.18s; background: var(--white);
+}
+.cta-block:hover { border-color: var(--acc-bd); transform: translateY(-2px); }
+.cta-ic { font-size: 24px; }
+.cta-title { font-size: 18.5px; font-weight: 800; color: var(--ink); }
+.cta-desc { font-size: 14.5px; color: var(--text3); line-height: 1.65; }
+.cta-ar { font-size: 18px; color: var(--text3); margin-top: auto; padding-top: 8px; }
+
+@media (max-width: 900px) {
+  .prob-cards, .ao-steps, .comp-cards, .user-layers, .cta-grid, .comm-notes { grid-template-columns: 1fr; }
+  .phase-grid { grid-template-columns: 1fr 1fr; }
+  .ao-arrow { display: none; }
+  .constellation { width: 320px; height: 320px; }
+  .comm-row { flex-direction: column; }
+  .comm-conn { flex-direction: row; }
+  .comm-line { width: 1.5px; height: 30px; }
+}
+</style>
+</head>
+<body class="page-synapse">
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><div class="nav-logo-mark">S</div>SYNAPSE</a>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active">홈</a></li>
+    <li><a href="synapse.html">synapse</a></li>
+    <li><a href="tom.html">TOM</a></li>
+    <li><a href="and.html">AND</a></li>
+    <li><a href="gerri.html">GERRI</a></li>
+    <li><a href="nexus.html">NEXUS</a></li>
+    <li><a href="demo.html">체험해보기</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="https://github.com/keti-ai" target="_blank" class="nav-gh">GitHub</a>
+    <a href="mailto:khkim1207@keti.re.kr" class="nav-cta">문의</a>
+  </div>
+  <div class="nav-hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" onclick="toggleMenu()">홈</a>
+  <a href="synapse.html" onclick="toggleMenu()">synapse</a>
+  <a href="tom.html" onclick="toggleMenu()">TOM</a>
+  <a href="and.html" onclick="toggleMenu()">AND</a>
+  <a href="gerri.html" onclick="toggleMenu()">GERRI</a>
+  <a href="nexus.html" onclick="toggleMenu()">NEXUS</a>
+  <a href="demo.html" onclick="toggleMenu()">체험해보기</a>
+  <a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a>
+</div>
+
+<!-- ════════ HERO ════════ -->
+<header class="paper-hero">
+  <div class="paper-hero-bg"></div>
+  <div class="container">
+    <div class="venue">KETI 지능로보틱스연구센터 · STAR TEAM · Technical Report 2026</div>
+    <h1 class="hero-title"><span class="hl">SYNAPSE</span></h1>
+    <p class="hero-tagline">이기종 멀티로봇을 위한 End-to-End 원격조작·플릿 관제 플랫폼</p>
+    <p class="hero-sub-en">A Unified Message Standard for Heterogeneous Multi-Robot Tele-Operation &amp; Fleet Management</p>
+
+    <div class="authors">
+      <b>synapse</b><sup>1</sup>&nbsp;·&nbsp;
+      <b>tom_and_gerri</b><sup>2</sup>&nbsp;·&nbsp;
+      <b>nexus</b><sup>3</sup>&nbsp;·&nbsp;
+      <b>nexus_ui</b><sup>4</sup>&nbsp;·&nbsp;
+      <b>tag_{robot}</b><sup>★</sup>
+    </div>
+    <div class="affil">
+      <sup>1</sup>공통 표준 (pip)&nbsp;&nbsp;
+      <sup>2</sup>온-로봇 제어 SW (GERRI·AND)&nbsp;&nbsp;
+      <sup>3</sup>플릿 관제 서버&nbsp;&nbsp;
+      <sup>4</sup>관제 프론트엔드&nbsp;&nbsp;
+      <sup>★</sup>로봇별 구현 레포
+    </div>
+
+    <div class="pub-links">
+      <a href="https://github.com/keti-ai" target="_blank" class="pill"><span class="ic">⭐</span> GitHub</a>
+      <a href="demo.html" class="pill acc"><span class="ic">🎮</span> 체험 데모</a>
+      <a href="#abstract" class="pill ghost"><span class="ic">📄</span> 개요</a>
+      <a href="#architecture" class="pill ghost"><span class="ic">🗂️</span> 아키텍처</a>
+      <a href="#components" class="pill ghost"><span class="ic">🧩</span> 컴포넌트</a>
+      <a href="mailto:khkim1207@keti.re.kr" class="pill ghost"><span class="ic">✉️</span> 문의</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="hero-stat-num">6</span><span class="hero-stat-label">핵심 컴포넌트</span></div>
+      <div class="hero-stat"><span class="hero-stat-num">6</span><span class="hero-stat-label">표준 메시지 토픽</span></div>
+      <div class="hero-stat"><span class="hero-stat-num">1:1 · N:N</span><span class="hero-stat-label">조작 + 플릿 동시</span></div>
+      <div class="hero-stat"><span class="hero-stat-num">E2E</span><span class="hero-stat-label">End-to-End 플랫폼</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ════════ TEASER FIGURE ════════ -->
+<section class="section" style="padding-top:24px;">
+  <div class="container">
+    <div class="figure">
+      <div class="figure-frame teaser">
+        <div class="constellation">
+          <svg class="c-lines" viewBox="0 0 420 360" fill="none">
+            <line x1="210" y1="180" x2="210" y2="40"  stroke="#dfe2e8" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <line x1="210" y1="180" x2="382" y2="172" stroke="#dfe2e8" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <line x1="210" y1="180" x2="38"  y2="172" stroke="#dfe2e8" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <line x1="210" y1="180" x2="118" y2="320" stroke="#dfe2e8" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <line x1="210" y1="180" x2="302" y2="320" stroke="#dfe2e8" stroke-width="1.5" stroke-dasharray="4 5"/>
+          </svg>
+          <div class="c-center">
+            <span class="sub">import</span>
+            <span class="nm">synapse</span>
+            <span class="sub">표준</span>
+          </div>
+          <a href="tom.html"     class="c-node tom"><span class="ic">🖥️</span><span class="nm">TOM</span><span class="rl">물리 HW</span></a>
+          <a href="and.html"     class="c-node and_n"><span class="ic">🌐</span><span class="nm">AND</span><span class="rl">네트워크</span></a>
+          <a href="gerri.html"   class="c-node gerri"><span class="ic">🎮</span><span class="nm">GERRI</span><span class="rl">제어 SW</span></a>
+          <a href="nexus.html"   class="c-node nexus"><span class="ic">🗄️</span><span class="nm">NEXUS</span><span class="rl">플릿 서버</span></a>
+          <a href="gerri.html#cockpit" class="c-node cockpit"><span class="ic">🕹️</span><span class="nm">COCKPIT</span><span class="rl">1:1 조작</span></a>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 1.</b> SYNAPSE 시스템 개요. 모든 컴포넌트는 중심의 <code class="inline">synapse</code> 표준을 <em>import</em> 하여 동일한 status·command 인터페이스로 대화한다. 의존성은 언제나 안쪽(표준)을 향한다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ ABSTRACT ════════ -->
+<section class="section alt" id="abstract">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Abstract</span>
+      <h2 class="section-title">하나의 메시지 표준, 두 가지 운용 모드</h2>
+    </div>
+    <div class="prose">
+      <p class="lead-para"><strong>status·command를 통일하면, 어떤 관제 화면이든 모든 로봇을 같은 인터페이스로 다룰 수 있다.</strong></p>
+      <p>SYNAPSE는 모바일·매니퓰레이터·휴머노이드 등 <strong>이기종 멀티로봇</strong>을 단일 메시지 표준(<code class="inline">synapse</code>)으로 추상화하는 플랫폼이다. 로봇에 <code class="inline">tom_and_gerri</code>를 설치하는 것만으로 표준 status/command가 자동으로 노출되며, 별도 서버 연동 작업 없이 <strong>1:1 원격조작(COCKPIT)</strong>과 <strong>N:N 플릿 관제(NEXUS)</strong>가 하나의 코드베이스 위에서 동시에 활성화된다.</p>
+      <p>설계의 중심에는 <strong>클린 아키텍처</strong>가 있다. 모든 컴포넌트는 가장 안쪽의 <code class="inline">synapse</code> 표준을 import하고, 의존성은 언제나 안쪽을 향한다. 전송 계층(WebRTC), GUI, 데이터베이스, 로봇 SDK는 모두 바깥의 교체 가능한 세부사항이다. 상태의 <em>원본</em>은 로봇(엣지)이 소유하고, 서버는 그 사본(뷰)만 캐시한다 — <strong>Edge-Authoritative</strong> 원칙이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ MOTIVATION ════════ -->
+<section class="section" id="motivation">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Motivation</span>
+      <h2 class="section-title">왜 이 프로젝트인가 — 마주한 문제</h2>
+      <p class="section-lead"><span class="s">이 스프린트는 비용이 크지만, 얻는 것이 더 크다.</span><span class="s">SYNAPSE는 <strong>기술 표준</strong>과 <strong>팀 문화</strong> 둘 다를 겨냥한다.</span></p>
+    </div>
+    <div class="prob-cards">
+      <div class="prob-card">
+        <div class="prob-num">PROBLEM 01</div>
+        <div class="prob-ic">🏝️</div>
+        <div class="prob-title">정보 섬 (Information Islands)</div>
+        <div class="prob-desc">rubberneck, tom_and_gerri, solar … 각 프로젝트가 작은 섬을 만든다. 섬마다 정보가 따로 흐르고 서로 연결되지 않는다.<br><br>
+          <strong>파편화</strong> — 같은 일이 흩어짐<br>
+          <strong>중복</strong> — 같은 정보를 따로 보관<br>
+          <strong>왜곡</strong> — 섬마다 조금씩 달라짐</div>
+      </div>
+      <div class="prob-card">
+        <div class="prob-num">PROBLEM 02</div>
+        <div class="prob-ic">🔀</div>
+        <div class="prob-title">코드 패턴 불일치</div>
+        <div class="prob-desc">호환성보다 "일단 되게"에 급급한 결과 패턴이 제각각이다.<br><br>
+          <strong>예 — MCAP 빌더:</strong> dict로 status를 관리하다 MCAP 저장을 위해 Pydantic으로 바꿨지만 내부는 여전히 dict. 결국 로봇마다 Pydantic·dict 혼재.<br><br>
+          → 이해·확장 비용 폭증. 안 쓰는 코드는 또 하나의 섬.</div>
+      </div>
+      <div class="prob-card sol">
+        <div class="prob-num">SOLUTION</div>
+        <div class="prob-ic">🤝</div>
+        <div class="prob-title">표준 + 문화, 둘 다</div>
+        <div class="prob-desc"><strong>Technical:</strong> <code class="inline">synapse</code>가 메시지·status·자료구조를 통일해 섬을 잇는다. <code class="inline">standardize()</code>가 dict·Pydantic 모두 수용 → 전면 재작성 없이 점진 마이그레이션.<br><br>
+          <strong>Cultural:</strong> 주(2주) 단위 랩 세미나로 최신 기술·큰 변경점을 공유하고 함께 브레인스토밍한다.</div>
+      </div>
+    </div>
+    <div class="prose mt-32">
+      <div class="note"><span class="s"><b>핵심:</b> 표준이 섬을 잇고, 소통이 표준을 살아있게 한다.</span><span class="s">최소 한 명 이상은 이 SW 아키텍처를 전부 이해하고, 수요에 맞게 필요/불필요를 조정할 수 있어야 한다.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ ALL-IN-ONE ════════ -->
+<section class="section alt" id="overview">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Key Concept</span>
+      <h2 class="section-title">올인원 — 설치 즉시 플릿의 일부</h2>
+      <p class="section-lead"><span class="s">로봇에 <code class="inline">tom_and_gerri</code>를 설치하면 <code class="inline">synapse</code> 표준 status/command가 자동 노출된다.</span><span class="s">별도 작업 없이 NEXUS 플릿에서 즉시 관제 가능 — 한 번의 설치로 <span class="nb">1:1 + N:N 동시 ON.</span></span></p>
+    </div>
+    <div class="ao-steps">
+      <div class="ao-step">
+        <div class="ao-arrow">→</div>
+        <div class="ao-num">1</div>
+        <div class="ao-ic">🖥️</div>
+        <div class="ao-title">tom_and_gerri 설치</div>
+        <div class="ao-desc">로봇 위 TOM(물리 HW)에 코어 SW를 올리고, SubController를 작성해 로봇 SDK와 연결한다.</div>
+      </div>
+      <div class="ao-step">
+        <div class="ao-arrow">→</div>
+        <div class="ao-num">2</div>
+        <div class="ao-ic">📡</div>
+        <div class="ao-title">표준 자동 노출</div>
+        <div class="ao-desc"><code class="inline">synapse</code> 메시지 표준대로 status·command를 자동 발행한다. 별도 서버 연동 작업 불필요.</div>
+      </div>
+      <div class="ao-step">
+        <div class="ao-num">3</div>
+        <div class="ao-ic">🗄️</div>
+        <div class="ao-title">플릿 자동 관제</div>
+        <div class="ao-desc">NEXUS가 즉시 인식. 1:1 COCKPIT 조작과 N:N 플릿 관제가 동시에 활성화된다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ ARCHITECTURE ════════ -->
+<section class="section" id="architecture">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Architecture</span>
+      <h2 class="section-title">클린 아키텍처 — 의존성은 안쪽으로</h2>
+      <p class="section-lead"><span class="s">바깥은 교체 가능한 세부사항, 안쪽은 안정적인 표준.</span><span class="s">의존 화살표는 항상 바깥에서 안쪽을 향하며, 안쪽은 바깥을 모른다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="arch-layer">
+          <div class="arch-label">세부 · 교체 가능 (바깥)</div>
+          <div class="arch-nodes">
+            <div class="arch-node gray">🌐 WebRTC <span>전송 — 교체 가능</span></div>
+            <div class="arch-node gray">🤖 로봇 SDK <span>벤더별</span></div>
+            <div class="arch-node gray">🖥️ Web GUI <span>Vanilla JS</span></div>
+            <div class="arch-node gray">🥽 Unity / VR <span>입력 장치</span></div>
+            <div class="arch-node gray">🗄️ DB <span>in-memory → SQLite</span></div>
+          </div>
+        </div>
+        <div class="arch-flow"><div class="v"></div><span>의존 방향 (바깥 → 안쪽). 안쪽은 바깥을 모른다.</span></div>
+        <div class="arch-layer">
+          <div class="arch-label">구현 레이어</div>
+          <div class="arch-nodes">
+            <a href="gerri.html"   class="arch-node tom_n">🖥️ tom_and_gerri <span>단일 로봇 제어 코어</span></a>
+            <a href="nexus.html"   class="arch-node nexus_n">🗄️ nexus <span>플릿 관제 서버</span></a>
+            <a href="gerri.html#cockpit" class="arch-node cockpit_n">🕹️ COCKPIT <span>1:1 조작 UI</span></a>
+            <div class="arch-node gray">📊 nexus_ui <span>N:N 대시보드</span></div>
+          </div>
+        </div>
+        <div class="arch-flow"><div class="v"></div><span><code class="inline">import synapse</code> — 모두가 이 표준에 의존</span></div>
+        <div class="arch-layer" style="margin-bottom:0;">
+          <div class="arch-label">표준 · 중심 (안쪽) — 가장 안정적으로 관리</div>
+          <div class="arch-nodes">
+            <a href="synapse.html" class="arch-node syn" style="white-space:normal;">🧠 synapse <span>Topics · Messages(6) · Enums(6) · 자료구조 · 미션 모델 · standardize()</span></a>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 2.</b> 레이어드 클린 아키텍처. <code class="inline">synapse</code>는 정의만 담고 실행 로직이 없다 — 여기를 바꾸면 전체가 흔들리므로 가장 신중히 관리된다.</p>
+    </div>
+
+    <div class="figure mt-40">
+      <div class="figure-frame">
+        <div class="dep">
+          <a href="synapse.html" class="arch-node syn dep-top">🧠 synapse <span>공통 표준 · pip · 모두가 import</span></a>
+          <div class="dep-imp"><span>▲ import</span><span>▲ import</span><span>▲ import</span></div>
+          <div class="dep-row">
+            <div class="dep-col">
+              <a href="gerri.html" class="arch-node tom_n">🖥️ tom_and_gerri <span>온-로봇 제어 코어</span></a>
+              <div class="dep-branch">▲ import + clone</div>
+              <div class="arch-node gray">📦 tag_{robot_name} <span>로봇별 별도 레포</span></div>
+            </div>
+            <a href="nexus.html" class="arch-node nexus_n">🗄️ nexus <span>플릿 관제 서버</span></a>
+            <div class="arch-node gray">📊 nexus_ui <span>관제 프론트엔드</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 3.</b> 레포 의존 그래프. <code class="inline">nexus</code>는 <code class="inline">tom_and_gerri</code>·<code class="inline">tag</code> <span class="nb">코드를 import하지 않는다</span> — 오직 <span class="nb">네트워크 표준으로만 대화한다</span><span class="nb">(코드 결합도 0).</span> <code class="inline">tag</code>는 <code class="inline">gerri/</code> 밑에 clone(submodule 아님).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ COMPONENTS ════════ -->
+<section class="section alt" id="components">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Components</span>
+      <h2 class="section-title">6개의 핵심 컴포넌트</h2>
+      <p class="section-lead"><span class="s">각 컴포넌트는 명확한 단일 책임을 가진다.</span><span class="s"><strong class="nb">TAG = TOM + AND + GERRI</strong>, <span class="nb">한 로봇 분(分)의 묶음이다.</span></span></p>
+    </div>
+    <div class="comp-cards">
+      <a href="synapse.html" class="comp-card">
+        <div class="comp-accent" style="background:var(--syn);"></div>
+        <div class="comp-body">
+          <div class="comp-ic">🧠</div>
+          <div class="comp-name" style="color:var(--syn);">synapse</div>
+          <div class="comp-abbr">공통 표준 레이어 · pip 패키지</div>
+          <div class="comp-desc">모든 컴포넌트가 import하는 중심 표준. Topics, Messages 6종, Enums 6개, 자료구조, 미션 모델, <code class="inline">standardize()</code>를 정의한다. 정의만 하고 실행 로직은 없다.</div>
+          <div class="comp-chips"><span class="chip">Topics</span><span class="chip">Messages·6</span><span class="chip">Enums·6</span><span class="chip">standardize()</span></div>
+        </div>
+        <div class="comp-foot"><span class="lk" style="color:var(--syn);">자세히 보기</span><span class="ar">↗</span></div>
+      </a>
+      <a href="tom.html" class="comp-card">
+        <div class="comp-accent" style="background:var(--tom);"></div>
+        <div class="comp-body">
+          <div class="comp-ic">🖥️</div>
+          <div class="comp-name" style="color:var(--tom);">TOM</div>
+          <div class="comp-abbr">Tele-operation Module · 물리 HW</div>
+          <div class="comp-desc">로봇에 1:1로 부착되는 물리 컴퓨팅 모듈(NUC·Jetson 등). tom_and_gerri SW를 구동하는 현장 엣지 장치이자 <strong>상태 원본의 소유자</strong>.</div>
+          <div class="comp-chips"><span class="chip">NUC / Jetson</span><span class="chip">Edge Device</span><span class="chip">Edge-Authoritative</span></div>
+        </div>
+        <div class="comp-foot"><span class="lk" style="color:var(--tom);">자세히 보기</span><span class="ar">↗</span></div>
+      </a>
+      <a href="and.html" class="comp-card">
+        <div class="comp-accent" style="background:var(--and);"></div>
+        <div class="comp-body">
+          <div class="comp-ic">🌐</div>
+          <div class="comp-name" style="color:var(--and);">AND</div>
+          <div class="comp-abbr">Adaptive Network Daemon · 외부 통신</div>
+          <div class="comp-desc">외부 통신 전담 데몬(<code class="inline">_and_/</code>). 현재 WebRTC(rtc2kng) 기반. 내부 버스(pypubsub)와 완전 분리되어 전송 방식 교체 시 GERRI 로직 불변. Sub는 AND 직접 사용 금지.</div>
+          <div class="comp-chips"><span class="chip">WebRTC</span><span class="chip">pypubsub 브리지</span><span class="chip">Transport 독립</span></div>
+        </div>
+        <div class="comp-foot"><span class="lk" style="color:var(--and);">자세히 보기</span><span class="ar">↗</span></div>
+      </a>
+      <a href="gerri.html" class="comp-card">
+        <div class="comp-accent" style="background:var(--gerri);"></div>
+        <div class="comp-body">
+          <div class="comp-ic">🎮</div>
+          <div class="comp-name" style="color:var(--gerri);">GERRI</div>
+          <div class="comp-abbr">Global Extended Remote Robot Interface · 제어 SW</div>
+          <div class="comp-desc">로봇 제어 SW 패밀리. <strong>Base</strong>(게이트웨이·분배·base_state 파생) / <strong>Sub</strong>(Capability 구현, 외부 통신 모름) / <strong>Mission</strong>(시퀀스) 3계층.</div>
+          <div class="comp-chips"><span class="chip">BaseController</span><span class="chip">SubController</span><span class="chip">MissionRunner</span></div>
+        </div>
+        <div class="comp-foot"><span class="lk" style="color:var(--gerri);">자세히 보기</span><span class="ar">↗</span></div>
+      </a>
+      <a href="nexus.html" class="comp-card">
+        <div class="comp-accent" style="background:var(--nexus);"></div>
+        <div class="comp-body">
+          <div class="comp-ic">🗄️</div>
+          <div class="comp-name" style="color:var(--nexus);">NEXUS</div>
+          <div class="comp-abbr">플릿 관제 서버 · 게이트웨이</div>
+          <div class="comp-desc">N:N 다중로봇 통합 관제 + 원격 접속 게이트웨이. <strong>FastAPI + Uvicorn</strong>, 상태는 in-memory 레지스트리(P2 SQLite). API-first. <code class="inline">python -m nexus</code> 단일 명령 기동.</div>
+          <div class="comp-chips"><span class="chip">FastAPI</span><span class="chip">/ws/{room}</span><span class="chip">API-first</span><span class="chip">Single-site</span></div>
+        </div>
+        <div class="comp-foot"><span class="lk" style="color:var(--nexus);">자세히 보기</span><span class="ar">↗</span></div>
+      </a>
+      <a href="gerri.html#cockpit" class="comp-card">
+        <div class="comp-accent" style="background:var(--cockpit);"></div>
+        <div class="comp-body">
+          <div class="comp-ic">🕹️</div>
+          <div class="comp-name" style="color:var(--cockpit);">COCKPIT</div>
+          <div class="comp-abbr">1:1 원격 조작 UI · WebRTC P2P</div>
+          <div class="comp-desc">단일 로봇과 WebRTC P2P로 직결되는 1:1 조작 인터페이스. <code class="inline">window.__COCKPIT__</code> 설정 주입으로 동작. Standalone / NEXUS-context 두 모드.</div>
+          <div class="comp-chips"><span class="chip">WebRTC P2P</span><span class="chip">1:1</span><span class="chip">config 주입</span><span class="chip">tag별 커스텀</span></div>
+        </div>
+        <div class="comp-foot"><span class="lk" style="color:var(--cockpit);">자세히 보기</span><span class="ar">↗</span></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ COMMUNICATION ════════ -->
+<section class="section" id="comms">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Communication</span>
+      <h2 class="section-title">3-Way Hybrid 통신</h2>
+      <p class="section-lead"><span class="s">NEXUS는 시그널링 중계와 대시보드 캐시만 담당한다.</span><span class="s">실제 제어·미디어 데이터는 WebRTC P2P로 직결되어 NEXUS를 거치지 않는다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="comm-row">
+          <div class="comm-box">
+            <div class="ic">🧑‍💻</div>
+            <div class="ti">사용자 / COCKPIT</div>
+            <div class="su">웹 브라우저<br>WebRTC Client</div>
+          </div>
+          <div class="comm-conn"><div class="comm-line"></div><div class="comm-lbl">WS 시그널링 (idle)</div></div>
+          <div class="comm-box hl">
+            <div class="ic">🗄️</div>
+            <div class="ti" style="color:var(--acc-d);">NEXUS</div>
+            <div class="su">시그널링 중계<br>상태 캐시</div>
+          </div>
+          <div class="comm-conn"><div class="comm-line"></div><div class="comm-lbl">WS 지속 연결</div></div>
+          <div class="comm-box">
+            <div class="ic">🖥️</div>
+            <div class="ti">TOM (AND 포함)</div>
+            <div class="su">status 푸시<br>command 수신</div>
+          </div>
+        </div>
+        <div class="p2p-row">
+          <div class="p2p-pill">🧑‍💻 사용자</div>
+          <div class="p2p-dash"></div>
+          <div class="p2p-label">WebRTC P2P 직결<br>모든 데이터·미디어·제어 (NEXUS 안 거침)</div>
+          <div class="p2p-dash"></div>
+          <div class="p2p-pill">🖥️ TOM (로봇)</div>
+        </div>
+        <div class="comm-notes">
+          <div class="comm-note">
+            <div class="k">NEXUS ↔ TOM</div>
+            <div class="v">WebSocket <strong>지속 연결</strong>(<code class="inline">/ws/{robot_id}</code>). status·mission_event 푸시, 명령 수신, 시그널링 중계. TOM이 outbound로 접속.</div>
+          </div>
+          <div class="comm-note">
+            <div class="k">사용자 ↔ NEXUS</div>
+            <div class="v">WebSocket <strong>시그널링·핑퐁만</strong>. WebRTC 핸드셰이크 후 거의 idle. 실제 데이터는 P2P로 직결.</div>
+          </div>
+          <div class="comm-note hl">
+            <div class="k">사용자 ↔ TOM (P2P)</div>
+            <div class="v"><strong>WebRTC 직결</strong>. 카메라·오디오·DataChannel. 저지연 제어. NEXUS는 데이터 흐름에서 빠진다.</div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 4.</b> 3-Way Hybrid 통신 구조. 시그널링은 NEXUS가 <em>sender/receiver만 보고</em> JSON을 그대로 중계하며, 핸드셰이크 이후 제어·미디어는 P2P로 빠진다.</p>
+    </div>
+
+    <div class="section-head mt-48">
+      <h2 class="section-title" style="font-size:clamp(24px,2.6vw,32px);">사용자 3계층 — 역할이지 고정 위치 아님</h2>
+      <p class="section-lead"><span class="s">2 ⇄ 3 전환은 클릭 한 번.</span><span class="s">N:N 관제와 1:1 조작 사이를 지연·재접속 없이 오간다.</span></p>
+    </div>
+    <div class="user-layers">
+      <div class="user-layer">
+        <div class="user-num" style="background:var(--bg2);color:var(--text2);">1</div>
+        <div class="user-title">현장 관리자</div>
+        <div class="user-sub">Local · LAN 직접 접속</div>
+        <div class="user-desc">사이트 현장에서 LAN으로 NEXUS에 직접 접속. 지연 없이 로봇 상태 확인 및 간단 조작.</div>
+      </div>
+      <div class="user-layer">
+        <div class="user-num" style="background:var(--nexus-l);color:var(--nexus);">2</div>
+        <div class="user-title">서버 관제사</div>
+        <div class="user-sub">WebSocket · N:N 플릿</div>
+        <div class="user-desc">NEXUS 관제 UI로 전체 플릿 N:N 모니터링. 미션 조작·스케줄링. 특정 로봇 클릭 → 1:1 전환.</div>
+      </div>
+      <div class="user-layer">
+        <div class="user-num" style="background:var(--acc-l);color:var(--acc);">3</div>
+        <div class="user-title">1:1 원격 관제사</div>
+        <div class="user-sub">WebRTC · COCKPIT</div>
+        <div class="user-desc">대시보드에서 로봇 클릭 → 즉시 WebRTC P2P COCKPIT 진입. 카메라·조이스틱으로 정밀 원격 조작.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ MISSION ════════ -->
+<section class="section alt" id="mission">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Mission System</span>
+      <h2 class="section-title">3계층 미션 구조</h2>
+      <p class="section-lead"><span class="s">"실패는 정상, 인간 개입 우선."</span><span class="s">FleetMission → RobotMission → Task 순으로 위임한다.</span><span class="s">Python 함수·JSON·REST 모두 지원.</span></p>
+    </div>
+    <div class="g2" style="align-items:start;gap:28px;">
+      <div>
+        <div class="mtiers">
+          <div class="mtier" style="background:var(--nexus-l);border-color:var(--nexus-bd);">
+            <div class="mtier-num" style="background:var(--nexus);">1</div>
+            <div>
+              <div class="mtier-name">FleetMission</div>
+              <div class="mtier-desc">다중 로봇 조율. FleetTask 그래프(DAG)를 <code class="inline">depends_on</code>으로 정의. <em>설계상 NEXUS가 조율 담당(P3 예정)</em>, 로봇 점유는 TOM 책임.</div>
+            </div>
+            <div class="mtier-owner" style="background:#fff;color:var(--nexus);">NEXUS</div>
+          </div>
+          <div class="mdelegate">▼ RobotMission 위임</div>
+          <div class="mtier" style="background:var(--gerri-l);border-color:var(--gerri-bd);">
+            <div class="mtier-num" style="background:var(--gerri);">2</div>
+            <div>
+              <div class="mtier-name">RobotMission</div>
+              <div class="mtier-desc">단일 로봇의 Task 시퀀스 실행. <code class="inline">MissionRunner</code>가 관리. 상태는 로봇 측 보유 → 재접속 시 자동 복구. 개입: NEED_HELP → TELEOP → resume/abort.</div>
+            </div>
+            <div class="mtier-owner" style="background:#fff;color:var(--gerri);">GERRI</div>
+          </div>
+          <div class="mdelegate">▼ Task 실행</div>
+          <div class="mtier" style="background:var(--syn-l);border-color:var(--syn-bd);">
+            <div class="mtier-num" style="background:var(--syn);">3</div>
+            <div>
+              <div class="mtier-name">Task (5가지 타입)</div>
+              <div class="mtier-desc"><strong>capability</strong>(SDK 호출) · <strong>wait_input</strong>(입력 대기) · <strong>wait_teleop</strong>(텔레옵 호출) · <strong>notify</strong>(알림) · <strong>func</strong>(임의 Python). 헬퍼로 간결 정의.</div>
+            </div>
+            <div class="mtier-owner" style="background:#fff;color:var(--syn);">synapse</div>
+          </div>
+        </div>
+        <div class="card mt-20" style="padding:20px;">
+          <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:12px;">입력 형식 3가지 모두 지원</div>
+          <div style="display:flex;flex-direction:column;gap:9px;font-size:14px;color:var(--text2);">
+            <div>🐍 <strong style="color:var(--ink);">Python 함수</strong> — 직접 정의 (가장 유연)</div>
+            <div>📄 <strong style="color:var(--ink);">JSON mission_pack</strong> — 사이트·고객별 분리 파일</div>
+            <div>🌐 <strong style="color:var(--ink);">REST API</strong> — 동적 실행</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p style="font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.04em;color:var(--text3);margin-bottom:12px;">FleetMission — 커피 배달 예시 (DAG)</p>
+        <div class="code-block">
+          <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">synapse.missions 헬퍼</span></div>
+          <pre><code><span class="kw">def</span> <span class="fn">coffee_delivery</span>() -> <span class="cn">FleetMission</span>:
+    <span class="kw">return</span> <span class="cn">FleetMission</span>(
+        name=<span class="str">"coffee_delivery"</span>, site=<span class="str">"itp"</span>,
+        tasks={
+            <span class="str">"go"</span>:       <span class="fn">call</span>(<span class="str">"mobile_01"</span>, <span class="str">"go_to_coffee"</span>),
+            <span class="str">"make"</span>:     <span class="fn">call</span>(<span class="str">"coffee_01"</span>, <span class="str">"make_americano"</span>,
+                          depends_on=[<span class="str">"go"</span>]),
+            <span class="str">"transfer"</span>: <span class="fn">call</span>(<span class="str">"arm_01"</span>, <span class="str">"transfer_cup"</span>,
+                          depends_on=[<span class="str">"make"</span>]),
+            <span class="str">"deliver"</span>:  <span class="fn">call</span>(<span class="str">"mobile_01"</span>, <span class="str">"go_to_dest"</span>,
+                          depends_on=[<span class="str">"transfer"</span>]),
+        })</code></pre>
+        </div>
+        <p style="font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.04em;color:var(--text3);margin:18px 0 12px;">RobotMission — 5층→1층 배달</p>
+        <div class="code-block">
+          <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">synapse.missions 헬퍼</span></div>
+          <pre><code><span class="kw">def</span> <span class="fn">delivery_5f_to_1f</span>() -> <span class="cn">RobotMission</span>:
+    <span class="kw">return</span> <span class="cn">RobotMission</span>(name=<span class="str">"delivery"</span>, tasks=[
+        <span class="fn">cap</span>(<span class="str">"undock"</span>, <span class="str">"undock"</span>),
+        <span class="fn">cap</span>(<span class="str">"go"</span>, <span class="str">"navigate_to_pose"</span>, x=<span class="num">1.0</span>, y=<span class="num">2.0</span>),
+        <span class="fn">wait_input</span>(<span class="str">"confirm"</span>, prompt=<span class="str">"도착했나요?"</span>,
+                   buttons={<span class="str">"yes"</span>: <span class="str">"예"</span>}),
+        <span class="fn">cap</span>(<span class="str">"dock"</span>, <span class="str">"dock"</span>),
+        <span class="fn">notify</span>(<span class="str">"done"</span>, <span class="str">"배달 완료"</span>),
+    ])</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ SPRINT ════════ -->
+<section class="section" id="sprint">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Current Sprint</span>
+      <h2 class="section-title">목표: NEXUS UI 조작으로 모바일 로봇을 실제로 움직인다</h2>
+      <p class="section-lead"><span class="s">완료 기준 — status 수신 + command 반영 + 이동 + N:N→1:1 전환까지 End-to-End.</span><span class="s">가능한 항목은 테스트를 먼저 짜는 TDD 기반.</span></p>
+    </div>
+    <div class="phase-grid">
+      <div class="phase-item">
+        <div class="phase-label" style="color:var(--syn);">PHASE 0</div>
+        <div class="phase-title">synapse 단위 테스트</div>
+        <div class="phase-desc">normalize/standardize · build_message · mission 직렬화 · capability 매칭. 전체의 토대.</div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-label" style="color:var(--tom);">PHASE 1</div>
+        <div class="phase-title">로봇 연결</div>
+        <div class="phase-desc">base/sub 작성·구동 · 로컬 단독 command·mission 실행 확인.</div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-label" style="color:var(--nexus);">PHASE 2</div>
+        <div class="phase-title">서버 연결</div>
+        <div class="phase-desc">NEXUS 연결/끊김 · status · command · 재접속 확인.</div>
+      </div>
+      <div class="phase-item goal">
+        <div class="phase-label" style="color:var(--acc-d);">PHASE 3 🎯</div>
+        <div class="phase-title">프론트 UI</div>
+        <div class="phase-desc">실시간·재연결 + UI 명령→로봇 실제 이동 + N:N→1:1 전환 E2E.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ CTA ════════ -->
+<section class="section alt" id="contact">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Resources</span>
+      <h2 class="section-title">더 알아보기</h2>
+    </div>
+    <div class="cta-grid">
+      <a href="https://github.com/keti-ai" target="_blank" class="cta-block">
+        <div class="cta-ic">⭐</div>
+        <div class="cta-title">GitHub에서 보기</div>
+        <div class="cta-desc">synapse · tom_and_gerri · nexus · nexus_ui 레포 소스코드</div>
+        <div class="cta-ar">→</div>
+      </a>
+      <a href="synapse.html" class="cta-block">
+        <div class="cta-ic">📖</div>
+        <div class="cta-title">컴포넌트 상세 문서</div>
+        <div class="cta-desc">메시지 6종 · Enum 카탈로그 · Capability 컨벤션 · API</div>
+        <div class="cta-ar">→</div>
+      </a>
+      <a href="mailto:khkim1207@keti.re.kr" class="cta-block">
+        <div class="cta-ic">✉️</div>
+        <div class="cta-title">문의하기</div>
+        <div class="cta-desc">김강현 연구원 · khkim1207@keti.re.kr</div>
+        <div class="cta-ar">→</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="index.html" class="logo"><div class="logo-mark">S</div>SYNAPSE</a>
+      <p>KETI 지능로보틱스연구센터<br>STAR TEAM</p>
+    </div>
+    <div class="footer-col"><h4>컴포넌트</h4><ul>
+      <li><a href="synapse.html">synapse (표준)</a></li><li><a href="tom.html">TOM</a></li>
+      <li><a href="and.html">AND</a></li><li><a href="gerri.html">GERRI</a></li>
+      <li><a href="nexus.html">NEXUS</a></li><li><a href="gerri.html#cockpit">COCKPIT</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>바로가기</h4><ul>
+      <li><a href="#abstract">개요</a></li>
+      <li><a href="#architecture">아키텍처</a></li>
+      <li><a href="#comms">통신 구조</a></li>
+      <li><a href="#mission">미션 시스템</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>연락처</h4><ul>
+      <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>
+      <li><a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a></li>
+    </ul></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 한국전자기술연구원(KETI) 지능로보틱스연구센터. All rights reserved.</span>
+    <span>SYNAPSE Platform · Technical Report</span>
+  </div>
+</footer>
+<script>function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}</script>
+</body>
+</html>

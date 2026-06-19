@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GERRI — Global Extended Remote Robot Interface · 온-로봇 제어 SW | SYNAPSE</title>
+<meta name="description" content="GERRI: tom_and_gerri 레포의 단일 로봇 제어 소프트웨어. Base(게이트웨이)·Sub(Capability 구현)·Mission(시퀀스) 3계층. KETI 지능로보틱스연구센터 STAR TEAM.">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── 3-layer stack diagram (page-specific) ── */
+.layer-stack { display: flex; flex-direction: column; gap: 0; }
+.layer-box { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fff; }
+.layer-box + .layer-arrow + .layer-box { }
+.layer-head { padding: 14px 20px; display: flex; align-items: center; gap: 13px; }
+.layer-head .lic { font-size: 22px; flex-shrink: 0; }
+.layer-head .lnm { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+.layer-head .lcls { font-family: var(--mono); font-size: 11.5px; color: var(--text3); margin-top: 1px; }
+.layer-body { padding: 4px 20px 18px; }
+.layer-body ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.layer-body li { font-size: 15px; color: var(--text2); line-height: 1.6; }
+.layer-body li strong { color: var(--ink); }
+.layer-arrow {
+  text-align: center; font-size: 12px; color: var(--text3);
+  padding: 9px 0; font-family: var(--mono); letter-spacing: 0.02em;
+}
+
+/* ── capability example cards ── */
+.cap-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cap-card { border: 1px solid var(--border); border-radius: var(--r-lg); padding: 24px; background: #fff; }
+.cap-card.common { background: var(--acc-l); border-color: var(--acc-bd); }
+.cap-card .ck { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 11px; }
+.cap-card.common .ck { color: var(--acc-d); }
+.cap-card .ctitle { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.02em; }
+.cap-card .cdesc { font-size: 15px; color: var(--text2); line-height: 1.65; margin-bottom: 14px; }
+.cap-names { display: flex; flex-wrap: wrap; gap: 6px; }
+.cap-name { font-family: var(--mono); font-size: 12.5px; font-weight: 500; padding: 4px 10px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--text2); }
+.cap-card.common .cap-name { background: #fff; border-color: var(--acc-bd); color: var(--acc-d); }
+.cap-name.req { background: var(--acc); border-color: var(--acc); color: #fff; }
+
+/* ── data-flow rows in figures ── */
+.flow-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
+.flow-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; }
+.flow-box.hl { background: var(--acc-l); border-color: var(--acc-bd); }
+.flow-box .ti { font-size: 15.5px; font-weight: 800; color: var(--ink); margin-bottom: 5px; }
+.flow-box .su { font-size: 12.5px; color: var(--text3); line-height: 1.5; }
+.flow-box code { font-family: var(--mono); font-size: 11.5px; color: var(--acc-d); }
+
+/* ── state machine pills ── */
+.sm-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.sm-pill { font-family: var(--mono); font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+.sm-pill.acc { background: var(--acc-l); border-color: var(--acc-bd); color: var(--acc-d); }
+.sm-pill.ok { background: var(--and-l); border-color: var(--and-bd); color: #047857; }
+.sm-pill.bad { background: var(--nexus-l); border-color: var(--nexus-bd); color: var(--nexus); }
+.sm-arr { color: var(--text3); font-size: 15px; }
+
+/* ── step list ── */
+.steps { display: flex; flex-direction: column; gap: 0; }
+.step { display: flex; gap: 18px; align-items: flex-start; padding: 20px 0; border-bottom: 1px solid var(--border); }
+.step:last-child { border-bottom: none; }
+.step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--acc); color: #fff; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.step-title { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.02em; }
+.step-desc { font-size: 15.5px; color: var(--text2); line-height: 1.7; }
+.step-desc code { font-family: var(--mono); font-size: 0.86em; background: var(--bg2); padding: 1px 6px; border-radius: 4px; color: var(--acc-d); border: 1px solid var(--border); }
+
+/* ── enum chip groups ── */
+.enum-grp { display: flex; gap: 18px; flex-wrap: wrap; }
+.enum-col { flex: 1; min-width: 200px; }
+.enum-k { font-size: 12px; font-weight: 700; color: var(--text3); margin-bottom: 9px; letter-spacing: 0.03em; }
+.enum-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.enum-chip { font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; background: var(--acc-l); color: var(--acc-d); border: 1px solid var(--acc-bd); }
+.enum-chip.alt { background: var(--syn-l); color: var(--syn); border-color: var(--syn-bd); }
+
+/* ── prev/next strip ── */
+.pn-strip { border-top: 1px solid var(--border); padding: 28px 0; }
+.pn-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+
+@media (max-width: 768px) {
+  .cap-cards, .flow-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="page-gerri">
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><div class="nav-logo-mark">S</div>SYNAPSE</a>
+  <ul class="nav-links">
+    <li><a href="index.html">홈</a></li>
+    <li><a href="synapse.html">synapse</a></li>
+    <li><a href="tom.html">TOM</a></li>
+    <li><a href="and.html">AND</a></li>
+    <li><a href="gerri.html" class="active">GERRI</a></li>
+    <li><a href="nexus.html">NEXUS</a></li>
+    <li><a href="demo.html">체험해보기</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="https://github.com/keti-ai" target="_blank" class="nav-gh">GitHub</a>
+    <a href="mailto:khkim1207@keti.re.kr" class="nav-cta">문의하기</a>
+  </div>
+  <div class="nav-hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" onclick="toggleMenu()">홈</a>
+  <a href="synapse.html" onclick="toggleMenu()">synapse</a>
+  <a href="tom.html" onclick="toggleMenu()">TOM</a>
+  <a href="and.html" onclick="toggleMenu()">AND</a>
+  <a href="gerri.html" onclick="toggleMenu()">GERRI</a>
+  <a href="nexus.html" onclick="toggleMenu()">NEXUS</a>
+  <a href="demo.html" onclick="toggleMenu()">체험해보기</a>
+  <a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a>
+</div>
+
+<!-- ════════ BREADCRUMB + PROJECT HERO ════════ -->
+<div class="container">
+  <div class="breadcrumb">
+    <a href="index.html">홈</a><span>/</span><span>GERRI</span>
+  </div>
+</div>
+<header class="proj-hero">
+  <div class="container">
+    <div class="proj-mark">🎮</div>
+    <div class="proj-name" style="color:var(--acc);">GERRI</div>
+    <p class="proj-full">Global Extended Remote Robot Interface</p>
+    <p class="proj-lead">
+      <span class="s">한 로봇을 제어하는 <strong>온-로봇 제어 소프트웨어</strong>.</span>
+      <span class="s"><code class="inline">synapse</code> 표준을 import하고 자기 일(단일 로봇)만 한다 — 플릿(Fleet)은 모른다.</span>
+      <span class="s"><strong>Base</strong>(게이트웨이) · <strong>Sub</strong>(Capability 구현) · <strong>Mission</strong>(시퀀스)의 3계층으로 구성된다.</span>
+    </p>
+    <div class="proj-badges">
+      <span class="badge badge-gerri">제어 SW</span>
+      <span class="badge badge-gray">3계층</span>
+      <span class="badge badge-gray">tom_and_gerri</span>
+      <span class="badge badge-gray">Python ≥ 3.10</span>
+    </div>
+    <div class="proj-badges" style="margin-top:14px;">
+      <span class="chip">base_controller.py</span>
+      <span class="chip">sub_controller.py</span>
+      <span class="chip">mission/runner.py</span>
+      <span class="chip">handlers/</span>
+      <span class="chip">tag_template/</span>
+    </div>
+  </div>
+</header>
+
+<!-- ════════ TAG 개념 ════════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">The Bundle</span>
+      <h2 class="section-title">TAG = TOM + AND + GERRI</h2>
+      <p class="section-lead"><span class="s">물리 HW(TOM)·외부 통신 데몬(AND)·제어 SW(GERRI) 셋이 모여 한 로봇 분(分)의 묶음을 이룬다.</span> <span class="s">이 레포 <code class="inline">tom_and_gerri</code>는 그 중 <strong>AND 구현 + GERRI</strong>를 담는다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="flow-grid">
+          <a href="tom.html" class="flow-box" style="text-decoration:none;">
+            <div class="ti" style="color:var(--tom);">🖥️ TOM</div>
+            <div class="su">물리 HW · 엣지 컴퓨팅 모듈<br>(NUC·Jetson) · 상태 원본 소유</div>
+          </a>
+          <a href="and.html" class="flow-box" style="text-decoration:none;">
+            <div class="ti" style="color:var(--and);">🌐 AND</div>
+            <div class="su">외부 통신 데몬 · WebRTC<br>내부 버스와 완전 분리</div>
+          </a>
+          <div class="flow-box hl">
+            <div class="ti" style="color:var(--acc-d);">🎮 GERRI</div>
+            <div class="su">제어 SW · Base/Sub/Mission<br><strong>이 페이지</strong></div>
+          </div>
+        </div>
+        <div class="prose" style="margin-top:22px;">
+          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.1</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(aiortc·av·opencv·websockets), <code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[camera]</code>(opencv), <code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> 별도 레포로 분리된다.</span></div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 1.</b> TAG 묶음. 로봇 하나는 TOM·AND·GERRI 셋의 합으로 정의된다. GERRI는 <code class="inline">synapse</code>만 의존하고, 전송 방식(AND)·로봇 SDK는 바깥의 교체 가능한 세부사항이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 3계층 아키텍처 ════════ -->
+<section class="section alt" id="architecture">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Architecture</span>
+      <h2 class="section-title">제어 SW 3계층 — Base / Sub / Mission</h2>
+      <p class="section-lead"><span class="s">각 계층은 명확한 단일 책임을 가진다.</span> <span class="s">Sub는 외부 통신을 <em>전혀</em> 모르고, Base가 외부와의 유일한 창구(게이트웨이)다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="layer-stack">
+          <div class="layer-box">
+            <div class="layer-head" style="background:var(--nexus-l);">
+              <span class="lic">🏗️</span>
+              <div>
+                <div class="lnm" style="color:var(--nexus);">Base</div>
+                <div class="lcls">BaseControllerCommon · base_controller.py</div>
+              </div>
+            </div>
+            <div class="layer-body">
+              <ul>
+                <li>🔀 <strong>외부와의 유일한 창구(게이트웨이).</strong> 명령 분배 · sub 관리 · 미션 실행을 담당한다.</li>
+                <li>📡 내부 토픽 <code class="inline">Topic.Robot.STATUS</code> 구독 → robot_id를 채워 외부 <code class="inline">Topic.Network.SEND</code>로 내보낸다.</li>
+                <li>📥 외부 <code class="inline">Topic.Network.RECV</code> 수신 → receiver(target) 기준으로 자기/해당 sub에 라우팅한다.</li>
+                <li>🧩 <code class="inline">@property capability</code> — 자기 + 모든 sub의 <code class="inline">{"common":[…], "custom":[…]}</code>를 종합한다.</li>
+                <li>🛑 <code class="inline">stop()</code> — 진행 미션을 abort하고 각 sub의 <code class="inline">stop()</code>을 호출한다(라우팅 분기 최우선 매칭).</li>
+              </ul>
+            </div>
+          </div>
+          <div class="layer-arrow">↕  같은 프로세스 객체 그래프 — sub 메서드 직접 호출 (getattr)</div>
+          <div class="layer-box">
+            <div class="layer-head" style="background:var(--gerri-l);">
+              <span class="lic">🎮</span>
+              <div>
+                <div class="lnm" style="color:var(--acc-d);">Sub</div>
+                <div class="lcls">SubControllerCommon · sub_controller.py</div>
+              </div>
+            </div>
+            <div class="layer-body">
+              <ul>
+                <li>🤖 <strong>Capability 구현 단위.</strong> 로봇 SDK를 직접 호출한다. 외부 통신은 모른다.</li>
+                <li>📊 자기 status는 <strong>내부 토픽으로만</strong> 발행 — <code class="inline">pub.sendMessage(Topic.Robot.STATUS, data=self.get_status())</code>. 외부 토픽 사용 금지.</li>
+                <li>✅ <code class="inline">self.capability</code>(공용 enum) + <code class="inline">self.custom_capability</code>(메서드 이름 list)를 선언한다.</li>
+                <li>🔑 <code class="inline">stop()</code>은 <strong>모든 로봇이 반드시 구현</strong> — 베이스는 <code class="inline">NotImplementedError</code>를 던진다.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="layer-arrow">↑  capability를 시퀀스로 조합</div>
+          <div class="layer-box">
+            <div class="layer-head" style="background:var(--syn-l);">
+              <span class="lic">📜</span>
+              <div>
+                <div class="lnm" style="color:var(--syn);">Mission</div>
+                <div class="lcls">MissionRunner · mission/runner.py</div>
+              </div>
+            </div>
+            <div class="layer-body">
+              <ul>
+                <li>🔄 <strong>RobotMission(Task 시퀀스) 실행기.</strong> base가 <code class="inline">dispatch</code>와 <code class="inline">sender</code>를 주입한다.</li>
+                <li>👤 사람 개입 — <code class="inline">wait_input</code> / <code class="inline">wait_teleop</code>(NEED_HELP → TELEOP) 처리. "실패는 정상, 인간 개입 우선."</li>
+                <li>🚫 <strong>FleetMission(다중 로봇 조율)은 여기 없다</strong> → NEXUS 책임.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 2.</b> 3계층 데이터 흐름. 외부 통신은 오직 Base를 통한다. Sub는 내부 버스(pypubsub)로만 status를 올리고, Base가 게이트웨이에서 robot_id를 채워 외부로 중계한다 — <em>의존 방향은 안쪽(synapse)을 향한다.</em></p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ BASE 상세 ════════ -->
+<section class="section" id="base">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Base Controller</span>
+      <h2 class="section-title">Base — 메시지 게이트웨이</h2>
+      <p class="section-lead"><span class="s">통신 단위 하나당 하나의 Base가 존재한다.</span> <span class="s"><code class="inline">__init__(info)</code>는 <code class="inline">info["id"]</code>를 요구하며, 이것이 <code class="inline">robot_id</code>(외부 식별자)가 된다.</span></p>
+    </div>
+    <div class="prose" style="max-width:none;">
+      <p>Base는 생성 시 세 토픽을 구독해 게이트웨이를 연다 — 내부 <code class="inline">Robot.STATUS</code>(sub→base), <code class="inline">Mission.EVENT</code>(runner→base), 외부 <code class="inline">Network.RECV</code>(AND→base). 게이트웨이로서 sub의 내부 status에는 <code class="inline">robot_id</code>를 채워 외부 <code class="inline">Network.SEND</code>로 중계하고, 외부 메시지는 <code class="inline">receiver</code> 값으로 자기/해당 sub에 라우팅한다.</p>
+    </div>
+    <div class="tbl-wrap mt-24">
+      <table class="tbl">
+        <thead><tr><th>멤버</th><th>책임</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">robot_id</td><td><code class="inline">info["id"]</code>에서 받은 외부 식별자. 게이트웨이에서 sub status·외부 메시지에 채워진다.</td></tr>
+          <tr><td class="mono">sub_controllers</td><td>항상 dict. 등록된 Sub들의 모음으로, <code class="inline">receiver</code>(sub_id) 기준 라우팅 대상이 된다.</td></tr>
+          <tr><td class="mono">missions</td><td>name → RobotMission 카탈로그. NEXUS가 이름으로 트리거한다.</td></tr>
+          <tr><td class="mono">mission_runner</td><td><code class="inline">MissionRunner(dispatch=self.dispatch_capability, sender=self.robot_id)</code> — base가 디스패치와 sender를 주입한다.</td></tr>
+          <tr><td class="mono">teleop_handler</td><td>선택 — <code class="inline">command.teleop</code>를 해석하는 핸들러.</td></tr>
+          <tr><td class="mono">@property capability</td><td>self + 모든 sub의 <code class="inline">{"common":[…], "custom":[…]}</code>를 종합해 status에 노출한다.</td></tr>
+          <tr><td class="mono">dispatch_capability</td><td><code class="inline">(capability, params=None, target=None)</code> — capability 이름으로 메서드를 <code class="inline">getattr</code> 조회·호출해 <code class="inline">Result</code> 반환. <code class="inline">target</code>(sub_id) 지정 시 그 sub로(예: 양팔 left/right), 미지정이면 base 자신 → 첫 매칭 sub 순.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note mt-24">
+      <span class="s"><b>STOP은 큐 우회가 아니다.</b></span> <span class="s">현재 명령 경로는 pypubsub 동기·단일 스레드라 명령 큐가 없다.</span> <span class="s">STOP은 라우팅 분기에서 <em>가장 먼저</em> 매칭되어 즉시 실행되고, 진행 미션은 abort 플래그로 다음 task 경계에서 ABORTED 된다.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ SUB 상세 + TemplateSub ════════ -->
+<section class="section alt" id="sub">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Sub Controller</span>
+      <h2 class="section-title">Sub — Capability 구현 (외부 통신 모름)</h2>
+      <p class="section-lead"><span class="s">로봇 SDK를 직접 호출하는 곳으로, <code class="inline">__init__(info)</code>는 <code class="inline">info["id"]</code>(=<code class="inline">sub_id</code>)를 요구한다.</span> <span class="s">status는 <code class="inline">get_status()</code>로 만들어 내부 토픽으로만 발행하고, robot_id는 Base가 게이트웨이에서 채운다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">tag_template/sub_controller.py — TemplateSub (모바일)</span></div>
+<pre><code><span class="kw">from</span> gerri <span class="kw">import</span> SubControllerCommon
+<span class="kw">from</span> synapse <span class="kw">import</span> <span class="cn">Capability</span>, <span class="cn">Result</span>
+
+<span class="kw">class</span> <span class="cn">TemplateSub</span>(SubControllerCommon):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="cn">self</span>, info, sdk=<span class="cn">None</span>):
+        <span class="kw">super</span>().<span class="fn">__init__</span>(info)
+        <span class="cn">self</span>._sdk = sdk <span class="kw">or</span> <span class="cn">_FakeSDK</span>()
+        <span class="cn">self</span>.capability = [
+            <span class="cn">Capability</span>.NAVIGATE_TO_POSE,
+            <span class="cn">Capability</span>.VELOCITY_CTRL,
+            <span class="cn">Capability</span>.DOCK, <span class="cn">Capability</span>.UNDOCK,
+            <span class="cn">Capability</span>.STOP,            <span class="cm"># ← 필수</span>
+        ]
+
+    <span class="kw">def</span> <span class="fn">navigate_to_pose</span>(<span class="cn">self</span>, x, y, theta=<span class="num">0.0</span>, timeout_s=<span class="num">30.0</span>) -> <span class="cn">Result</span>:
+        <span class="str">"""좌표로 이동. x,y(미터, map frame) · theta(라디안) · timeout_s(초)."""</span>
+        <span class="kw">try</span>:
+            <span class="kw">if</span> <span class="cn">self</span>._sdk.<span class="fn">move_to</span>(x, y, theta):
+                <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">ok</span>(message=<span class="str">"도착"</span>, reached=[x, y, theta])
+            <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">fail</span>(<span class="str">"not_reached"</span>, message=<span class="str">"도달 실패"</span>)
+        <span class="kw">except</span> <span class="cn">TimeoutError</span>:
+            <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">fail</span>(<span class="str">"timeout"</span>, message=<span class="str">f"{timeout_s}초 초과"</span>)
+
+    <span class="kw">def</span> <span class="fn">velocity_ctrl</span>(<span class="cn">self</span>, linear, angular) -> <span class="cn">Result</span>:
+        <span class="str">"""직접 속도 제어. linear(m/s) · angular(rad/s)."""</span>
+        <span class="cn">self</span>._sdk.<span class="fn">set_velocity</span>(linear, angular)
+        <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">ok</span>()
+
+    <span class="kw">def</span> <span class="fn">dock</span>(<span class="cn">self</span>, charger_id=<span class="cn">None</span>) -> <span class="cn">Result</span>: <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">ok</span>(message=<span class="str">"도킹"</span>)
+    <span class="kw">def</span> <span class="fn">undock</span>(<span class="cn">self</span>) -> <span class="cn">Result</span>: <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">ok</span>()
+
+    <span class="kw">def</span> <span class="fn">stop</span>(<span class="cn">self</span>) -> <span class="cn">Result</span>:
+        <span class="str">"""필수 — 로봇을 IDLE 로."""</span>
+        <span class="cn">self</span>._sdk.<span class="fn">halt</span>()
+        <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">ok</span>(message=<span class="str">"정지"</span>)</code></pre>
+      </div>
+      <p class="figcaption"><b>Figure 3.</b> 실제 <code class="inline">TemplateSub</code> 구현(scaffold). 한국어 docstring에 <strong>단위·범위·좌표계</strong>를 명시하는 것이 컨벤션이다. 모든 메서드는 synapse <code class="inline">Result</code>를 반환하고, <code class="inline">stop()</code>은 예외 없이 구현된다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ CAPABILITY 컨벤션 ════════ -->
+<section class="section" id="capability">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Convention</span>
+      <h2 class="section-title">Capability 컨벤션 — 이름 == 메서드</h2>
+      <p class="section-lead"><span class="s">capability 값이 곧 메서드 이름이다.</span> <span class="s">Base는 <code class="inline">getattr(sub, name)(**params)</code>로 자동 매칭해 호출한다 — 분기(if robot == …) 없이 라우팅이 성립한다.</span></p>
+    </div>
+    <div class="cap-cards">
+      <div class="cap-card common">
+        <div class="ck">Common — synapse.Capability 표준</div>
+        <div class="ctitle">고정 시그니처 공용 동작</div>
+        <div class="cdesc"><code class="inline">synapse.Capability</code> enum으로 정의된 표준 동작. 시그니처가 고정되어 어떤 로봇이든 같은 인터페이스로 부른다.</div>
+        <div class="cap-names">
+          <span class="cap-name">navigate_to_pose</span>
+          <span class="cap-name">velocity_ctrl</span>
+          <span class="cap-name">cartesian_ctrl</span>
+          <span class="cap-name">gripper_ctrl</span>
+          <span class="cap-name">dock</span>
+          <span class="cap-name">undock</span>
+          <span class="cap-name req">stop ← 필수</span>
+        </div>
+      </div>
+      <div class="cap-card">
+        <div class="ck">Custom — 자유 형식</div>
+        <div class="ctitle">로봇별 고유 동작</div>
+        <div class="cdesc"><code class="inline">self.custom_capability</code>(메서드 이름 문자열 list)로 선언. 시그니처가 자유로워 로봇 특수 기능을 노출한다.</div>
+        <div class="cap-names">
+          <span class="cap-name">home_position</span>
+          <span class="cap-name">make_americano</span>
+          <span class="cap-name">fold_panel</span>
+          <span class="cap-name">set_led</span>
+        </div>
+      </div>
+    </div>
+    <div class="prose mt-32">
+      <div class="note">
+        <span class="s"><b>반환은 언제나 synapse Result다.</b></span> <span class="s">성공은 <code class="inline">Result.ok(message="", **data)</code>, 실패는 <code class="inline">Result.fail(error, message="")</code>이다.</span> <span class="s"><code class="inline">@property capability</code>는 self + 모든 sub의 것을 <code class="inline">{"common":[…], "custom":[…]}</code>로 종합해 status에 노출한다 — 관제 UI는 이 목록만 보고 무엇을 시킬 수 있는지 안다.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ MISSION RUNNER ════════ -->
+<section class="section alt" id="mission">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Mission System</span>
+      <h2 class="section-title">MissionRunner — Task 5타입 · 상태기계 · 인간 개입</h2>
+      <p class="section-lead"><span class="s">자료구조(Task·RobotMission)는 <code class="inline">synapse.missions</code>, 상태/이벤트는 <code class="inline">synapse.enums</code>에 있다.</span> <span class="s">Runner는 <strong>실행만</strong> 하고, mission_state는 runner가 소유한다(edge-authoritative).</span></p>
+    </div>
+
+    <!-- 5 task types -->
+    <div class="figure">
+      <div class="figure-frame">
+        <div style="font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);margin-bottom:16px;">_execute(task) — 5가지 Task 타입</div>
+        <div style="display:flex;flex-direction:column;gap:11px;">
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">capability</span><span style="font-size:15.5px;color:var(--text2);"><code class="inline">dispatch(task.capability, task.params)</code> → Result</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">func</span><span style="font-size:15.5px;color:var(--text2);"><code class="inline">task.func()</code> 실행 — 테스트·빠른 개발</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">notify</span><span style="font-size:15.5px;color:var(--text2);">알림 로그만, 흐름은 계속</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--syn-l);border-color:var(--syn-bd);color:var(--syn);">wait_input</span><span style="font-size:15.5px;color:var(--text2);">계획된 입력 대기 — RUNNING 유지, provider로 값 수신</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--syn-l);border-color:var(--syn-bd);color:var(--syn);">wait_teleop</span><span style="font-size:15.5px;color:var(--text2);">사람 원격조작 호출 — NEED_HELP → TELEOP → TeleopExitAction</span></div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 4.</b> Task 5타입. <code class="inline">task.policy.on_failure</code>는 stop(미션 FAILED) / continue(다음 task) / retry(retry_count만큼 재시도)를 결정한다. 실패는 정상으로 취급된다.</p>
+    </div>
+
+    <!-- state machine -->
+    <div class="figure mt-40">
+      <div class="figure-frame">
+        <div style="font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);margin-bottom:18px;text-align:center;">MissionState 상태기계 · 인간 개입 흐름</div>
+        <div class="sm-row" style="margin-bottom:14px;">
+          <span class="sm-pill">IDLE</span>
+          <span class="sm-arr">→</span>
+          <span class="sm-pill acc">RUNNING</span>
+          <span class="sm-arr">→</span>
+          <span class="sm-pill">NEED_HELP</span>
+          <span class="sm-arr">→</span>
+          <span class="sm-pill acc">TELEOP</span>
+          <span class="sm-arr">→</span>
+          <span class="sm-pill acc">RUNNING</span>
+          <span class="sm-arr">→</span>
+          <span class="sm-pill ok">SUCCEEDED</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-pill bad">FAILED</span>
+          <span class="sm-pill bad">ABORTED</span>
+          <span class="sm-pill">WAIT_INPUT</span>
+        </div>
+        <div class="prose" style="margin-top:18px;">
+          <p style="font-size:15px;">
+            <strong>wait_teleop 흐름:</strong> RUNNING → NEED_HELP → TELEOP → (teleop_provider가 <code class="inline">TeleopExitAction</code> 반환) → TELEOP_ENDED → RUNNING.
+            <code class="inline">resume_done</code>/<code class="inline">resume_retry</code>면 다음으로 진행, <code class="inline">abort</code>면 미션 ABORTED.
+            추가로 오퍼레이터는 언제든 자발적 takeover(<code class="inline">HelpAction.TAKEOVER</code>)로 개입할 수 있다.
+          </p>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 5.</b> 상태기계와 인간 개입. 모니터/UI는 status(TELEOP)와 event(TELEOP_STARTED/ENDED)로 operator 개입 구간을 감지한다. STOP은 <code class="inline">abort()</code> → 다음 경계에서 ABORTED.</p>
+    </div>
+
+    <!-- RobotMission example -->
+    <div class="figure mt-40">
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">tag_template/missions.py — synapse.missions 헬퍼</span></div>
+<pre><code><span class="kw">from</span> synapse.missions <span class="kw">import</span> <span class="cn">RobotMission</span>, cap, notify, wait_input
+
+<span class="kw">def</span> <span class="fn">pickup_with_confirm</span>() -> <span class="cn">RobotMission</span>:
+    <span class="str">"""이동 → 사람 확인(계획된 입력 대기) → 복귀."""</span>
+    <span class="kw">return</span> <span class="cn">RobotMission</span>(name=<span class="str">"pickup_with_confirm"</span>, description=<span class="str">"확인 후 픽업"</span>, tasks=[
+        <span class="fn">cap</span>(<span class="str">"go"</span>, <span class="str">"navigate_to_pose"</span>, x=<span class="num">2.0</span>, y=<span class="num">0.0</span>),
+        <span class="fn">wait_input</span>(<span class="str">"confirm"</span>, prompt=<span class="str">"집을까요?"</span>,
+                   buttons={<span class="str">"yes"</span>: <span class="str">"예"</span>, <span class="str">"no"</span>: <span class="str">"아니오"</span>}),
+        <span class="fn">cap</span>(<span class="str">"home"</span>, <span class="str">"navigate_to_pose"</span>, x=<span class="num">0.0</span>, y=<span class="num">0.0</span>),
+    ])</code></pre>
+      </div>
+      <p class="figcaption"><b>Figure 6.</b> 실제 RobotMission 예시. <code class="inline">cap</code>·<code class="inline">wait_input</code>·<code class="inline">notify</code> 헬퍼로 Task 시퀀스를 간결히 정의한다. 미션은 Base의 <code class="inline">self.missions</code> 카탈로그에 등록되어 NEXUS가 트리거할 수 있다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 텔레옵 핸들러 ════════ -->
+<section class="section" id="handlers">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Teleop Handlers</span>
+      <h2 class="section-title">텔레옵 핸들러 (handlers/) — 선택적</h2>
+      <p class="section-lead"><span class="s"><code class="inline">synapse</code>는 표준 입력 인덱스만 정하고, <em>의미 해석</em>은 핸들러가 한다.</span> <span class="s">모두 통일 시그니처 <code class="inline">handle(axes, buttons, poses, target=None)</code>를 따른다.</span> <span class="s">핸들러는 <code class="inline">dispatch(capability, params)</code>만 알면 된다.</span></p>
+    </div>
+    <div class="g2" style="gap:20px;align-items:start;">
+      <div class="card" style="padding:24px;">
+        <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:10px;">🎮 joy.py — 게임패드</div>
+        <div style="font-size:15.5px;color:var(--text2);line-height:1.7;">
+          <strong>MobileJoyHandler</strong> — 왼쪽 스틱=주행(전후/회전) → <code class="inline">velocity_ctrl</code>, B=STOP.<br><br>
+          <strong>ManipulatorJoyHandler</strong> — A=<code class="inline">home_position</code>, B=STOP, 트리거(L2/R2)=<code class="inline">gripper_ctrl(0~100%)</code>.<br><br>
+          <code class="inline">synapse.teleop_mapping</code>의 <code class="inline">JoyAxis</code>·<code class="inline">JoyButton</code> 인덱스를 읽는다. 입력은 sparse해도 되며 없는 인덱스는 0으로 친다.
+        </div>
+      </div>
+      <div class="card" style="padding:24px;">
+        <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:10px;">🥽 vr.py — VR 컨트롤러</div>
+        <div style="font-size:15.5px;color:var(--text2);line-height:1.7;">
+          <strong>SingleArmVRHandler</strong> — <code class="inline">poses[PoseChannel.LEFT/RIGHT_HAND]</code>(6DOF) → <code class="inline">cartesian_ctrl</code>, 아날로그 그립(axes) → <code class="inline">gripper_ctrl(0~100%)</code>.<br><br>
+          양팔(dual-arm)은 arm별 sub 둘. 손→팔 라우팅은 메시지의 <code class="inline">target</code>(receiver)으로 결정 — 별도 dual-arm 핸들러가 필요 없다.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 새 로봇 추가하기 ════════ -->
+<section class="section alt" id="new-robot">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Developer Flow</span>
+      <h2 class="section-title">새 로봇 추가하기</h2>
+      <p class="section-lead"><span class="s">표준이 있으니 scaffold를 복사해 SDK만 연결하면 된다.</span> <span class="s">Base는 sub 등록·핸들러·미션 카탈로그만 구성하면, 게이트웨이·STOP·디스패치·미션 실행을 <code class="inline">BaseControllerCommon</code>이 제공한다(올인원).</span></p>
+    </div>
+    <div class="g2" style="align-items:start;gap:32px;">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">scaffold 복사</div>
+            <div class="step-desc"><code>cp -r gerri/tag_template/ gerri/tag_{myrobot}/</code></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-title">SubControllerCommon 상속</div>
+            <div class="step-desc"><code>self.capability</code> list를 설정하고, capability 메서드에서 로봇 SDK를 호출한다. <strong>반드시 <code>stop()</code> 구현</strong>, <code>Result</code> 반환, 네트워크 토픽은 절대 건드리지 않는다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-title">BaseControllerCommon 상속</div>
+            <div class="step-desc"><code>self.sub_controllers = {"main": MySub(...)}</code>로 등록. 선택적으로 <code>self.teleop_handler = MobileJoyHandler(self.dispatch_capability)</code>, 그리고 <code>self.missions</code> 카탈로그 등록.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-title">로컬 단독 → NEXUS 연결 테스트</div>
+            <div class="step-desc">capability 단위 호출 → status 발행 확인 → 미션 시퀀스 실행. NEXUS 없이 로컬 단독으로도 테스트 가능하다.</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p style="font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.04em;color:var(--text3);margin-bottom:12px;">tag_template/base_controller.py — TemplateBase</p>
+        <div class="code-block">
+          <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">올인원 — sub·핸들러·미션만 구성</span></div>
+<pre><code><span class="kw">from</span> gerri <span class="kw">import</span> BaseControllerCommon
+<span class="kw">from</span> gerri.handlers <span class="kw">import</span> MobileJoyHandler
+<span class="kw">from</span> .missions <span class="kw">import</span> patrol_demo, pickup_with_confirm
+<span class="kw">from</span> .sub_controller <span class="kw">import</span> TemplateSub
+
+<span class="kw">class</span> <span class="cn">TemplateBase</span>(BaseControllerCommon):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="cn">self</span>, info):
+        <span class="kw">super</span>().<span class="fn">__init__</span>(info)
+        <span class="cm"># 1:1 — sub_controllers 는 항상 dict</span>
+        <span class="cn">self</span>.sub_controllers = {
+            <span class="str">"main"</span>: <span class="cn">TemplateSub</span>({
+                <span class="str">"id"</span>: info[<span class="str">"id"</span>],
+                <span class="str">"category"</span>: info.<span class="fn">get</span>(<span class="str">"category"</span>, <span class="str">"mobile"</span>),
+                <span class="str">"model"</span>: info.<span class="fn">get</span>(<span class="str">"model"</span>),
+            }),
+        }
+        <span class="cm"># 텔레옵 핸들러(선택) — 게임패드로 주행</span>
+        <span class="cn">self</span>.teleop_handler = <span class="cn">MobileJoyHandler</span>(<span class="cn">self</span>.dispatch_capability)
+        <span class="cm"># 미션 카탈로그</span>
+        <span class="cn">self</span>.missions = {
+            <span class="str">"patrol_demo"</span>: <span class="fn">patrol_demo</span>(),
+            <span class="str">"pickup_with_confirm"</span>: <span class="fn">pickup_with_confirm</span>(),
+        }</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ tag_{robot} 레포 구조 ════════ -->
+<section class="section" id="repos">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Repo Layout</span>
+      <h2 class="section-title">tag_{robot} — 별도 레포</h2>
+      <p class="section-lead"><span class="s">로봇별 구현은 SEPARATE 레포다.</span> <span class="s">현재는 <code class="inline">gerri/</code> 밑에 단순히 <code class="inline">git clone</code>되어 있다(git submodule 아님).</span> <span class="s">각 레포는 <code class="inline">tom_and_gerri</code>와 <code class="inline">synapse</code>를 import한다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>경로</th><th>역할</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">__init__.py</td><td>exports: <code class="inline">BaseControllerCommon</code>, <code class="inline">SubControllerCommon</code></td></tr>
+            <tr><td class="mono">base_controller.py</td><td>Base — 게이트웨이</td></tr>
+            <tr><td class="mono">sub_controller.py</td><td>Sub — capability 구현</td></tr>
+            <tr><td class="mono">mission/runner.py</td><td>MissionRunner</td></tr>
+            <tr><td class="mono">handlers/</td><td>joy.py · vr.py (텔레옵)</td></tr>
+            <tr><td class="mono">utils/camera/</td><td>CameraSource 레지스트리 → WebRTC 비디오 트랙</td></tr>
+            <tr><td class="mono">tag_template/</td><td>scaffold (복사 출발점)</td></tr>
+            <tr><td class="mono">tag_piper/</td><td>로봇별 별도 레포 (clone, submodule 아님)</td></tr>
+            <tr><td class="mono">tag_rby1/</td><td>로봇별 별도 레포 (clone)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 7.</b> 레포 구조. 코어(<code class="inline">gerri/</code>)는 안정적으로 관리하고, 로봇별 <code class="inline">tag_*</code>는 독립 레포로 자유롭게 진화한다. <code class="inline">utils/camera/</code>는 webcam·realsense·dummy 소스를 레지스트리로 추상화해 WebRTC 비디오 트랙에 공급한다.</p>
+    </div>
+    <div class="prose mt-32">
+      <div class="note"><span class="s"><b>Edge-Authoritative.</b></span> <span class="s">capability는 로봇(엣지)에서 실행되고, NEXUS는 명령 JSON을 그대로 forward할 뿐이다.</span> <span class="s">상태의 원본은 로봇이 소유한다 — sub의 내부 status 발행 → Base가 robot_id를 붙여 외부로 중계 → NEXUS는 read-only 사본을 받는다.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ COCKPIT (gerri/interface/cockpit/) ════════ -->
+<section class="section alt" id="cockpit" style="--acc: var(--cockpit); --acc-d:#6d28d9; --acc-l: var(--cockpit-l); --acc-bd: var(--cockpit-bd);">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">COCKPIT · 1:1 Remote Operation</span>
+      <h2 class="section-title">🕹️ COCKPIT — 1:1 원격 조작 UI</h2>
+      <p class="section-lead"><span class="s">단일 로봇과 <strong>WebRTC P2P로 직결</strong>되는 1:1 정밀 조작 인터페이스다.</span> <span class="s">카메라·오디오·DataChannel·조이스틱을 한 화면에서 다룬다.</span> <span class="s">코드는 이 레포의 <code class="inline">gerri/interface/cockpit/</code>에 있다 — 별도 컴포넌트가 아니라 GERRI가 제공하는 운전석이다.</span></p>
+    </div>
+
+    <div class="figure">
+      <div class="g2" style="gap:18px;">
+        <div class="card" style="padding:24px;">
+          <span class="badge badge-gray" style="margin-bottom:12px;">MODE A</span>
+          <div style="font-size:17px;font-weight:800;color:var(--ink);margin-bottom:8px;">Standalone (LAN · NEXUS 없이)</div>
+          <p style="font-size:15.5px;color:var(--text2);line-height:1.7;">TOM의 <code class="inline">standalone_server</code>가 직접 정적 파일을 서빙하고, 로컬 <code class="inline">/ws/{room}</code> 릴레이로 시그널링한다. 서버 없이 현장에서 바로 로봇에 붙어 조작.</p>
+        </div>
+        <div class="card" style="padding:24px;border-color:var(--cockpit-bd);background:var(--cockpit-l);">
+          <span class="badge badge-cockpit" style="margin-bottom:12px;">MODE B · 약 99%</span>
+          <div style="font-size:17px;font-weight:800;color:var(--ink);margin-bottom:8px;">NEXUS-context</div>
+          <p style="font-size:15.5px;color:var(--text2);line-height:1.7;">NEXUS 게이트웨이가 <code class="inline">/{site}/{floor}/tag_{robot}/</code>에서 콕핏을 서빙하고, NEXUS <code class="inline">/ws/{room}</code>가 시그널링을 중계한다. 대시보드에서 클릭 한 번으로 진입.</p>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 8.</b> 두 가지 호스팅 모드. 어느 쪽이든 <strong>제어·미디어는 P2P</strong>로 흐르고 서버는 시그널링만 중계한다.</p>
+    </div>
+
+    <div class="prose mt-40" style="max-width:none;">
+      <p>서버는 정적 <code class="inline">index.html</code>에 런타임 설정만 <strong>문자열 치환으로 주입</strong>한다. 빌드된 정적 파일 안의 마커를 <code class="inline">window.__COCKPIT__ = {robotId, signalingUrl, mode}</code> 한 줄로 바꿔치기하는 방식이라, 호스팅 모드에 따라 robot_id·시그널링 URL·mode만 달라진다.</p>
+    </div>
+    <div class="note mt-24">
+      <span class="s"><b>같은 프론트, 두 서버.</b></span> <span class="s">프론트엔드(<code class="inline">index.html · cockpit.js · cockpit.css</code>)는 순수 정적 파일이라 로직을 전혀 갖지 않는다.</span> <span class="s">주입된 <code class="inline">window.__COCKPIT__ = {robotId, signalingUrl, mode}</code> 객체만 읽고 동작하므로, 동일한 정적 파일이 Standalone·NEXUS 양쪽에서 그대로 재사용된다.</span>
+    </div>
+
+    <div class="g2 mt-40" style="align-items:start;gap:18px;">
+      <div class="card" style="padding:24px;">
+        <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:10px;">RelayHub — 순수 라우팅</div>
+        <p style="font-size:15.5px;color:var(--text2);line-height:1.75;"><code class="inline">targets(room, peer, message)</code>는 전송 계층과 무관한 순수 함수다. 메시지에 <code class="inline">receiver</code>가 있으면 그 peer에게만 <strong>1:1</strong> 전달하고, 없으면(예: <code class="inline">"ready"</code>) 같은 room의 <strong>나머지 전부에게 broadcast</strong>한다. 내용은 해석하지 않고 JSON을 그대로 중계한다.</p>
+      </div>
+      <div class="prose" style="margin:0;">
+        <div class="note"><span class="s"><b>디커플링.</b> NEXUS는 <code class="inline">tom_and_gerri</code>/<code class="inline">tag</code> 코드를 <strong>import하지 않는다</strong>.</span> <span class="s">콕핏 프론트는 데이터(정적 파일)일 뿐 — <code class="inline">tag_{robot}/</code> 폴더가 있으면 그걸 서빙하고, 없으면 기본 콕핏으로 폴백한다.</span> <span class="s">로봇별로 자기 콕핏을 자유롭게 커스터마이즈할 수 있다.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ PREV / NEXT ════════ -->
+<div class="pn-strip">
+  <div class="container pn-inner">
+    <a href="and.html" class="btn btn-ghost btn-sm">← AND</a>
+    <a href="nexus.html" class="btn btn-sm" style="background:var(--acc);color:#fff;border-color:var(--acc);">다음: NEXUS →</a>
+  </div>
+</div>
+
+<!-- ════════ FOOTER ════════ -->
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="index.html" class="logo"><div class="logo-mark">S</div>SYNAPSE</a>
+      <p>KETI 지능로보틱스연구센터<br>STAR TEAM</p>
+    </div>
+    <div class="footer-col"><h4>컴포넌트</h4><ul>
+      <li><a href="synapse.html">synapse (표준)</a></li><li><a href="tom.html">TOM</a></li>
+      <li><a href="and.html">AND</a></li><li><a href="gerri.html">GERRI</a></li>
+      <li><a href="nexus.html">NEXUS</a></li><li><a href="gerri.html#cockpit">COCKPIT</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>바로가기</h4><ul>
+      <li><a href="#architecture">3계층 아키텍처</a></li>
+      <li><a href="#capability">Capability 컨벤션</a></li>
+      <li><a href="#mission">미션 시스템</a></li>
+      <li><a href="#new-robot">새 로봇 추가</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>연락처</h4><ul>
+      <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>
+      <li><a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a></li>
+    </ul></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 한국전자기술연구원(KETI) 지능로보틱스연구센터. All rights reserved.</span>
+    <span>SYNAPSE Platform · Technical Report</span>
+  </div>
+</footer>
+<script>function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}</script>
+</body>
+</html>

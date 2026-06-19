@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>synapse — 공통 표준 레이어 | SYNAPSE</title>
+<meta name="description" content="synapse: 이기종 멀티로봇 플랫폼의 공통 표준 레이어. Topics, 표준 메시지 6종, Enum 6종, Pydantic v2 자료구조, standardize(), 미션 모델을 정의만 한다 — 실행 로직은 없다. KETI STAR TEAM.">
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── page-specific components (muted palette, matches style.css conventions) ── */
+.proj-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 22px; }
+
+/* message cards */
+.msg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.msg-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px; display: flex; flex-direction: column; transition: border-color 0.18s, transform 0.18s; }
+.msg-card:hover { border-color: var(--acc-bd); transform: translateY(-2px); }
+.msg-topic { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--acc-d); margin-bottom: 4px; }
+.msg-const { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-bottom: 12px; }
+.msg-body { font-size: 15px; color: var(--text2); line-height: 1.7; }
+.msg-body strong { color: var(--ink); font-weight: 700; }
+.msg-foot { font-size: 12.5px; color: var(--text3); margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); line-height: 1.6; }
+
+/* enum grid */
+.enum-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.enum-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px; }
+.enum-name { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 5px; }
+.enum-sub { font-size: 14px; color: var(--text3); line-height: 1.6; margin-bottom: 13px; }
+.enum-values { display: flex; flex-wrap: wrap; gap: 6px; }
+.ev { font-family: var(--mono); font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 5px; background: var(--acc-l); color: var(--acc-d); border: 1px solid var(--acc-bd); }
+.ev-req { background: var(--nexus-l); color: var(--nexus); border-color: var(--nexus-bd); }
+.ev-grp { font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text3); margin: 12px 0 7px; }
+.ev-grp:first-child { margin-top: 0; }
+
+/* capability grid */
+.cap-group { margin-bottom: 18px; }
+.cap-group:last-child { margin-bottom: 0; }
+.cap-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.cap-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.cap-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.cap-item { font-family: var(--mono); font-size: 14px; font-weight: 600; padding: 7px 13px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); }
+.cap-item.req { background: var(--nexus-l); border-color: var(--nexus-bd); color: var(--nexus); font-weight: 700; }
+.cap-item.custom { background: var(--acc-l); border-color: var(--acc-bd); color: var(--acc-d); border-style: dashed; }
+
+/* schema/dimension callouts */
+.dim-stack { display: flex; flex-direction: column; gap: 12px; }
+.dim-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+.dim-card.hl { background: var(--acc-l); border-color: var(--acc-bd); }
+.dim-k { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
+.dim-card.hl .dim-k { color: var(--acc-d); }
+.dim-v { font-size: 14.5px; color: var(--text2); line-height: 1.65; }
+
+/* teleop channel mapping */
+.chan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.chan-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+.chan-name { font-family: var(--mono); font-size: 14.5px; font-weight: 700; color: var(--acc-d); margin-bottom: 4px; }
+.chan-sub { font-size: 12.5px; color: var(--text3); margin-bottom: 12px; }
+.chan-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.chan-list .ev { font-size: 11px; padding: 2px 7px; }
+
+/* small key-value chips strip */
+.kv-strip { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.kv-pill { font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); }
+.kv-pill b { color: var(--ink); font-weight: 800; }
+
+.prin-note { font-size: 14.5px; color: var(--text2); line-height: 1.7; }
+.prin-note strong { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .msg-grid { grid-template-columns: 1fr; }
+  .enum-grid { grid-template-columns: 1fr; }
+  .chan-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="page-synapse">
+<nav class="nav">
+  <a href="index.html" class="nav-logo"><div class="nav-logo-mark">S</div>SYNAPSE</a>
+  <ul class="nav-links">
+    <li><a href="index.html">홈</a></li>
+    <li><a href="synapse.html" class="active">synapse</a></li>
+    <li><a href="tom.html">TOM</a></li>
+    <li><a href="and.html">AND</a></li>
+    <li><a href="gerri.html">GERRI</a></li>
+    <li><a href="nexus.html">NEXUS</a></li>
+    <li><a href="demo.html">체험해보기</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="https://github.com/keti-ai" target="_blank" class="nav-gh">GitHub</a>
+    <a href="mailto:khkim1207@keti.re.kr" class="nav-cta">문의하기</a>
+  </div>
+  <div class="nav-hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" onclick="toggleMenu()">홈</a>
+  <a href="synapse.html">synapse</a><a href="tom.html">TOM</a><a href="and.html">AND</a>
+  <a href="gerri.html">GERRI</a><a href="nexus.html">NEXUS</a><a href="demo.html">체험해보기</a>
+  <a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a>
+</div>
+
+<!-- ════════ PROJECT HERO ════════ -->
+<section class="proj-hero">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="index.html">홈</a><span>/</span><span>synapse</span>
+    </div>
+    <div class="proj-mark">🧠</div>
+    <div class="proj-name" style="color:var(--acc);">synapse</div>
+    <div class="proj-full">The single message standard every component imports — definitions only, no execution.</div>
+    <p class="proj-lead">
+      <span class="s">이기종 멀티로봇 플랫폼의 <strong style="color:var(--ink);">가장 안쪽 표준 레이어</strong>로, Topics·표준 메시지 6종·Enum 6종·Pydantic v2 자료구조·미션 모델·<code class="inline">standardize()</code>를 한 곳에 모은다.</span>
+      <span class="s">철학은 단 하나, <strong style="color:var(--ink);">"정의만 한다"</strong>는 것이다.</span>
+      <span class="s">실행 로직은 바깥(tom_and_gerri·nexus)이 가지며, 여기를 바꾸면 전체가 흔들리므로 가장 신중히 관리한다.</span>
+    </p>
+    <div class="proj-badges">
+      <span class="badge badge-syn">공통 표준 레이어</span>
+      <span class="badge badge-gray">pip 패키지 · v0.0.1</span>
+      <span class="badge badge-gray">Python 3.10+</span>
+      <span class="badge badge-gray">pydantic v2</span>
+    </div>
+    <div class="proj-chips">
+      <span class="chip">__init__.py</span><span class="chip">topics.py</span><span class="chip">message.py</span>
+      <span class="chip">enums.py</span><span class="chip">types.py</span><span class="chip">models.py</span>
+      <span class="chip">standardize.py</span><span class="chip">builders.py</span><span class="chip">teleop_mapping.py</span>
+      <span class="chip">time_sync.py</span><span class="chip">missions.py</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ MESSAGES (6) ════════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Message Catalog</span>
+      <h2 class="section-title">표준 메시지 6종</h2>
+      <p class="section-lead"><span class="s">외부로 흐르는 모든 통신은 정확히 <strong>6개의 토픽</strong>으로 끝난다.</span> <span class="s">토픽은 절대 raw 문자열로 쓰지 않고 항상 <code class="inline">Topic.*</code> 상수를 쓴다.</span></p>
+    </div>
+
+    <div class="figure" style="max-width:820px;margin-bottom:40px;">
+      <div class="figure-frame" style="padding:0;overflow:hidden;">
+        <div class="tbl-wrap" style="border:none;border-radius:0;">
+          <table class="tbl">
+            <thead><tr><th>필드</th><th>타입</th><th>설명</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">msg_info.timestamp</td><td>float</td><td><code class="inline">time.time()</code> 기준 송신 시각</td></tr>
+              <tr><td class="mono">msg_info.uuid</td><td>str</td><td>uuid4 — JS 안전을 위해 문자열로 직렬화</td></tr>
+              <tr><td class="mono">msg_info.sender</td><td>str</td><td>송신 로봇의 <code class="inline">robot_id</code></td></tr>
+              <tr><td class="mono">msg_info.receiver</td><td>str | None</td><td>수신 대상. <code class="inline">None</code> = 브로드캐스트</td></tr>
+              <tr><td class="mono">topic</td><td>str</td><td>항상 <code class="inline">Topic.*</code> 값 — raw 문자열 금지</td></tr>
+              <tr><td class="mono">value</td><td>dict</td><td>토픽별 페이로드</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 1.</b> 공통 메시지 봉투. <code class="inline">msg_info</code>(timestamp·uuid·sender·receiver) + <code class="inline">topic</code> + <code class="inline">value</code> 세 부분으로 고정된다. <code class="inline">uuid</code>는 JS 호환을 위해 uuid4의 <em>문자열</em>로 직렬화한다.</p>
+    </div>
+
+    <div class="msg-grid">
+      <div class="msg-card">
+        <div class="msg-topic">robot.status</div>
+        <div class="msg-const">Topic.Robot.STATUS</div>
+        <div class="msg-body">로봇 전체 상태. <strong>RobotInfo</strong>(id·sub_id·type·shape·capability) + <strong>RobotState</strong>(base_state·pose·battery…) + <strong>MissionInfo</strong> 세 묶음. 주기적 "전체 상태" 스냅샷이자 단일 진실 원천(SSOT).</div>
+        <div class="msg-foot">⚠️ raw_status(SDK 원본) ≠ base_state(시스템 종합)를 합치지 않는다. <code class="inline">(robot_id, sub_id)</code>로 upsert — 1:N 로봇 대응.</div>
+      </div>
+      <div class="msg-card">
+        <div class="msg-topic">mission.event</div>
+        <div class="msg-const">Topic.Mission.EVENT</div>
+        <div class="msg-body">미션 진행 중 "방금 일어난 일". <strong>MissionEvent 12종</strong>으로 표현. Event를 놓쳐도 Status가 SSOT이므로 복구된다.</div>
+        <div class="msg-foot">Status = 주기적 전체 상태 · Event = 실시간 알림.</div>
+      </div>
+      <div class="msg-card">
+        <div class="msg-topic">mission.trigger</div>
+        <div class="msg-const">Topic.Mission.TRIGGER</div>
+        <div class="msg-body">외부에서 미션을 트리거. <code class="inline">name</code> + <code class="inline">args</code> 구조. 미션 시작, wait_input·wait_teleop 해제 등에 사용.</div>
+        <div class="msg-foot">빌더: <code class="inline">build_trigger(sender, name, args=None)</code></div>
+      </div>
+      <div class="msg-card">
+        <div class="msg-topic">command.capability</div>
+        <div class="msg-const">Topic.Command.CAPABILITY</div>
+        <div class="msg-body">Capability 호출. <code class="inline">value.name</code> = capability 이름, <code class="inline">value.params</code> = 인자. base가 <code class="inline">getattr(sub, name)(**params)</code>로 디스패치한다.</div>
+        <div class="msg-foot">✓ 단일 토픽 — <code class="inline">command.{capability}</code> 동적 토픽은 만들지 않는다(무한 폭발 방지).</div>
+      </div>
+      <div class="msg-card">
+        <div class="msg-topic">command.teleop</div>
+        <div class="msg-const">Topic.Command.TELEOP</div>
+        <div class="msg-body">원격조작 입력을 단일 토픽으로 통일. <code class="inline">axes</code> · <code class="inline">buttons</code> · <code class="inline">poses</code> 세 채널을 함께 담는다. 조이패드와 VR을 하나의 표준으로 흡수.</div>
+        <div class="msg-foot"><code class="inline">build_joy()</code> / <code class="inline">build_vr()</code>는 이 위에 얹힌 편의 빌더일 뿐, 별도 토픽이 아니다.</div>
+      </div>
+      <div class="msg-card">
+        <div class="msg-topic">help.action</div>
+        <div class="msg-const">Topic.Help.ACTION</div>
+        <div class="msg-body">인간 개입 액션. <strong>HelpAction</strong> 기반(retry · skip · abort · takeover). "실패는 정상, 인간 개입 우선" 원칙의 메시지 표현.</div>
+        <div class="msg-foot">빌더: <code class="inline">build_help(sender, action, context=None)</code></div>
+      </div>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><b>내부 토픽:</b> <span class="s"><code class="inline">Topic.Network.SEND/RECV</code>는 tom_and_gerri 내부 버스용으로 synapse에 함께 정의되지만 외부 표준 6종에는 포함되지 않는다.</span> <span class="s">규칙은 동일하다 — 토픽은 언제나 <code class="inline">Topic.*</code>를 통한다.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ robot.status SCHEMA ════════ -->
+<section class="section alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Standard Schema</span>
+      <h2 class="section-title">robot.status 상세 스키마</h2>
+      <p class="section-lead"><span class="s">모든 로봇이 같은 형태로 보고한다.</span> <span class="s">핵심 설계 원칙은 <strong>차원 분리</strong>로, SDK 원본·시스템 종합·미션 진행을 절대 한 칸에 섞지 않는다.</span></p>
+    </div>
+
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="g2" style="align-items:start;gap:24px;">
+          <div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>필드</th><th>타입 · 설명</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono" colspan="2" style="background:var(--bg);color:var(--text3);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;">robot_info — 정적 메타</td></tr>
+                  <tr><td class="mono">robot_id</td><td>str</td></tr>
+                  <tr><td class="mono">sub_id</td><td>str — 1:N 대응 키</td></tr>
+                  <tr><td class="mono">robot_type</td><td>str (mobile·manipulator…)</td></tr>
+                  <tr><td class="mono">robot_shape</td><td>dict</td></tr>
+                  <tr><td class="mono">capability</td><td>{common[], custom[]}</td></tr>
+                  <tr><td class="mono" colspan="2" style="background:var(--bg);color:var(--text3);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;">robot_state — 동적 상태</td></tr>
+                  <tr><td class="mono">base_state</td><td>BaseState — 시스템 종합(파생)</td></tr>
+                  <tr><td class="mono">pose</td><td>Pose | Pose3D</td></tr>
+                  <tr><td class="mono">velocity</td><td>Twist</td></tr>
+                  <tr><td class="mono">battery_state</td><td>Battery — percentage · is_charging</td></tr>
+                  <tr><td class="mono">joint_state</td><td>Joint</td></tr>
+                  <tr><td class="mono">network</td><td>NetworkState</td></tr>
+                  <tr><td class="mono">raw_status</td><td>dict — SDK 원본(분리!)</td></tr>
+                  <tr><td class="mono">extension</td><td>dict — 로봇별 자유 확장</td></tr>
+                  <tr><td class="mono" colspan="2" style="background:var(--bg);color:var(--text3);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;">mission_info — 미션 진행</td></tr>
+                  <tr><td class="mono">mission_state</td><td>MissionState</td></tr>
+                  <tr><td class="mono">mission_name</td><td>str</td></tr>
+                  <tr><td class="mono">current_task</td><td>str</td></tr>
+                  <tr><td class="mono">available_missions</td><td>str[]</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="dim-stack">
+              <div class="dim-card hl">
+                <div class="dim-k">raw_status ≠ base_state ≠ mission_state</div>
+                <div class="dim-v">세 차원을 절대 병합하지 않는다. 같은 이름(IDLE·TELEOP)이 서로 다른 차원에 등장해도 의미가 다르다 — <strong>raw_status</strong>는 SDK 원본, <strong>base_state</strong>는 시스템 종합, <strong>mission_state</strong>는 미션 진행이다.</div>
+              </div>
+              <div class="dim-card">
+                <div class="dim-k">battery_state.percentage / is_charging</div>
+                <div class="dim-v">Battery 필드명은 <code class="inline">percentage</code>·<code class="inline">is_charging</code>(그 외 voltage·current·temperature). level/charging이 아니다.</div>
+              </div>
+              <div class="dim-card">
+                <div class="dim-k">정적 메타도 status 안에</div>
+                <div class="dim-v">capability·shape 같은 정적 메타데이터도 status에 함께 싣는다. 새 엔티티로 분산하지 않는다.</div>
+              </div>
+              <div class="dim-card">
+                <div class="dim-k">upsert key = (robot_id, sub_id)</div>
+                <div class="dim-v">1:N 로봇(한 본체에 여러 서브)을 위해 두 키로 upsert. sub_id가 모듈별 상태를 분리한다.</div>
+              </div>
+              <div class="dim-card">
+                <div class="dim-k">extension / raw_status = dict</div>
+                <div class="dim-v">표준에 없는 값은 자유 dict로 확장. 표준을 깨지 않고 로봇별 확장을 허용한다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 2.</b> robot.status 스키마와 차원 분리 원칙. RobotState의 모든 필드는 optional이며, 누락분은 <code class="inline">standardize()</code>가 워닝과 함께 흘려보낸다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ ENUMS (6) ════════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Enum Catalog</span>
+      <h2 class="section-title">표준 Enum 6종</h2>
+      <p class="section-lead">모든 상태·이벤트·액션은 문자열 직접 사용 없이 이 6개 Enum 중 하나로 표현한다.</p>
+    </div>
+
+    <div class="enum-grid">
+      <div class="enum-card">
+        <div class="enum-name">BaseState <span style="color:var(--text3);font-weight:600;">(5)</span></div>
+        <div class="enum-sub">base가 sub들을 종합한 파생 상태. 우선순위 ERROR &gt; NEED_HELP &gt; TELEOP &gt; BUSY &gt; IDLE. 헬퍼 <code class="inline">derive_base_state()</code>.</div>
+        <div class="enum-values">
+          <span class="ev">IDLE</span><span class="ev">BUSY</span><span class="ev">TELEOP</span><span class="ev">NEED_HELP</span><span class="ev">ERROR</span>
+        </div>
+      </div>
+      <div class="enum-card">
+        <div class="enum-name">MissionState <span style="color:var(--text3);font-weight:600;">(8)</span></div>
+        <div class="enum-sub">미션 진행 상태. 종료 상태 = {SUCCEEDED, FAILED, ABORTED}. WAIT_INPUT은 계획된 대기, NEED_HELP는 예외 개입.</div>
+        <div class="enum-values">
+          <span class="ev">IDLE</span><span class="ev">RUNNING</span><span class="ev">WAIT_INPUT</span><span class="ev">TELEOP</span><span class="ev">NEED_HELP</span><span class="ev">SUCCEEDED</span><span class="ev">FAILED</span><span class="ev">ABORTED</span>
+        </div>
+      </div>
+      <div class="enum-card" style="grid-column:span 2;">
+        <div class="enum-name">MissionEvent <span style="color:var(--text3);font-weight:600;">(12)</span></div>
+        <div class="enum-sub">mission.event의 페이로드. 미션 레벨 4 · 태스크 3 · 개입 4 · UI 1로 구성.</div>
+        <div class="ev-grp">미션 (4)</div>
+        <div class="enum-values"><span class="ev">MISSION_STARTED</span><span class="ev">MISSION_SUCCEEDED</span><span class="ev">MISSION_FAILED</span><span class="ev">MISSION_ABORTED</span></div>
+        <div class="ev-grp">태스크 (3)</div>
+        <div class="enum-values"><span class="ev">TASK_STARTED</span><span class="ev">TASK_COMPLETED</span><span class="ev">TASK_FAILED</span></div>
+        <div class="ev-grp">개입 (4)</div>
+        <div class="enum-values"><span class="ev">NEED_HELP</span><span class="ev">HELP_RECEIVED</span><span class="ev">TELEOP_STARTED</span><span class="ev">TELEOP_ENDED</span></div>
+        <div class="ev-grp">UI (1)</div>
+        <div class="enum-values"><span class="ev">WAIT_INPUT</span></div>
+      </div>
+      <div class="enum-card">
+        <div class="enum-name">HelpAction <span style="color:var(--text3);font-weight:600;">(4)</span></div>
+        <div class="enum-sub">help.action에 실리는 인간 개입 액션.</div>
+        <div class="enum-values">
+          <span class="ev">retry</span><span class="ev">skip</span><span class="ev">abort</span><span class="ev">takeover</span>
+        </div>
+      </div>
+      <div class="enum-card">
+        <div class="enum-name">TeleopExitAction <span style="color:var(--text3);font-weight:600;">(3)</span></div>
+        <div class="enum-sub">원격조작 종료 방식. 복귀 후 재개/재시도 또는 중단.</div>
+        <div class="enum-values">
+          <span class="ev">resume_done</span><span class="ev">resume_retry</span><span class="ev">abort</span>
+        </div>
+      </div>
+      <div class="enum-card" style="grid-column:span 2;">
+        <div class="enum-name">Capability <span style="color:var(--text3);font-weight:600;">(16)</span></div>
+        <div class="enum-sub">표준 capability 카탈로그. <strong style="color:var(--ink);">enum value == 메서드 이름</strong>. 자세한 분류는 아래 Capability 카탈로그 참조.</div>
+        <div class="enum-values">
+          <span class="ev">navigate_to_pose</span><span class="ev">navigate_to_waypoint</span><span class="ev">velocity_ctrl</span><span class="ev">dock</span><span class="ev">undock</span>
+          <span class="ev">joint_ctrl</span><span class="ev">cartesian_ctrl</span><span class="ev">gripper_ctrl</span><span class="ev">home_position</span><span class="ev">joint_preset</span>
+          <span class="ev">pan_tilt</span><span class="ev">pan_tilt_zoom</span><span class="ev">get_pose</span><span class="ev">get_battery</span><span class="ev">get_joints</span>
+          <span class="ev ev-req">stop</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- teleop channel mapping (NOT one of the 6 core enums) -->
+    <div class="section-head mt-48">
+      <h2 class="section-title" style="font-size:clamp(22px,2.4vw,30px);">텔레옵 채널 매핑</h2>
+      <p class="section-lead"><span class="s"><code class="inline">teleop_mapping.py</code>의 IntEnum 들은 6종 핵심 Enum이 아니라 <code class="inline">command.teleop</code> 페이로드의 <strong>채널 인덱스 도우미</strong>다.</span> <span class="s">카운트는 <span class="nb">axes 8 · buttons 16 · poses 3</span>이다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="chan-grid">
+          <div class="chan-card">
+            <div class="chan-name">JoyAxis <span style="color:var(--text3);">(8)</span></div>
+            <div class="chan-sub">axes[] 인덱스 매핑</div>
+            <div class="chan-list">
+              <span class="ev">LEFT_STICK_X=0</span><span class="ev">LEFT_STICK_Y=1</span><span class="ev">RIGHT_STICK_X=2</span><span class="ev">RIGHT_STICK_Y=3</span><span class="ev">LEFT_TRIGGER=4</span><span class="ev">RIGHT_TRIGGER=5</span><span class="ev">LEFT_GRIP=6</span><span class="ev">RIGHT_GRIP=7</span>
+            </div>
+          </div>
+          <div class="chan-card">
+            <div class="chan-name">JoyButton <span style="color:var(--text3);">(16)</span></div>
+            <div class="chan-sub">buttons[] 인덱스 매핑 (0..15)</div>
+            <div class="chan-list">
+              <span class="ev">A</span><span class="ev">B</span><span class="ev">X</span><span class="ev">Y</span><span class="ev">L1</span><span class="ev">R1</span><span class="ev">L2</span><span class="ev">R2</span><span class="ev">BACK</span><span class="ev">START</span><span class="ev">LEFT_STICK</span><span class="ev">RIGHT_STICK</span><span class="ev">DPAD_UP</span><span class="ev">DPAD_DOWN</span><span class="ev">DPAD_LEFT</span><span class="ev">DPAD_RIGHT</span>
+            </div>
+          </div>
+          <div class="chan-card">
+            <div class="chan-name">PoseChannel <span style="color:var(--text3);">(3)</span></div>
+            <div class="chan-sub">poses[] 인덱스 매핑 (VR 6DoF)</div>
+            <div class="chan-list">
+              <span class="ev">LEFT_HAND=0</span><span class="ev">RIGHT_HAND=1</span><span class="ev">HEAD=2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 3.</b> 텔레옵 채널 인덱스. synapse는 인덱스 표준만 정의하고 해석·핸들러는 tom_and_gerri가 맡는다 — 어떤 입력 장치든 같은 <code class="inline">command.teleop</code>로 흘려보낼 수 있다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ CAPABILITY CATALOG ════════ -->
+<section class="section alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Capability Catalog</span>
+      <h2 class="section-title">표준 Capability 16종</h2>
+      <p class="section-lead">모든 로봇이 같은 이름·같은 시그니처를 쓰며, <strong>enum value가 곧 메서드 이름</strong>이고 base는 <code class="inline">getattr(sub, name)(**params)</code>로 디스패치한다.</p>
+    </div>
+
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="cap-group">
+          <div class="cap-label">모바일 (5)</div>
+          <div class="cap-row">
+            <span class="cap-item">navigate_to_pose</span><span class="cap-item">navigate_to_waypoint</span><span class="cap-item">velocity_ctrl</span><span class="cap-item">dock</span><span class="cap-item">undock</span>
+          </div>
+        </div>
+        <div class="cap-group">
+          <div class="cap-label">매니퓰레이터 (5)</div>
+          <div class="cap-row">
+            <span class="cap-item">joint_ctrl</span><span class="cap-item">cartesian_ctrl</span><span class="cap-item">gripper_ctrl</span><span class="cap-item">home_position</span><span class="cap-item">joint_preset</span>
+          </div>
+        </div>
+        <div class="cap-group">
+          <div class="cap-label">카메라 (2)</div>
+          <div class="cap-row">
+            <span class="cap-item">pan_tilt</span><span class="cap-item">pan_tilt_zoom</span>
+          </div>
+        </div>
+        <div class="cap-group">
+          <div class="cap-label">조회 (3)</div>
+          <div class="cap-row">
+            <span class="cap-item">get_pose</span><span class="cap-item">get_battery</span><span class="cap-item">get_joints</span>
+          </div>
+        </div>
+        <div class="cap-group">
+          <div class="cap-label">필수 (1) · 자유 확장</div>
+          <div class="cap-row">
+            <span class="cap-item req">stop ← 필수</span>
+            <span class="cap-item custom">custom_capability (자유)</span>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 4.</b> Capability 16종 + 필수 1 + 자유 확장. <code class="inline">REQUIRED_CAPABILITIES = {stop}</code> — 모든 로봇이 <code class="inline">stop()</code>을 구현해야 한다. 로봇별 비표준 동작은 free-form <code class="inline">custom_capability</code>로 추가한다.</p>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><b>디스패치 규칙:</b> <span class="s"><code class="inline">command.capability</code>의 <code class="inline">value.name</code>에 capability 이름이 담기고, base가 <code class="inline">getattr(sub, name)(**params)</code>로 호출한다.</span> <span class="s"><code class="inline">command.{capability}</code> 같은 동적 토픽은 만들지 않는다 — 토픽 폭발을 막는다.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ CORE DATA STRUCTURES ════════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Core Building Blocks</span>
+      <h2 class="section-title">핵심 자료구조 · 빌더</h2>
+      <p class="section-lead">개발자가 실제로 import해서 쓰는 골격 — <code class="inline">Result</code>, <code class="inline">StatusBuilder</code>, <code class="inline">standardize()</code>, <code class="inline">Topic</code>.</p>
+    </div>
+
+    <div class="prose">
+      <div class="note"><b>Result — capability 반환 표준:</b> <span class="s"><code class="inline">Result</code>는 capability가 반환하는 표준 <code class="inline">@dataclass</code>(Pydantic 아님)로, 라이브러리가 정의하고 사용자는 반환만 한다.</span> <span class="s">필드는 <code class="inline">success</code>(bool) · <code class="inline">data</code>(dict) · <code class="inline">message</code>(str) · <code class="inline">error</code>(str|None)이며, <code class="inline">Result.ok(message="", **data)</code> 또는 <code class="inline">Result.fail(error, message="")</code>로 생성한다.</span></div>
+
+      <div class="note mt-20"><b>StatusBuilder — status 메시지 빌더:</b> <span class="s"><code class="inline">StatusBuilder(robot_id).build(robot_state, mission_info, robot_info)</code>가 status 메시지 dict를 만든다.</span> <span class="s">각 입력에 <code class="inline">standardize()</code>를 자동 적용하고 <code class="inline">robot_id</code>를 보장하며, 누락 필드는 워닝으로 흘려보낸다.</span></div>
+
+      <div class="note mt-20"><b>standardize() — Postel's Law(받을 땐 관대, 보낼 땐 표준):</b> <span class="s"><code class="inline">normalize(data)</code>는 dict·Pydantic·dataclass·None 등 무엇이든 dict로 바꾼다(never raise).</span> <span class="s"><code class="inline">standardize(data, model_class)</code>는 normalize 후 <code class="inline">model_validate</code>를 시도하고, 실패하면 문제 필드만 떼어 재검증해 <code class="inline">(dict, warnings)</code>를 반환한다 — 절대 예외를 던지지 않는다.</span></div>
+
+      <div class="note mt-20"><b>Topic — raw 문자열 금지:</b> <span class="s">토픽은 항상 <code class="inline">Topic.*</code> 상수로 접근한다(예: <code class="inline">Topic.Command.CAPABILITY</code> = <code class="inline">"command.capability"</code>).</span></div>
+    </div>
+
+    <div class="tbl-wrap mt-24" style="max-width:var(--measure);margin-left:auto;margin-right:auto;">
+      <table class="tbl">
+        <thead><tr><th>Topic.* 상수</th><th>문자열 값</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">Topic.Robot.STATUS</td><td class="mono">robot.status</td></tr>
+          <tr><td class="mono">Topic.Mission.EVENT</td><td class="mono">mission.event</td></tr>
+          <tr><td class="mono">Topic.Mission.TRIGGER</td><td class="mono">mission.trigger</td></tr>
+          <tr><td class="mono">Topic.Command.CAPABILITY</td><td class="mono">command.capability</td></tr>
+          <tr><td class="mono">Topic.Command.TELEOP</td><td class="mono">command.teleop</td></tr>
+          <tr><td class="mono">Topic.Help.ACTION</td><td class="mono">help.action</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="prose mt-32">
+      <p style="font-size:15px;color:var(--text2);line-height:1.8;"><strong style="color:var(--ink);">자료구조 요약.</strong> <code class="inline">models.py</code>는 Pydantic v2이며 모든 필드가 optional이다. <code class="inline">Pose3D</code>{x,y,z,qx,qy,qz,qw}가 정규형(쿼터니언)이고 <code class="inline">from_2d</code>/<code class="inline">from_rpy</code>/<code class="inline">.yaw</code>/<code class="inline">.to_2d</code> 변환을 제공한다. <code class="inline">Twist</code>{linear, angular}, <code class="inline">Joint</code>{positions(required)·names·velocities·efforts}, <code class="inline">NetworkState</code>는 internet/server/operator 각각 <code class="inline">Link</code>{is_connected, latency_ms, packet_loss}로 구성된다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ MISSIONS + TIME SYNC ════════ -->
+<section class="section alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Mission Model &amp; Sync</span>
+      <h2 class="section-title">미션 모델 · 시간 동기화</h2>
+      <p class="section-lead"><code class="inline">missions.py</code>는 미션 자료구조와 간결 헬퍼를, <code class="inline">time_sync.py</code>는 NTP식 오프셋 동기화를 정의한다.</p>
+    </div>
+
+    <div class="g2" style="align-items:start;">
+      <div>
+        <p style="font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.04em;color:var(--text3);margin-bottom:12px;">Task 5종 · 미션 헬퍼 6종</p>
+        <div class="kv-strip" style="justify-content:flex-start;margin-bottom:16px;">
+          <span class="kv-pill"><b>capability</b></span>
+          <span class="kv-pill"><b>wait_input</b></span>
+          <span class="kv-pill"><b>wait_teleop</b></span>
+          <span class="kv-pill"><b>notify</b></span>
+          <span class="kv-pill"><b>func</b></span>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">개발자가 작성하는 미션 정의</span></div>
+          <pre><code><span class="kw">def</span> <span class="fn">delivery_5f_to_1f</span>() -> <span class="cn">RobotMission</span>:
+    <span class="kw">return</span> <span class="cn">RobotMission</span>(name=<span class="str">"delivery"</span>, tasks=[
+        <span class="fn">cap</span>(<span class="str">"undock"</span>, <span class="str">"undock"</span>),
+        <span class="fn">cap</span>(<span class="str">"go"</span>, <span class="str">"navigate_to_pose"</span>,
+            x=<span class="num">1.0</span>, y=<span class="num">2.0</span>),
+        <span class="fn">wait_input</span>(<span class="str">"confirm"</span>, prompt=<span class="str">"도착했나요?"</span>),
+        <span class="fn">cap</span>(<span class="str">"dock"</span>, <span class="str">"dock"</span>),
+        <span class="fn">notify</span>(<span class="str">"done"</span>, <span class="str">"배달 완료"</span>),
+    ])</code></pre>
+        </div>
+      </div>
+      <div>
+        <p style="font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.04em;color:var(--text3);margin-bottom:12px;">시간 동기화 · 미션 위임 구조</p>
+        <div class="note"><b>TimeSync — NTP식 4-타임스탬프:</b> <span class="s"><code class="inline">TimeSyncMaster</code>(NEXUS) / <code class="inline">TimeSyncSlave</code>(TAG)가 4개의 타임스탬프로 offset과 RTT를 NTP식으로 동기화한다.</span></div>
+        <div class="note mt-20"><b>미션 위임 구조:</b> <span class="s"><code class="inline">FleetMission</code>(다중 로봇 DAG, <code class="inline">depends_on</code>) → <code class="inline">RobotMission</code>(단일 로봇 Task 시퀀스) → <code class="inline">Task</code>(5종).</span> <span class="s">헬퍼 <code class="inline">cap</code>·<code class="inline">wait_input</code>·<code class="inline">wait_teleop</code>·<code class="inline">notify</code>·<code class="inline">func</code>·<code class="inline">call</code>로 간결하게 정의한다.</span></div>
+        <div class="note mt-20"><b>Fleet 자료구조:</b> <span class="s"><code class="inline">FleetMission{tasks: dict[str, FleetTask]}</code>, <code class="inline">FleetTask{robot, mission, depends_on, policy}</code>, <code class="inline">ExecutionPolicy.on_failure</code> = stop · continue · retry.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- prev / next -->
+<div style="border-top:1px solid var(--border);padding:28px 0;background:var(--bg);">
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <a href="index.html" class="btn btn-ghost btn-sm">← 홈으로</a>
+    <a href="tom.html" class="btn btn-sm" style="background:var(--tom);color:white;border-color:var(--tom);">다음: TOM →</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="index.html" class="logo"><div class="logo-mark">S</div>SYNAPSE</a>
+      <p>KETI 지능로보틱스연구센터<br>STAR TEAM</p>
+    </div>
+    <div class="footer-col"><h4>컴포넌트</h4><ul>
+      <li><a href="synapse.html">synapse (표준)</a></li><li><a href="tom.html">TOM</a></li>
+      <li><a href="and.html">AND</a></li><li><a href="gerri.html">GERRI</a></li>
+      <li><a href="nexus.html">NEXUS</a></li><li><a href="gerri.html#cockpit">COCKPIT</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>바로가기</h4><ul>
+      <li><a href="index.html#abstract">개요</a></li>
+      <li><a href="index.html#architecture">아키텍처</a></li>
+      <li><a href="index.html#comms">통신 구조</a></li>
+      <li><a href="index.html#mission">미션 시스템</a></li>
+    </ul></div>
+    <div class="footer-col"><h4>연락처</h4><ul>
+      <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>
+      <li><a href="https://github.com/keti-ai" target="_blank">GitHub ↗</a></li>
+    </ul></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 한국전자기술연구원(KETI) 지능로보틱스연구센터. All rights reserved.</span>
+    <span>SYNAPSE Platform · Technical Report</span>
+  </div>
+</footer>
+<script>function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}</script>
+</body>
+</html>

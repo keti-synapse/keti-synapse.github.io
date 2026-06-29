@@ -3,496 +3,1632 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>체험해보기 — NEXUS RTS 관제 | SYNAPSE</title>
+<title>체험해보기 — NEXUS 관제 콘솔 | SYNAPSE</title>
 <!--
-  nexus_ui(rts.html) 디자인을 그대로 따른 체험 데모.
-  실제 백엔드 없이 도는 시뮬레이션이지만, 모든 조작은 synapse 표준 command.capability 로 생성된다.
-  - 드래그 박스 다중선택 · 클릭 단일선택 · Shift+클릭 토글
-  - 우클릭: 선택한 모바일 로봇에 navigate_to_pose 이동 명령
-  - 우하단 3×3 스킬 카드(폴더 드릴다운) · velocity_ctrl → 1:1 COCKPIT
+  체험해보기 — nexus_ui 통합 관제 콘솔을 백엔드 없이 그대로 재현한 시뮬레이션(단일 파일).
+  실제 nexus_ui(index.html + app.js + cockpit.js …)의 디자인(KETI 톤)과 기능을 거의 1:1로 옮겼다:
+    · 좌측 사이드바 네비(대시보드 / 플릿 미션 / 맵 에디터 / 서버 설정) + 다크·라이트 테마
+    · 사이트 전체(L0) 오버뷰 — 표준맵 카드 + 로봇 dots/요약/리스트 → 맵 진입(L1)
+    · 플릿(RTS, L1) — 표준맵 배경 + 90° 회전 + 휠줌/팬, 드래그 박스 다중선택, 방향 화살표,
+      roster(신호·배터리·base_state 배지), 미니맵, 3×3 스킬그리드(폴더 드릴다운), capability 파라미터 자동폼
+    · 헤더 — 상태요약 칩 + 필터, 알람 🔔(IoT is_alarm + 파생: OFFLINE·저배터리), 비프/TTS
+    · 1:1 직접관제 콕핏 — 키보드/마우스 프리셋 탭, 카메라(시뮬), 미니맵, 입력 HUD, 지연(RTT) 그래프, D-pad
+    · 플릿 미션 — 템플릿 시작 → DAG 태스크 진행, 서버 설정(연결/테마/ICE/사이트) 패널
+  모든 조작은 synapse 표준 command.capability / command.teleop 메시지로 생성되어 콘솔에 찍힌다(개발자도구 확인).
+  실제 콘솔과 달리 서버(/api/*)·WebRTC 는 없고, 데이터는 내장 mock + 시뮬레이션 틱으로 돈다.
 -->
+<script>
+  // 데모는 백엔드가 없다 — 설정은 전부 시뮬레이션 기본값. 테마만 localStorage 로 기억.
+  (function () {
+    window.__NEXUS__ = {
+      apiBase: "", poll: 1500, offlineTtl: 5, mapExtent: 16,
+      operatorId: "op-demo", iceServers: [{ urls: "stun:stun.l.google.com:19302" }], mapUrl: "",
+    };
+    if ((localStorage.getItem("nexus_ui.theme") || "dark") === "light")
+      document.documentElement.setAttribute("data-theme", "light");
+  })();
+</script>
 <style>
-  :root{ --bg:#0b0f0c; --panel:#11181300; --line:#2f4738; --accent:#6fe39a; --accent2:#e3b96f;
-         --ok:#6fe39a; --busy:#e3b96f; --err:#e36f6f; --help:#e3e36f; --off:#5a6b60; --ink:#cfe7d8; }
+  /* ===== KETI 디자인 토큰 (nexus_ui STYLE.md) — 모든 UI 공통 톤. 다크 기본 + data-theme="light" 토글 ===== */
+  :root{                                    /* DARK (기본) — KETI 네이비 + 블루 */
+    --bg:#0a0e16; --panel:#0f1722; --card:#0e1620; --card2:#0b121b; --surface:#13243a;
+    --line:#1f3a5c; --line2:#2f4f7c;
+    --ink:#d6e6f5; --ink2:#9fc0e3; --dim:#7f97b3;
+    --accent:#2e9be0; --accent2:#6cc4e8; --on-accent:#04223a;   /* KETI 블루 / 라이트블루 */
+    --ok:#2e9be0; --busy:#e3b96f; --err:#e36f6f; --help:#e3d36f; --off:#5a6f88;
+    --err-bg:#2a1414; --err-line:#4a2b2b;
+  }
+  :root[data-theme="light"]{                /* LIGHT — KETI 로고 톤(흰 배경 + 블루) */
+    --bg:#f4f8fc; --panel:#ffffff; --card:#ffffff; --card2:#eef4fa; --surface:#e6eef7;
+    --line:#d2e0ee; --line2:#bcd0e6;
+    --ink:#0a2540; --ink2:#3a5e82; --dim:#6b86a3;
+    --accent:#0072ce; --accent2:#0098d8; --on-accent:#ffffff;
+    --ok:#0072ce; --busy:#c8881f; --err:#d64545; --help:#b58a00; --off:#9bb0c6;
+    --err-bg:#fdecec; --err-line:#f4c9c9;
+  }
   *{ box-sizing:border-box; }
   html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink);
     font:13px/1.4 ui-sans-serif,system-ui,"Segoe UI","Apple SD Gothic Neo",sans-serif; user-select:none; overflow:hidden; }
+  button{ font:inherit; color:var(--ink); cursor:pointer; }
   #app{ display:flex; flex-direction:column; height:100vh; }
-  header{ padding:6px 12px; border-bottom:1px solid var(--line); display:flex; gap:14px; align-items:center; }
+  #app[hidden]{ display:none; }
+  header{ padding:6px 12px; border-bottom:1px solid var(--line); display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
   header h1{ font-size:14px; margin:0; color:var(--accent); letter-spacing:.5px; white-space:nowrap; }
-  header .hint{ color:#7f9a89; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  header .conn{ font-size:11px; color:var(--accent); white-space:nowrap; }
-  header .hbtn{ font-size:11px; color:var(--ink); background:#0e1611; border:1px solid var(--line);
-    border-radius:5px; padding:4px 9px; cursor:pointer; white-space:nowrap; }
-  header .hbtn:hover{ border-color:var(--accent); color:var(--accent); }
-  header .back{ font-size:11px; color:#9fc3ad; text-decoration:none; border:1px solid var(--line);
-    border-radius:5px; padding:4px 9px; white-space:nowrap; }
-  header .back:hover{ border-color:var(--accent); color:var(--accent); }
+  header .hint{ color:var(--dim); font-size:11px; }
+  header .conn{ font-size:11px; }
+  header .conn.ok{ color:var(--ok); } header .conn.bad{ color:var(--err); }
+  header .srv{ margin-left:auto; display:flex; gap:4px; align-items:center; font-size:11px; }
+  header .srv label{ color:var(--dim); }
+  header .srv input{ width:170px; background:var(--card); border:1px solid var(--line); color:var(--ink);
+    border-radius:4px; padding:3px 6px; font:11px/1.3 ui-monospace,monospace; }
+  header .srv button{ background:var(--accent); color:var(--on-accent); border:none; border-radius:4px; padding:3px 10px; font-weight:600; }
+  header #themebtn{ background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:2px 8px; font-size:13px; line-height:1; }
+  header #themebtn:hover{ border-color:var(--accent); }
+  header #navtoggle{ background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:2px 9px; font-size:14px; line-height:1; cursor:pointer; }
+  header #navtoggle:hover{ border-color:var(--accent); }
+  /* 알람 벨 + 패널 */
+  #alarmwrap{ position:relative; }
+  #alarmbtn{ background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:2px 7px; font-size:13px; line-height:1; cursor:pointer; }
+  #alarmbtn:hover{ border-color:var(--accent); }
+  #alarmbtn #alarmcount{ font:10px/1 ui-monospace,monospace; margin-left:3px; color:var(--dim); }
+  #alarmbtn.has{ animation:almpulse 1.1s ease-in-out infinite; }
+  #alarmbtn.has #alarmcount{ color:var(--on-accent); background:var(--sev,var(--err)); border-radius:8px; padding:1px 5px; }
+  @keyframes almpulse{ 0%,100%{ box-shadow:0 0 0 0 transparent; } 50%{ box-shadow:0 0 0 2px var(--sev,var(--err)); } }
+  #alarmpanel{ position:absolute; top:28px; right:0; z-index:30; width:320px; max-height:60vh; overflow:auto;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 8px 24px color-mix(in srgb,#000 45%,transparent); padding:8px; }
+  #alarmpanel[hidden]{ display:none; }
+  .ap-head{ display:flex; align-items:center; gap:10px; margin-bottom:6px; font-size:12px; color:var(--ink); }
+  .ap-head b{ flex:1; }
+  .ap-tog{ display:flex; align-items:center; gap:3px; font-size:11px; color:var(--ink2); cursor:pointer; }
+  .alm{ display:flex; gap:8px; align-items:flex-start; padding:6px 7px; border:1px solid var(--line); border-left-width:3px; border-radius:5px; margin-bottom:5px; background:var(--card); cursor:pointer; }
+  .alm:hover{ border-color:var(--accent); }
+  .alm .ai{ font-size:14px; }
+  .alm .ab{ flex:1; min-width:0; }
+  .alm .at{ font-size:12px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .alm .as{ font-size:10px; color:var(--dim); margin-top:1px; }
+  .alm-none{ color:var(--dim); font-size:12px; padding:8px; text-align:center; }
+  /* 좌측 사이드바 네비 */
+  #body{ flex:1; display:flex; min-height:0; }
+  #sidebar{ width:172px; flex:none; border-right:1px solid var(--line); background:var(--panel);
+    padding:8px 6px; display:flex; flex-direction:column; gap:3px; overflow:hidden; transition:width .15s; }
+  #app.nav-collapsed #sidebar{ width:46px; }
+  .navitem{ display:flex; align-items:center; gap:10px; padding:8px 9px; border-radius:6px; color:var(--ink2);
+    text-decoration:none; cursor:pointer; white-space:nowrap; font-size:13px; }
+  .navitem:hover{ background:var(--card); color:var(--ink); }
+  .navitem.active{ background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); }
+  .navitem .ni-ic{ font-size:16px; width:18px; text-align:center; flex:none; }
+  .navspacer{ flex:1; }
+  #app.nav-collapsed .ni-tx{ display:none; }
+  #content{ flex:1; display:flex; flex-direction:column; min-height:0; }
+  /* 서버 설정 패널 */
+  #configview{ flex:1; overflow:auto; padding:18px; }
+  #configview[hidden], #overview[hidden], #missionsview[hidden]{ display:none; }
+  .cfgwrap{ max-width:660px; }
+  .cfgwrap h2{ font-size:16px; color:var(--accent); margin:0 0 14px; }
+  .cfg{ border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px; background:var(--card); }
+  .cfg h3{ font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; margin:0 0 10px; }
+  .cf{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; font-size:13px; color:var(--ink2); }
+  .cf input{ width:300px; background:var(--card2); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:5px 8px; }
+  .btn{ background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:5px 12px; cursor:pointer; font:inherit; }
+  .btn:hover{ border-color:var(--accent); }
+  .btn.pri{ background:var(--accent); color:var(--on-accent); border:none; font-weight:600; }
+  .cfg-status{ font-size:12px; color:var(--dim); margin-top:6px; }
+  .cfg-pre{ margin:0; background:var(--card2); border:1px solid var(--line); border-radius:5px; padding:8px;
+    font:11px/1.4 ui-monospace,monospace; color:var(--ink2); max-height:170px; overflow:auto; white-space:pre-wrap; }
+  /* 상태 요약 칩 */
+  #summarybar{ display:flex; gap:5px; align-items:center; }
+  .summary-chip{ display:flex; align-items:center; gap:4px; padding:2px 8px; border:1px solid var(--line);
+    border-radius:11px; background:var(--card); font-size:11px; color:var(--ink); cursor:pointer; }
+  .summary-chip .dot{ width:8px; height:8px; border-radius:50%; }
+  .summary-chip.active{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .summary-chip.zero{ opacity:.4; }
 
   #stage{ flex:1; display:flex; min-height:0; }
+  #stage[hidden], #hud[hidden]{ display:none; }
   /* 맵 */
   #map{ position:relative; flex:1; margin:8px; border:1px solid var(--line); border-radius:6px;
     background:
-      radial-gradient(circle at 30% 30%, #14201a, #0c120e 70%),
-      repeating-linear-gradient(0deg,transparent 0 39px,#16241c80 39px 40px),
-      repeating-linear-gradient(90deg,transparent 0 39px,#16241c80 39px 40px);
-    overflow:hidden; cursor:crosshair; }
-  .dock{ position:absolute; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:6px;
-    display:flex; align-items:center; justify-content:center; font-size:14px; opacity:.8;
-    background:#0e1611; border:1px dashed var(--line); }
-  .goal{ position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; pointer-events:none; }
-  .goal::before,.goal::after{ content:''; position:absolute; background:var(--accent); }
-  .goal::before{ left:8px; top:0; width:2px; height:18px; } .goal::after{ top:8px; left:0; height:2px; width:18px; }
+      radial-gradient(circle at 30% 30%, var(--surface), var(--card2) 70%),
+      repeating-linear-gradient(0deg,transparent 0 39px,color-mix(in srgb, var(--surface) 50%, transparent) 39px 40px),
+      repeating-linear-gradient(90deg,transparent 0 39px,color-mix(in srgb, var(--surface) 50%, transparent) 39px 40px);
+    background-size:cover, auto, auto; overflow:hidden; cursor:crosshair; }
+  #map.has-map{ background-color:var(--card2); }
+  #maprot{ position:absolute; inset:0; transform-origin:center center; }
+  #maprot.has-map{ background-color:var(--card2); background-position:center; background-repeat:no-repeat; }
+  #maprotbtn{ position:absolute; top:8px; right:8px; z-index:4; background:color-mix(in srgb, var(--bg) 85%, transparent);
+    color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:3px 8px; font-size:11px; cursor:pointer; }
+  #maprotbtn:hover{ border-color:var(--accent); }
+  #mapsel{ position:absolute; top:8px; left:86px; z-index:4; max-width:230px;
+    background:color-mix(in srgb, var(--bg) 85%, transparent); color:var(--ink); border:1px solid var(--line);
+    border-radius:5px; padding:3px 6px; font:11px/1.3 ui-sans-serif,system-ui; }
+  #mapsel:hover{ border-color:var(--accent); }
+  #tooverview{ position:absolute; top:8px; left:8px; z-index:4; background:color-mix(in srgb, var(--bg) 85%, transparent);
+    color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:3px 8px; font-size:11px; cursor:pointer; }
+  #tooverview:hover{ border-color:var(--accent); }
+  /* L0 사이트 전체 (overview) */
+  #overview{ flex:1; overflow:auto; padding:16px; }
+  .ovhead{ display:flex; align-items:baseline; gap:10px; margin-bottom:14px; }
+  .ovhead h2{ font-size:16px; color:var(--accent); margin:0; }
+  .ovsub{ font-size:12px; color:var(--dim); }
+  #overviewgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+  .ovsite{ grid-column:1/-1; font-size:15px; font-weight:700; color:var(--accent); margin:10px 0 0; padding-bottom:5px; border-bottom:1px solid var(--line); }
+  .ovsite:first-child{ margin-top:0; }
+  .ovbuilding{ grid-column:1/-1; font-size:12px; color:var(--dim); margin-top:2px; }
+  .ovcard{ border:1px solid var(--line); border-radius:8px; background:var(--card); overflow:hidden; cursor:pointer; transition:border-color .1s; }
+  .ovcard:hover{ border-color:var(--accent); }
+  .ovthumb{ position:relative; width:100%; background:var(--card2) center/contain no-repeat; border-bottom:1px solid var(--line); }
+  .ovthumb.nomap{ display:flex; align-items:center; justify-content:center; aspect-ratio:3/2; color:var(--dim); font-size:12px; }
+  .ovdot{ position:absolute; width:9px; height:9px; border-radius:50%; transform:translate(-50%,-50%); border:1px solid var(--bg); }
+  .ovmeta{ padding:8px 10px; }
+  .ovname{ font-size:13px; color:var(--ink); font-weight:600; }
+  .ovpath{ font-size:11px; color:var(--dim); margin-top:1px; }
+  .ovstats{ display:flex; align-items:center; gap:8px; margin-top:7px; font-size:11px; color:var(--ink2); flex-wrap:wrap; }
+  .ovchip{ display:inline-flex; align-items:center; gap:3px; }
+  .ovchip .d{ width:8px; height:8px; border-radius:50%; }
+  .ovdot.off{ opacity:.4; }
+  .ovrobots{ margin-top:8px; border-top:1px solid var(--line); padding-top:6px; }
+  .ovrobots-h{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--dim); cursor:pointer; user-select:none; }
+  .ovrobots-h:hover{ color:var(--ink2); }
+  .ovrobots-tg{ font-size:9px; width:9px; display:inline-block; }
+  .ovrobots-list{ margin-top:5px; display:flex; flex-direction:column; gap:2px; max-height:168px; overflow:auto; }
+  .ovrobots.collapsed .ovrobots-list{ display:none; }
+  .ovrow{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink2); padding:2px 5px; border-radius:4px; cursor:pointer; }
+  .ovrow:hover{ background:var(--card2); color:var(--ink); }
+  .ovrow.off{ color:var(--dim); }
+  .ovrow-d{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .ovrow-id{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ovrow-s{ font-size:10px; color:var(--dim); }
+  .ovrow.empty{ color:var(--dim); cursor:default; } .ovrow.empty:hover{ background:none; }
+  .unit.onmap .tag{ opacity:.85; }
+  .unit:not(.onmap)::after{ content:"~"; position:absolute; top:-3px; left:-3px; font-size:9px; color:var(--dim); }
   .unit{ position:absolute; width:40px; height:40px; margin:-20px 0 0 -20px; border-radius:8px;
     display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer;
-    background:#0e1611; border:2px solid var(--line); transition:box-shadow .1s; z-index:5; }
-  .unit:hover{ box-shadow:0 0 0 2px #3f5f4b; }
-  .unit .tag{ position:absolute; top:42px; left:50%; transform:translateX(-50%); white-space:nowrap;
-    font-size:10px; color:#9fc3ad; background:#0b0f0ccc; padding:0 3px; border-radius:3px; }
-  .unit.sel{ box-shadow:0 0 0 2px var(--accent), 0 0 12px #6fe39a66; border-color:var(--accent); }
-  .unit .st{ position:absolute; top:-4px; right:-4px; width:10px; height:10px; border-radius:50%; border:1px solid #0b0f0c; }
-  #selbox{ position:absolute; border:1px solid var(--accent); background:#6fe39a22; display:none; pointer-events:none; z-index:8; }
+    background:var(--card); border:2px solid var(--line); transition:transform .08s, left .3s linear, top .3s linear; z-index:5; }
+  .unit:hover{ transform:scale(1.08); }
+  .unit .tag{ position:absolute; top:42px; left:50%; transform:translateX(-50%) var(--lblcr,); white-space:nowrap;
+    font-size:10px; color:var(--ink2); background:color-mix(in srgb, var(--bg) 80%, transparent); padding:0 3px; border-radius:3px; }
+  .unit.sel{ box-shadow:0 0 0 2px var(--accent), 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent); border-color:var(--accent); }
+  .unit.off{ opacity:.45; filter:grayscale(.6); }
+  .unit .st{ position:absolute; top:-4px; right:-4px; width:10px; height:10px; border-radius:50%; border:1px solid var(--bg); }
+  .unit .dir{ position:absolute; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent;
+    border-bottom:7px solid color-mix(in srgb, var(--ink) 67%, transparent); top:-9px; left:50%; transform-origin:50% 24px; }
+  #selbox{ position:absolute; border:1px solid var(--accent); background:color-mix(in srgb, var(--accent) 13%, transparent); display:none; pointer-events:none; z-index:8; }
   /* 우측 roster */
-  #roster{ width:116px; margin:8px 8px 8px 0; border:1px solid var(--line); border-radius:6px; padding:6px;
+  #roster{ width:178px; margin:8px 8px 8px 0; border:1px solid var(--line); border-radius:6px; padding:6px;
     overflow-y:auto; display:flex; flex-direction:column; gap:5px; }
-  #roster .rtitle{ font-size:10px; color:#7f9a89; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
-  .thumb{ display:flex; align-items:center; gap:6px; padding:4px; border:1px solid var(--line); border-radius:5px;
-    background:#0e1611; cursor:pointer; font-size:11px; }
-  .thumb:hover{ border-color:#3f5f4b; }
+  #roster .rtitle{ font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
+  .thumb{ display:flex; flex-direction:column; gap:3px; padding:5px 6px; border:1px solid var(--line); border-radius:5px;
+    background:var(--card); cursor:pointer; font-size:11px; }
+  .thumb:hover{ border-color:var(--line2); }
   .thumb.sel{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .thumb.off{ opacity:.5; }
+  .thumb .thr1{ display:flex; align-items:center; gap:6px; }
   .thumb .ic{ font-size:16px; }
-  .thumb .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#bfe0cd; }
+  .thumb .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink2); }
+  /* 상태 배지(신호·배터리·base_state) — roster·사이트 대시보드 공용 */
+  .badges{ display:flex; align-items:center; gap:7px; padding-left:1px; }
+  .bdg{ display:inline-flex; align-items:center; gap:2px; font-size:10px; color:var(--ink2); line-height:1; }
+  .bdg.sig{ gap:3px; } .bdg .ms{ font:9px/1 ui-monospace,monospace; }
+  .bdg svg{ display:block; }
+  .bat{ gap:3px; } .bat.na{ color:var(--dim); }
+  .batshell{ width:22px; height:11px; border:1px solid var(--ink2); border-radius:2px; padding:1px; position:relative; }
+  .batshell::after{ content:""; position:absolute; right:-3px; top:3px; width:2px; height:5px; background:var(--ink2); border-radius:0 1px 1px 0; }
+  .batfill{ display:block; height:100%; border-radius:1px; }
+  .batpct{ font:9px/1 ui-monospace,monospace; color:var(--ink2); min-width:24px; }
+  .bstate{ gap:3px; } .bstate .bdot{ width:7px; height:7px; border-radius:50%; }
   /* 하단 HUD */
-  #hud{ height:178px; border-top:2px solid var(--line); display:flex; gap:8px; padding:8px;
-    background:linear-gradient(#0d130f,#0b0f0c); }
-  .pane{ border:1px solid var(--line); border-radius:6px; background:#0e1611; }
+  #hud{ height:184px; border-top:2px solid var(--line); display:flex; gap:8px; padding:8px;
+    background:linear-gradient(var(--card2),var(--bg)); }
+  .pane{ border:1px solid var(--line); border-radius:6px; background:var(--card); }
   #minimap{ width:210px; position:relative; }
   #minimap canvas{ width:100%; height:100%; display:block; border-radius:6px; }
-  #minimap .lbl{ position:absolute; top:4px; left:6px; font-size:10px; color:#7f9a89; }
+  #minimap .lbl{ position:absolute; top:4px; left:6px; font-size:10px; color:var(--dim); }
   #selected{ flex:1; padding:8px; overflow:auto; }
-  #selected .lbl{ font-size:10px; color:#7f9a89; text-transform:uppercase; }
+  #selected .lbl{ font-size:10px; color:var(--dim); text-transform:uppercase; }
+  #selsummary{ font-size:12px; color:var(--ink2); margin-top:2px; }
   #selgrid{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-  .selicon{ width:48px; height:54px; border:1px solid var(--line); border-radius:6px; background:#0b110d; position:relative;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:18px; }
-  .selicon .n{ font-size:9px; color:#9fc3ad; margin-top:2px; max-width:46px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .selicon{ width:48px; height:54px; border:1px solid var(--line); border-radius:6px; background:var(--card2);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:18px; position:relative; }
+  .selicon .n{ font-size:9px; color:var(--ink2); margin-top:2px; max-width:46px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .selicon.focus{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
-  #selsummary{ font-size:12px; color:#bfe0cd; margin-top:2px; }
-  #selbat{ font-size:11px; color:#7f9a89; margin-top:3px; }
   /* 스킬 카드 3×3 */
-  #cmd{ width:236px; padding:8px; }
-  #cmd .lbl{ font-size:10px; color:#7f9a89; text-transform:uppercase; display:flex; justify-content:space-between; }
-  #cmdgrid{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:5px; margin-top:6px; height:132px; }
-  .skill{ border:1px solid var(--line); border-radius:5px; background:#0b110d; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:#dceede; text-align:center; }
-  .skill:hover{ border-color:var(--accent); background:#10180f; }
-  .skill .k{ font-size:9px; color:#9fc3ad; margin-top:3px; text-align:center; line-height:1.1; max-width:64px; }
-  .skill.empty{ background:#0a0d0a; border-style:dashed; cursor:default; }
+  #cmd{ width:240px; padding:8px; display:flex; flex-direction:column; }
+  #cmd .lbl{ font-size:10px; color:var(--dim); text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
+  #cmd .lbl .solo{ color:var(--accent); cursor:pointer; text-transform:none; font-size:11px; }
+  #cmd .lbl .solo[hidden]{ display:none; }
+  #cmdgrid{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:5px; margin-top:6px; flex:1; min-height:120px; }
+  .skill{ border:1px solid var(--line); border-radius:5px; background:var(--card2); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:var(--ink); text-align:center; }
+  .skill:hover{ border-color:var(--accent); background:var(--panel); }
+  .skill .k{ font-size:9px; color:var(--ink2); margin-top:3px; line-height:1.1; max-width:66px; overflow:hidden; }
+  .skill.empty{ background:var(--bg); border-style:dashed; cursor:default; }
   .skill.folder{ color:var(--accent2); }
-  .skill.back{ color:#9fc3ad; }
-  .skill.hot{ color:var(--accent2); border-color:#4a6b54; }
-  .log{ position:fixed; right:10px; bottom:188px; max-width:46vw; font-size:11px; color:#9fc3ad; opacity:.92; pointer-events:none; text-align:right; line-height:1.5; }
+  .skill.back{ color:var(--ink2); }
+  .skill.stop{ color:var(--err); border-color:var(--err-line); }
 
-  /* ── COCKPIT (1:1) — 같은 RTS 테마 ── */
-  #cockpit{ position:fixed; inset:0; z-index:50; background:#070a08f2; display:none; flex-direction:column; padding:10px; }
-  #cockpit.open{ display:flex; }
-  .ck-top{ display:flex; align-items:center; gap:12px; padding:4px 6px 8px; }
-  .ck-top .pill{ font-size:11px; color:var(--accent2); border:1px solid #4a6b54; border-radius:999px; padding:3px 10px; }
-  .ck-top .nm{ font-size:14px; color:var(--accent); font-weight:600; letter-spacing:.5px; }
-  .ck-top .ty{ font-size:11px; color:#7f9a89; }
-  .ck-exit{ margin-left:auto; font-size:12px; color:var(--ink); background:#0e1611; border:1px solid var(--line); border-radius:5px; padding:6px 12px; cursor:pointer; }
-  .ck-exit:hover{ border-color:var(--accent); color:var(--accent); }
-  .ck-main{ flex:1; display:grid; grid-template-columns:1fr 240px; gap:10px; min-height:0; }
-  .ck-cam{ position:relative; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:#05080640; }
-  .ck-cam canvas{ display:block; width:100%; height:100%; }
-  .ck-hud{ position:absolute; inset:0; pointer-events:none; }
-  .ck-hud .rec{ position:absolute; top:10px; left:12px; font-size:11px; color:#cfe7d8; display:flex; align-items:center; gap:6px; }
-  .ck-hud .rec .b{ width:8px; height:8px; border-radius:50%; background:var(--err); animation:bl 1s infinite; }
-  @keyframes bl{ 0%,100%{opacity:1}50%{opacity:.3} }
-  .ck-hud .ret{ position:absolute; top:50%; left:50%; width:58px; height:58px; transform:translate(-50%,-50%); border:1px solid #ffffff30; border-radius:50%; }
-  .ck-hud .ret::before,.ck-hud .ret::after{ content:''; position:absolute; background:#ffffff30; }
-  .ck-hud .ret::before{ left:50%; top:-8px; width:1px; height:74px; transform:translateX(-50%);}
-  .ck-hud .ret::after{ top:50%; left:-8px; height:1px; width:74px; transform:translateY(-50%);}
-  .ck-side{ display:flex; flex-direction:column; gap:10px; }
-  .ck-card{ border:1px solid var(--line); border-radius:6px; background:#0e1611; padding:12px; }
-  .ck-card h4{ margin:0 0 9px; font-size:10px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; color:#7f9a89; }
-  .ck-tel{ display:flex; justify-content:space-between; font-size:12px; padding:3px 0; color:#bfe0cd; }
-  .ck-tel b{ color:var(--accent); font-weight:600; }
-  .joy{ position:relative; width:140px; height:140px; margin:2px auto 0; border-radius:50%;
-    background:radial-gradient(circle,#13201a,#0a0f0c); border:1px solid var(--line); touch-action:none; cursor:grab; }
-  .joy .knob{ position:absolute; top:50%; left:50%; width:50px; height:50px; border-radius:50%; transform:translate(-50%,-50%);
-    background:var(--accent); box-shadow:0 0 14px #6fe39a66; }
-  .joy-hint{ text-align:center; font-size:10px; color:#7f9a89; margin-top:6px; }
-  .ck-caps{ display:flex; flex-wrap:wrap; gap:6px; }
-  .ck-cap{ font-size:11px; color:#dceede; background:#0b110d; border:1px solid var(--line); border-radius:5px; padding:6px 9px; cursor:pointer; }
-  .ck-cap:hover{ border-color:var(--accent); color:var(--accent); }
+  /* 토스트 / 로그 */
+  .log{ position:fixed; right:10px; bottom:194px; max-width:46vw; font-size:11px; color:var(--ink2); opacity:.9; pointer-events:none; z-index:30; }
+  #toast{ position:fixed; left:50%; bottom:200px; transform:translateX(-50%); background:color-mix(in srgb, var(--surface) 91%, transparent); border:1px solid var(--accent);
+    color:var(--ink); font-size:12px; padding:8px 14px; border-radius:8px; z-index:60; display:none; max-width:70vw; }
+
+  /* 파라미터 자동폼 모달 */
+  #paramback{ position:fixed; inset:0; background:#000a; z-index:80; display:none; align-items:center; justify-content:center; }
+  #paramform{ background:var(--card); border:1px solid var(--accent); border-radius:10px; padding:16px; width:380px; max-width:92vw; max-height:86vh; overflow:auto; }
+  #paramform h3{ margin:0 0 4px; font-size:15px; color:var(--accent); }
+  #paramform .sub{ font-size:11px; color:var(--dim); margin-bottom:10px; }
+  .param-row{ display:flex; align-items:center; gap:8px; margin:7px 0; }
+  .param-row label{ width:96px; font-size:12px; color:var(--ink2); }
+  .param-row input{ flex:1; min-width:0; background:var(--card2); border:1px solid var(--line); border-radius:5px; color:var(--ink); padding:5px 7px; font:inherit; }
+  .param-row .punit{ font-size:11px; color:var(--dim); width:42px; flex:none; text-align:left; }
+  .param-row.req label::after{ content:" *"; color:var(--err); }
+  .param-err{ color:var(--err); font-size:11px; min-height:14px; margin-top:4px; }
+  .param-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  .param-actions button{ padding:6px 14px; border-radius:6px; border:1px solid var(--line); background:var(--card2); }
+  .param-actions .go{ border-color:var(--accent); color:var(--accent); }
+  .param-grid7{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 10px; }
+  .param-grid7 .param-row{ margin:2px 0; }
+  .param-grid7 .param-row label{ width:26px; }
+
+  /* 1:1 직접관제 오버레이 */
+  #cockpit{ position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; flex-direction:column; }
+  #cockpit[hidden]{ display:none; }
+  .cockpit-bar{ display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .cockpit-title{ font-size:14px; color:var(--ink); } .cockpit-title b{ color:var(--accent); }
+  .cockpit-badge{ font-size:11px; padding:2px 8px; border:1px solid var(--line); border-radius:10px; color:var(--ink2); }
+  .cockpit-badge.ok{ color:var(--ok); border-color:var(--ok); } .cockpit-badge.warn{ color:var(--err); border-color:var(--err); }
+  .cockpit-lat{ font-size:11px; color:var(--dim); }
+  .cockpit-spacer{ flex:1; }
+  .cockpit-stop{ background:var(--err-bg); border:1px solid var(--err); color:var(--err); padding:6px 14px; border-radius:6px; font-weight:bold; }
+  .cockpit-exit{ background:var(--card); border:1px solid var(--line); padding:6px 12px; border-radius:6px; }
+  .cockpit-body{ flex:1; display:flex; gap:10px; padding:10px; min-height:0; }
+  .cockpit-left{ width:380px; display:flex; flex-direction:column; gap:10px; overflow:auto; }
+  .cockpit-cam{ flex:1; border:1px solid var(--line); border-radius:8px; background:var(--bg); display:flex; flex-wrap:wrap;
+    gap:8px; padding:10px; align-content:flex-start; justify-content:center; align-items:center; overflow:hidden; }
+  .cockpit-cam-ph{ color:var(--off); font-size:13px; }
+  .cockpit-main{ position:relative; flex:1; display:flex; min-height:0; }
+  .cockpit-main .cockpit-cam{ flex:1; }
+  .cockpit-cam canvas{ width:100%; height:100%; display:block; border-radius:6px; }
+  /* 조작 프리셋 탭 */
+  .cockpit-presets{ display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .cockpit-presets button{ background:var(--card); border:none; border-right:1px solid var(--line); color:var(--ink2); padding:5px 10px; font-size:12px; cursor:pointer; }
+  .cockpit-presets button:last-child{ border-right:none; }
+  .cockpit-presets button.on{ background:var(--accent); color:#fff; }
+  .cockpit-msgbtn{ background:var(--card); border:1px solid var(--line); color:var(--ink2); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .cockpit-msgbtn.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  /* 미니맵(좌측하단) */
+  .cockpit-minimap{ position:absolute; left:12px; bottom:12px; width:200px; max-width:32%; aspect-ratio:3/2; z-index:6;
+    background:#0a0e14 center/contain no-repeat; border:1px solid var(--accent); border-radius:8px; box-shadow:0 2px 12px rgba(0,0,0,.5); overflow:hidden; }
+  .cockpit-minimap.empty{ display:flex; align-items:center; justify-content:center; border-color:var(--line); }
+  .cockpit-mm-ph{ color:var(--off); font-size:10px; text-align:center; line-height:1.4; padding:4px; }
+  .cockpit-mm-dot{ position:absolute; width:12px; height:12px; }
+  .cockpit-mm-dot::before{ content:""; position:absolute; inset:0; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent); }
+  .cockpit-mm-dot::after{ content:""; position:absolute; left:50%; top:-7px; transform:translateX(-50%); border-left:4px solid transparent; border-right:4px solid transparent; border-bottom:7px solid var(--accent); }
+  /* 입력 시각화 HUD(우측하단) */
+  .cockpit-inhud{ position:absolute; right:12px; bottom:12px; z-index:6; display:flex; align-items:flex-end; gap:8px; padding:8px 10px;
+    background:color-mix(in srgb, var(--bg) 78%, transparent); border:1px solid var(--line); border-radius:10px; }
+  .cockpit-inhud .hud-pad{ position:relative; width:56px; height:56px; border:1px solid var(--line); border-radius:8px; background:var(--card2); }
+  .cockpit-inhud .hud-lbl{ position:absolute; top:2px; left:0; right:0; text-align:center; font-size:8px; color:var(--off); }
+  .cockpit-inhud .hud-dot{ position:absolute; width:12px; height:12px; margin:-6px; border-radius:50%; background:var(--off); }
+  .cockpit-inhud .hud-dot.on{ background:var(--accent); box-shadow:0 0 6px var(--accent); }
+  .cockpit-inhud .hud-trig{ width:10px; height:56px; border:1px solid var(--line); border-radius:4px; background:var(--card2); position:relative; overflow:hidden; }
+  .cockpit-inhud .hud-trig i{ position:absolute; left:0; right:0; bottom:0; height:0; background:var(--busy); }
+  .cockpit-inhud .hud-stop{ align-self:center; font-size:10px; font-weight:bold; color:var(--off); border:1px solid var(--line); border-radius:5px; padding:4px 6px; }
+  .cockpit-inhud .hud-stop.on{ color:#fff; background:var(--err); border-color:var(--err); }
+  .cockpit-mouselock{ position:absolute; left:50%; top:14px; transform:translateX(-50%); z-index:7; font-size:12px; color:var(--ink); cursor:pointer;
+    background:color-mix(in srgb, var(--accent) 22%, var(--bg)); border:1px solid var(--accent); border-radius:20px; padding:6px 14px; }
+  .cockpit-mouselock[hidden]{ display:none; }
+  .cockpit-pane{ border:1px solid var(--line); border-radius:8px; background:var(--card); padding:8px 10px; }
+  .cockpit-h{ font-size:10px; text-transform:uppercase; color:var(--dim); letter-spacing:.5px; margin-bottom:6px; }
+  .cockpit-dim{ color:var(--off); font-size:11px; }
+  .cockpit-status{ margin:0; font:12px/1.5 Consolas,monospace; color:var(--ink2); white-space:pre-wrap; }
+  .cockpit-skills{ display:flex; flex-wrap:wrap; gap:6px; }
+  .cockpit-skill{ background:var(--card2); border:1px solid var(--line); border-radius:5px; padding:5px 9px; font-size:12px; }
+  .cockpit-skill:hover{ border-color:var(--accent); color:var(--accent); }
+  .cockpit-pad{ display:grid; grid-template-columns:repeat(3,40px); grid-template-rows:repeat(3,34px); gap:4px; justify-content:center;
+    grid-template-areas:". up ." "left mid right" ". down ."; }
+  .cockpit-pad button{ background:var(--card2); border:1px solid var(--line); border-radius:5px; font-size:14px; touch-action:none; }
+  .cockpit-pad button:active{ border-color:var(--accent); color:var(--accent); }
+  .cockpit-pad .cockpit-pad-stop{ color:var(--err); }
+  .latency-chart{ width:100%; height:84px; display:block; background:var(--card2); border-radius:5px; }
+  .cockpit-legend{ display:flex; gap:12px; margin-top:5px; font-size:10px; }
+  .cockpit-legend .lg::before{ content:"●"; margin-right:3px; }
+  .cockpit-legend .lg-srv{ color:var(--ok); } .cockpit-legend .lg-net{ color:var(--help); } .cockpit-legend .lg-op{ color:var(--accent2); }
+  .cockpit-legend .lg b{ color:var(--ink); font-weight:600; }
+  .cockpit-legend .lg.off{ opacity:.45; } .cockpit-legend .lg.off b{ color:var(--dim); font-weight:400; }
+  .cockpit-legend .lg.down::before{ color:var(--err); } .cockpit-legend .lg.down b{ color:var(--err); font-weight:700; }
+  .cockpit-lattoggle{ margin-left:auto; background:none; border:none; color:var(--accent2); font-size:10px; cursor:pointer; padding:0 2px; }
+  .cockpit-lat-detail{ margin-top:5px; display:flex; flex-direction:column; gap:2px; }
+  .cockpit-lat-detail[hidden]{ display:none; }
+  .cockpit-lat-detail .latleg{ display:flex; justify-content:space-between; font-size:10px; color:var(--ink2); padding:1px 4px; border-top:1px solid var(--line); }
+  .cockpit-lat-detail .latleg b{ color:var(--ink); font-weight:600; }
+  .cockpit-log{ margin:0; padding:6px 12px; height:88px; overflow:auto; font:11px/1.4 Consolas,monospace; color:var(--dim);
+    border-top:1px solid var(--line); background:var(--bg); }
 
   @media (max-width:820px){
-    #roster{ width:92px; }
-    #hud{ height:auto; flex-wrap:wrap; }
-    #minimap{ width:100%; height:120px; }
-    #cmd{ width:100%; }
-    .ck-main{ grid-template-columns:1fr; }
+    #sidebar{ width:46px; } #app #sidebar .ni-tx{ display:none; }
+    #roster{ width:120px; }
+    .cockpit-left{ width:300px; }
   }
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>◈ NEXUS · 플릿 관제</h1>
-    <span class="hint">드래그=박스선택 · 클릭=단일 · Shift+클릭=토글 · 우클릭=이동(navigate_to_pose) · 스킬=capability · velocity_ctrl→1:1 COCKPIT</span>
-    <button class="hbtn" id="btnMission">▶ 데모 미션</button>
-    <button class="hbtn" id="btnStop">■ 전체정지</button>
-    <span class="conn" id="conn">● 6대 connected</span>
-    <a class="back" href="index.html">← SYNAPSE</a>
+    <button id="navtoggle" title="메뉴 표시/숨김">☰</button>
+    <h1>◈ NEXUS 관제 콘솔</h1>
+    <div id="summarybar"></div>
+    <span class="hint">클릭=선택 · 드래그=박스선택 · Shift=토글 · 우클릭=이동 · 더블클릭/F=1:1 · S=정지 · Ctrl+1~9 그룹</span>
+    <span class="srv"><label>서버</label><input id="srvurl" placeholder="시뮬레이션(서버 없음)" title="데모 — 서버 연결 불필요" /><button id="srvgo">연결</button></span>
+    <span class="conn" id="conn">…</span>
+    <span id="alarmwrap">
+      <button id="alarmbtn" title="알람">🔔<span id="alarmcount">0</span></button>
+      <div id="alarmpanel" hidden>
+        <div class="ap-head"><b>알람</b>
+          <label class="ap-tog"><input type="checkbox" id="almmute" />음소거</label>
+          <label class="ap-tog"><input type="checkbox" id="almtts" />TTS</label>
+        </div>
+        <div id="alarmlist"></div>
+      </div>
+    </span>
+    <button id="themebtn" title="다크 / 라이트 테마 전환 (KETI 톤)">◐</button>
   </header>
-  <div id="stage">
-    <div id="map"><div id="selbox"></div></div>
-    <div id="roster"><div class="rtitle">로봇 (6)</div></div>
-  </div>
-  <div id="hud">
-    <div class="pane" id="minimap"><span class="lbl">미니맵</span><canvas></canvas></div>
-    <div class="pane" id="selected">
-      <div class="lbl">선택 <span id="selcount">0</span></div>
-      <div id="selsummary">로봇을 선택하세요.</div>
-      <div id="selbat"></div>
-      <div id="selgrid"></div>
-    </div>
-    <div class="pane" id="cmd">
-      <div class="lbl"><span id="cmdtitle">스킬</span><span id="cmdcat"></span></div>
-      <div id="cmdgrid"></div>
+  <div id="body">
+    <nav id="sidebar">
+      <a class="navitem active" data-view="dashboard" title="대시보드"><span class="ni-ic">🛰</span><span class="ni-tx">대시보드</span></a>
+      <a class="navitem" data-view="missions" title="플릿 미션"><span class="ni-ic">🚩</span><span class="ni-tx">플릿 미션</span></a>
+      <a class="navitem" id="navmapeditor" title="맵 에디터"><span class="ni-ic">🗺</span><span class="ni-tx">맵 에디터</span></a>
+      <a class="navitem" data-view="config" title="서버 설정"><span class="ni-ic">⚙</span><span class="ni-tx">서버 설정</span></a>
+      <span class="navspacer"></span>
+      <a class="navitem" href="index.html" title="SYNAPSE 소개로"><span class="ni-ic">←</span><span class="ni-tx">SYNAPSE 소개</span></a>
+    </nav>
+    <div id="content">
+      <div id="stage" hidden>
+        <div id="map"><div id="maprot"></div><button id="tooverview" title="사이트 전체 보기">← 사이트</button><select id="mapsel" title="표준맵 선택"></select><button id="maprotbtn" title="90° 회전 (보기 전용)">⟳ 90°</button><div id="selbox"></div></div>
+        <div id="roster"><div class="rtitle">로봇 <span id="rostercount">0</span></div></div>
+      </div>
+      <div id="hud" hidden>
+        <div class="pane" id="minimap"><span class="lbl">미니맵</span><canvas></canvas></div>
+        <div class="pane" id="selected">
+          <div class="lbl">선택 <span id="selcount">0</span></div>
+          <div id="selsummary">로봇을 선택하세요.</div>
+          <div id="selgrid"></div>
+        </div>
+        <div class="pane" id="cmd">
+          <div class="lbl"><span id="cmdtitle">스킬</span><span class="solo" id="solobtn" hidden>1:1 진입 →</span><span id="cmdcat"></span></div>
+          <div id="cmdgrid"></div>
+        </div>
+      </div>
+      <div id="overview">
+        <div class="ovwrap">
+          <div class="ovhead"><h2>🛰 사이트 전체</h2><span class="ovsub" id="ovsub"></span></div>
+          <div id="overviewgrid"></div>
+        </div>
+      </div>
+      <div id="configview" hidden>
+        <div class="cfgwrap">
+          <h2>⚙ 서버 설정</h2>
+          <section class="cfg">
+            <h3>연결</h3>
+            <label class="cf">서버 주소 (apiBase) <input id="cfgapi" placeholder="시뮬레이션 — 서버 없음" /></label>
+            <label class="cf">폴링 주기 (ms) <input id="cfgpoll" type="number" min="300" step="100" /></label>
+            <label class="cf">OFFLINE 판정 TTL (초) <input id="cfgttl" type="number" min="1" step="1" /></label>
+            <button class="btn pri" id="cfgapply">적용</button>
+            <div class="cfg-status" id="cfgconn">…</div>
+          </section>
+          <section class="cfg">
+            <h3>테마 (KETI 톤)</h3>
+            <button class="btn" id="cfgtheme">다크 / 라이트 전환</button>
+          </section>
+          <section class="cfg">
+            <h3>WebRTC ICE (서버 /api/ice)</h3>
+            <pre class="cfg-pre" id="cfgice">…</pre>
+          </section>
+          <section class="cfg">
+            <h3>사이트 (서버 /api/sites)</h3>
+            <pre class="cfg-pre" id="cfgsites">…</pre>
+          </section>
+        </div>
+      </div>
+      <div id="missionsview" hidden></div>
     </div>
   </div>
 </div>
+
+<div id="cockpit" hidden></div>
+
+<div id="paramback"><div id="paramform"></div></div>
+<div id="toast"></div>
 <div class="log" id="log"></div>
 
-<!-- ── COCKPIT (1:1) ── -->
-<div id="cockpit">
-  <div class="ck-top">
-    <span class="pill">● WebRTC P2P · 1:1 TELEOP</span>
-    <span class="nm" id="ckName">—</span>
-    <span class="ty" id="ckType"></span>
-    <button class="ck-exit" id="ckExit">← 플릿(N:N)으로 복귀</button>
-  </div>
-  <div class="ck-main">
-    <div class="ck-cam">
-      <canvas id="ckCanvas"></canvas>
-      <div class="ck-hud">
-        <div class="rec"><span class="b"></span> REC · CAM_FRONT</div>
-        <div class="ret"></div>
-      </div>
-    </div>
-    <div class="ck-side">
-      <div class="ck-card">
-        <h4>Telemetry</h4>
-        <div class="ck-tel"><span>base_state</span><b id="ckState">TELEOP</b></div>
-        <div class="ck-tel"><span>battery</span><b id="ckBat">100%</b></div>
-        <div class="ck-tel"><span>linear</span><b id="ckLin">0.00 m/s</b></div>
-        <div class="ck-tel"><span>angular</span><b id="ckAng">0.00 rad/s</b></div>
-      </div>
-      <div class="ck-card">
-        <h4>Drive · velocity_ctrl</h4>
-        <div class="joy" id="joy"><div class="knob" id="knob"></div></div>
-        <div class="joy-hint">드래그로 조종 · 놓으면 정지</div>
-      </div>
-      <div class="ck-card">
-        <h4>Quick capability</h4>
-        <div class="ck-caps" id="ckCaps"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
-/* ===== capability 카탈로그 (STANDARD_capability.md) — rts.html 과 동일 ===== */
-const CAT_SKILLS = {
-  mobile:       ["navigate_to_pose","navigate_to_waypoint","velocity_ctrl","dock","undock"],
-  manipulator:  ["joint_ctrl","cartesian_ctrl","gripper_ctrl","home_position","joint_preset"],
-  camera:       ["pan_tilt","pan_tilt_zoom"],
-  station:      ["make_americano"],
-};
-const SKILL_ICON = { navigate_to_pose:"🧭", navigate_to_waypoint:"📍", velocity_ctrl:"🕹️", dock:"🔌", undock:"⏏️",
-  joint_ctrl:"🦾", cartesian_ctrl:"✋", gripper_ctrl:"🤏", home_position:"🏠", joint_preset:"📐",
-  pan_tilt:"📷", pan_tilt_zoom:"🔭", make_americano:"☕", stop:"🛑" };
-const CAT_ICON = { mobile:"🚙", manipulator:"🦾", camera:"📷", humanoid:"🤖", station:"☕" };
-const STATE_COLOR = { IDLE:"--off", BUSY:"--busy", TELEOP:"--accent2", NEED_HELP:"--help", ERROR:"--err", OFFLINE:"--off" };
+/* =====================================================================
+ *  체험 시뮬레이션 — nexus_ui(app.js + cockpit.js)를 백엔드 없이 재현.
+ *  실제 코드와 같은 함수 경계(adapter·badges·map·fleet·alarms·cockpit)를 따르되,
+ *  fetch/WebSocket/WebRTC 대신 내장 mock + 시뮬레이션 틱으로 돈다.
+ * ===================================================================== */
+(() => {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || "#2e9be0";
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
-const DOCKS = [{x:8,y:16},{x:8,y:50},{x:8,y:84}];
-const WAYPOINTS = { lobby:{x:50,y:20}, dock_a:{x:8,y:16}, charge:{x:8,y:50}, depot:{x:46,y:82} };
+  // ===================================================================== CONFIG (STANDARD_capability.md)
+  const CAT_SKILLS = {
+    mobile: ["navigate_to_pose", "navigate_to_waypoint", "velocity_ctrl", "dock", "undock"],
+    manipulator: ["joint_ctrl", "cartesian_ctrl", "gripper_ctrl", "home_position", "joint_preset"],
+    camera: ["pan_tilt", "pan_tilt_zoom"],
+    station: ["make_americano"],
+  };
+  const SKILL_ICON = {
+    navigate_to_pose: "🧭", navigate_to_waypoint: "📍", velocity_ctrl: "🕹️", dock: "🔌", undock: "⏏️",
+    joint_ctrl: "🦾", cartesian_ctrl: "✋", gripper_ctrl: "🤏", home_position: "🏠", joint_preset: "📐",
+    pan_tilt: "📷", pan_tilt_zoom: "🔭", make_americano: "☕", stop: "🛑",
+    get_pose: "📌", get_battery: "🔋", get_joints: "📊",
+  };
+  const CAT_ICON = { mobile: "🚙", manipulator: "🦾", camera: "📷", humanoid: "🤖", station: "☕" };
+  const STATE_COLOR = { IDLE: "--off", BUSY: "--busy", TELEOP: "--accent2", NEED_HELP: "--help", ERROR: "--err", OFFLINE: "--off" };
+  const STATE_ORDER = ["IDLE", "BUSY", "TELEOP", "NEED_HELP", "ERROR"];
+  const SUMMARY_ORDER = ["ERROR", "NEED_HELP", "TELEOP", "BUSY", "IDLE", "OFFLINE"];
 
-function mkRobot(id, cats, x, y, state, bat){
-  const caps = []; cats.forEach(c => caps.push(...(CAT_SKILLS[c]||[])));
-  caps.push("stop");
-  const mobile = cats.includes("mobile");
-  return { robot_id:id, cats, x, y, theta:0, base_state:state, bat,
-           capabilities:[...new Set(caps)], icon: CAT_ICON[cats[0]] || "🤖",
-           mobile, target:null, vel:{l:0,a:0}, dock: mobile ? 0 : null };
-}
-function freshRobots(){ return [
-  mkRobot("mobile_01",     ["mobile"],                 22, 30, "IDLE", 92),
-  mkRobot("mobile_02",     ["mobile"],                 40, 55, "IDLE", 78),
-  mkRobot("patrol_03",     ["mobile","camera"],        16, 78, "IDLE", 64),
-  mkRobot("arm_01",        ["manipulator","camera"],   66, 26, "IDLE", 88),
-  mkRobot("coffee_01",     ["station"],                82, 60, "IDLE", 100),
-  mkRobot("humanoid_01",   ["mobile","manipulator","camera"], 56, 72, "IDLE", 71),
-]; }
-let ROBOTS = freshRobots();
+  const CAP_SPEC = {
+    navigate_to_pose: [
+      { key: "x", type: "number", unit: "m", required: true },
+      { key: "y", type: "number", unit: "m", required: true },
+      { key: "theta", type: "number", unit: "rad", default: 0.0 },
+      { key: "timeout_s", type: "number", unit: "s", default: 30.0 },
+    ],
+    navigate_to_waypoint: [{ key: "name", type: "text", required: true }],
+    velocity_ctrl: [
+      { key: "linear", type: "number", unit: "m/s", required: true },
+      { key: "angular", type: "number", unit: "rad/s", required: true },
+    ],
+    dock: [{ key: "charger_id", type: "text", required: false }],
+    undock: [],
+    joint_ctrl: [{ key: "positions", type: "array", unit: "rad", required: true }],
+    home_position: [],
+    joint_preset: [{ key: "name", type: "text", required: true }],
+    cartesian_ctrl: [{ key: "pose", type: "pose", required: true }],
+    gripper_ctrl: [
+      { key: "percentage", type: "number", unit: "%", min: 0, max: 100, required: true },
+      { key: "force", type: "number", required: false },
+    ],
+    pan_tilt: [
+      { key: "pan", type: "number", unit: "rad", required: true },
+      { key: "tilt", type: "number", unit: "rad", required: true },
+    ],
+    pan_tilt_zoom: [
+      { key: "pan", type: "number", unit: "rad", required: true },
+      { key: "tilt", type: "number", unit: "rad", required: true },
+      { key: "zoom", type: "number", default: 1.0, min: 0 },
+    ],
+    make_americano: [{ key: "shots", type: "number", default: 2, min: 1, max: 4 }],
+    stop: [],
+    get_pose: [], get_battery: [], get_joints: [],
+  };
+  const RING = 120;
+  const cfg = window.__NEXUS__;
 
-let selected = new Set();
-let focusId = null;
-let drill = null;
-let cockpitId = null;
-let tick = 0;
-
-const $ = s => document.querySelector(s);
-const map = $("#map"), roster = $("#roster"), selbox = $("#selbox");
-const byId = id => ROBOTS.find(r=>r.robot_id===id);
-function log(m){ const l=$("#log"); l.textContent = "▸ "+m; clearTimeout(log._t); log._t=setTimeout(()=>l.textContent="",3000); }
-function uuid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "ui-"+Math.random().toString(16).slice(2); }
-function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
-
-/* synapse 표준 command.capability 생성(+토스트) */
-function fireCommand(ids, name, params){
-  const msgs = ids.map(id => ({
-    msg_info: { timestamp: Date.now()/1000, uuid: uuid(), sender:"nexus_ui", receiver:id },
-    topic: "command.capability", value: { name, params: params||{} },
-  }));
-  console.log("[command.capability]", msgs);
-  log(`▶ ${name} → ${ids.join(", ")} · command.capability ${msgs.length}건`);
-}
-
-/* ===== 렌더: 맵 유닛 (1회 생성 후 sync) ===== */
-function buildMap(){
-  map.querySelectorAll(".unit,.dock,.goal").forEach(e=>e.remove());
-  DOCKS.forEach(d=>{ const k=document.createElement("div"); k.className="dock"; k.style.left=d.x+"%"; k.style.top=d.y+"%"; k.textContent="🔌"; map.appendChild(k); });
-  for(const r of ROBOTS){
-    const u = document.createElement("div"); u.className="unit"; u.dataset.id=r.robot_id;
-    u.innerHTML = `${r.icon}<span class="st"></span><span class="tag">${r.robot_id}</span>`;
-    u.onmousedown = e => e.stopPropagation();
-    u.onclick = e => { e.stopPropagation(); pick(r.robot_id, e.shiftKey); };
-    map.appendChild(u);
+  // ===================================================================== 표준맵 합성 (점유격자 PNG dataURL)
+  // 실제 nexus_ui 는 서버에서 점유격자 PNG 를 받아 테마 톤으로 리맵한다. 데모는 동일한 회색조(벽=흑/자유=백/미지=회)를
+  // 캔버스로 합성해 dataURL 로 만들고, 같은 themedMapUrl() 로직으로 테마 색을 입힌다 — 오프라인/단일파일 호환.
+  function genFloorplan(w, h, rooms) {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d");
+    g.fillStyle = "#cdcdcd"; g.fillRect(0, 0, w, h);                       // 미지(unknown)
+    const pad = 14;
+    g.fillStyle = "#ffffff"; g.fillRect(pad, pad, w - 2 * pad, h - 2 * pad); // 자유공간(free)
+    g.strokeStyle = "#1e1e1e"; g.lineWidth = 5; g.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);  // 외벽
+    g.lineWidth = 3;
+    rooms.forEach((r) => {                                                  // 내부 방/벽(흑)
+      g.strokeStyle = "#1e1e1e";
+      g.strokeRect(r[0] * w, r[1] * h, r[2] * w, r[3] * h);
+    });
+    return c.toDataURL("image/png");
   }
-  syncMap();
-}
-function syncMap(){
-  map.querySelectorAll(".goal").forEach(e=>e.remove());
-  for(const r of ROBOTS){
-    const u = map.querySelector(`.unit[data-id="${r.robot_id}"]`); if(!u) continue;
-    u.style.left = r.x+"%"; u.style.top = r.y+"%";
-    u.classList.toggle("sel", selected.has(r.robot_id));
-    u.querySelector(".st").style.background = `var(${STATE_COLOR[r.base_state]})`;
-    if(r.target){ const g=document.createElement("div"); g.className="goal"; g.style.left=r.target.x+"%"; g.style.top=r.target.y+"%"; map.appendChild(g); }
-  }
-}
-/* ===== 우측 roster ===== */
-function renderRoster(){
-  roster.querySelectorAll(".thumb").forEach(e=>e.remove());
-  for(const r of ROBOTS){
-    const t = document.createElement("div"); t.className="thumb"+(selected.has(r.robot_id)?" sel":"");
-    t.innerHTML = `<span class="ic">${r.icon}</span><span class="nm">${r.robot_id}</span>
-      <span class="st" style="width:9px;height:9px;border-radius:50%;background:var(${STATE_COLOR[r.base_state]})"></span>`;
-    t.onclick = e => pick(r.robot_id, e.shiftKey);
-    roster.appendChild(t);
-  }
-}
-/* ===== 하단 선택 영역 ===== */
-function renderSelected(){
-  $("#selcount").textContent = selected.size;
-  const grid = $("#selgrid"); grid.innerHTML="";
-  const ids = [...selected];
-  if(ids.length===0){ $("#selsummary").textContent="로봇을 선택하세요."; $("#selbat").textContent=""; return; }
-  if(ids.length===1){ const r=byId(focusId);
-    $("#selsummary").textContent = `${focusId} · ${r.base_state} · ${r.cats.join("+")}`;
-    $("#selbat").textContent = `🔋 ${Math.round(r.bat)}%  ·  pose (${fmt(r.x/10)}, ${fmt(r.y/10)})`;
-  } else { $("#selsummary").textContent = `${ids.length}대 선택됨 — 아이콘 클릭 시 스킬 표시`; $("#selbat").textContent=""; }
-  for(const id of ids){ const r=byId(id);
-    const c=document.createElement("div"); c.className="selicon"+(id===focusId?" focus":"");
-    c.innerHTML = `${r.icon}<span class="st" style="position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:var(${STATE_COLOR[r.base_state]})"></span><span class="n">${id}</span>`;
-    c.onclick = () => { focusId=id; drill=null; renderAll(); };
-    grid.appendChild(c);
-  }
-}
-/* ===== 스킬 카드 3×3 (폴더 드릴다운) ===== */
-function renderCmd(){
-  const grid=$("#cmdgrid"); grid.innerHTML=""; $("#cmdcat").textContent="";
-  const r = focusId ? byId(focusId) : null;
-  if(!r){ $("#cmdtitle").textContent="스킬"; for(let i=0;i<9;i++) grid.appendChild(cell()); return; }
-  $("#cmdtitle").textContent = r.robot_id;
-  let cells=[]; const flat=r.capabilities;
-  if(drill){ $("#cmdcat").textContent=drill; cells.push(skillCell("◀ 뒤로","back",()=>{drill=null;renderCmd();}));
-    for(const s of CAT_SKILLS[drill]||[]) if(flat.includes(s)) cells.push(skillCell(s,r));
-  } else if(flat.length<=9){ for(const s of flat) cells.push(skillCell(s,r));
-  } else { for(const c of r.cats) cells.push(folderCell(c)); if(flat.includes("stop")) cells.push(skillCell("stop",r)); }
-  while(cells.length<9) cells.push(cell());
-  cells.slice(0,9).forEach(c=>grid.appendChild(c));
-}
-function cell(){ const d=document.createElement("div"); d.className="skill empty"; return d; }
-function skillCell(name, r, onclick){
-  const hot = (name==="velocity_ctrl"||name==="stop");
-  const d=document.createElement("div"); d.className="skill"+(r&&r!=="back"?"":"")+(onclick?" back":(hot?" hot":""));
-  if(r==="back") d.className="skill back";
-  d.innerHTML = `${SKILL_ICON[name]||"⚙️"}<span class="k">${name}</span>`;
-  d.onclick = onclick || (()=>doSkill(name));
-  return d;
-}
-function folderCell(cat){ const d=document.createElement("div"); d.className="skill folder";
-  d.innerHTML = `📁<span class="k">${cat}</span>`; d.onclick=()=>{drill=cat;renderCmd();}; return d; }
+  const MAPS = [
+    { site: "KETI 본원", building: "지능로보틱스동", floor: "1F",
+      map: { map_id: "itp_1f", width: 600, height: 400, resolution: 0.05, origin: [0, 0],
+             image_url: genFloorplan(600, 400, [[0.05, 0.07, 0.30, 0.40], [0.05, 0.55, 0.30, 0.38], [0.62, 0.07, 0.33, 0.40], [0.62, 0.55, 0.33, 0.38]]) } },
+    { site: "KETI 본원", building: "지능로보틱스동", floor: "2F",
+      map: { map_id: "itp_2f", width: 520, height: 360, resolution: 0.05, origin: [0, 0],
+             image_url: genFloorplan(520, 360, [[0.06, 0.08, 0.40, 0.36], [0.06, 0.56, 0.40, 0.36], [0.56, 0.10, 0.38, 0.80]]) } },
+    { site: "스마트물류 센터", building: "A동", floor: "1F",
+      map: { map_id: "wh_1f", width: 640, height: 420, resolution: 0.05, origin: [0, 0],
+             image_url: genFloorplan(640, 420, [[0.06, 0.10, 0.24, 0.80], [0.36, 0.10, 0.24, 0.80], [0.68, 0.10, 0.26, 0.80]]) } },
+  ];
+  const mapById = (id) => MAPS.map((it) => it.map).find((m) => m && m.map_id === id) || null;
 
-/* ===== capability 실행 (시뮬레이션 반영) ===== */
-function doSkill(name){
-  const ids=[...selected]; if(!ids.length) return;
-  if(name==="velocity_ctrl"){ enterCockpit(focusId||ids[0]); return; }
-  fireCommand(ids, name, name==="navigate_to_waypoint"?{name:"lobby"}:{});
-  ids.forEach(id=>{ const r=byId(id);
-    if(name==="stop"){ r.target=null; r.vel={l:0,a:0}; r.base_state="IDLE"; }
-    else if(name==="dock"){ if(r.dock==null)r.dock=0; const d=DOCKS[r.dock]; r.target={x:d.x+5,y:d.y}; r.base_state="BUSY"; }
-    else if(name==="undock"){ r.target={x:r.x+16,y:r.y}; r.base_state="BUSY"; }
-    else if(name==="navigate_to_waypoint"){ const w=WAYPOINTS.lobby; r.target={x:w.x,y:w.y}; r.base_state="BUSY"; }
-    else if(name==="navigate_to_pose"){ log("우클릭으로 목표 좌표를 지정하세요"); }
-    else { r.base_state="BUSY"; busyThen(r, name==="make_americano"?2600:1300); }
+  // ===================================================================== MOCK 로봇 (이미 adapt 된 모양 + 시뮬 필드)
+  // pose 는 표준맵 world(m). to_standard=identity → standardPlace 가 그대로 픽셀로 변환.
+  function net(srv, inet, op) {
+    return {
+      server: { is_connected: srv != null, latency_ms: srv },
+      internet: { is_connected: inet != null, latency_ms: inet },
+      operator: { is_connected: op != null, latency_ms: op },
+    };
+  }
+  function mkRobot(o) {
+    const caps = []; o.cats.forEach((c) => caps.push(...(CAT_SKILLS[c] || []))); caps.push("stop");
+    if (o.cats.includes("manipulator")) caps.push("get_joints");
+    caps.push("get_pose", "get_battery");
+    return {
+      robot_id: o.id, cats: o.cats, icon: CAT_ICON[o.cats[0]] || "🤖",
+      capabilities: [...new Set(caps)], base_state: o.state, online: o.state !== "OFFLINE",
+      pose: { x: o.x, y: o.y, theta: o.th || 0 },
+      standardMapId: o.map, toStandard: [0, 0, 0],
+      map: o.map ? { standard_map_id: o.map, to_standard: [0, 0, 0] } : null,
+      network: o.state === "OFFLINE" ? net(null, null, null) : net(o.srv, o.inet, o.op),
+      battery: { percentage: o.bat, is_charging: !!o.chg },
+      subs: o.io ? { main: { robot_state: { io: o.io } } } : {},
+      // 시뮬레이션 상태
+      target: null, vel: { l: 0, a: 0 }, busyUntil: 0, sx: o.sx, sy: o.sy,
+    };
+  }
+  let ROBOTS = freshRobots();
+  function freshRobots() {
+    return [
+      mkRobot({ id: "mobile_01", cats: ["mobile"], map: "itp_1f", x: 6, y: 14, th: 0, state: "IDLE", bat: 92, srv: 22, inet: 48, op: 30, sx: 24, sy: 30 }),
+      mkRobot({ id: "mobile_02", cats: ["mobile"], map: "itp_1f", x: 22, y: 6, th: 1.6, state: "BUSY", bat: 64, srv: 35, inet: 70, op: 41, sx: 40, sy: 55 }),
+      mkRobot({ id: "patrol_03", cats: ["mobile", "camera"], map: "itp_1f", x: 12, y: 17, th: 3.1, state: "TELEOP", bat: 71, srv: 18, inet: 33, op: 22, sx: 16, sy: 78 }),
+      mkRobot({ id: "arm_01", cats: ["manipulator", "camera"], map: "itp_1f", x: 26, y: 11, th: 0, state: "IDLE", bat: 88, srv: 28, inet: 55, op: 36, sx: 66, sy: 26 }),
+      mkRobot({ id: "humanoid_01", cats: ["mobile", "manipulator", "camera"], map: "itp_2f", x: 9, y: 9, th: .5, state: "NEED_HELP", bat: 38, srv: 120, inet: 210, op: 95, sx: 56, sy: 72, io: null }),
+      mkRobot({ id: "arm_02", cats: ["manipulator"], map: "itp_2f", x: 22, y: 12, th: 0, state: "ERROR", bat: 51, srv: 40, inet: 88, op: 60, sx: 72, sy: 48,
+        io: { is_alarm: true, severity: "critical", kind: "관절 과열", value: 78, unit: "°C" } }),
+      mkRobot({ id: "agv_01", cats: ["mobile"], map: "wh_1f", x: 8, y: 18, th: 0, state: "BUSY", bat: 80, srv: 26, inet: 60, op: 33, sx: 30, sy: 40 }),
+      mkRobot({ id: "agv_02", cats: ["mobile", "camera"], map: "wh_1f", x: 28, y: 10, th: 2.0, state: "IDLE", bat: 8, chg: false, srv: 31, inet: 66, op: 38, sx: 70, sy: 60 }),
+      mkRobot({ id: "agv_03", cats: ["mobile"], map: "wh_1f", x: 18, y: 20, th: 0, state: "OFFLINE", bat: 44, srv: null, inet: null, op: null, sx: 50, sy: 80 }),
+      mkRobot({ id: "ptz_cam_01", cats: ["camera"], map: null, x: 0, y: 0, state: "IDLE", bat: null, srv: 20, inet: 40, op: 25, sx: 82, sy: 18 }),
+      mkRobot({ id: "coffee_01", cats: ["station"], map: null, x: 0, y: 0, state: "IDLE", bat: 100, chg: true, srv: 19, inet: 35, op: 24, sx: 86, sy: 60 }),
+    ];
+  }
+  const byId = (id) => ROBOTS.find((r) => r.robot_id === id);
+
+  // ===================================================================== STATE
+  const STATE = {
+    selection: { selected: new Set(), focusId: null },
+    ui: { drill: null, filter: new Set(), view: "fleet", mapId: null, level: "overview", mapRot: 0, mapView: { zoom: 1, panX: 0, panY: 0 } },
+    groups: loadGroups(),
+    solo: { robotId: null, latency: { server: [], internet: [], operator: [] }, rtt: 26 },
+  };
+  function loadGroups() { try { return JSON.parse(localStorage.getItem("nexus_demo.groups") || "{}"); } catch (_) { return {}; } }
+  function saveGroups() { try { localStorage.setItem("nexus_demo.groups", JSON.stringify(STATE.groups)); } catch (_) {} }
+  const sel = STATE.selection;
+
+  // ===================================================================== BUILDERS (synapse 메시지 미러)
+  function uuid() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "ui-" + Math.random().toString(16).slice(2); }
+  function senderFor() { return STATE.ui.view === "solo" ? cfg.operatorId : "nexus_ui"; }
+  function envelope(sender, topic, value, target) { return { msg_info: { timestamp: Date.now() / 1000, uuid: uuid(), sender, receiver: target ?? null }, topic, value }; }
+  function buildCommand(sender, name, params, target) { return envelope(sender, "command.capability", { name, params: params || {} }, target); }
+  function buildTeleop(sender, axes, buttons, target) {
+    const v = {}; if (axes && axes.length) v.axes = axes; if (buttons && buttons.length) v.buttons = buttons;
+    return envelope(sender, "command.teleop", v, target);
+  }
+
+  // ===================================================================== 상태 배지 (신호·배터리·base_state)
+  function netLevel(network) {
+    if (!network) return { bars: 0, color: "--dim", ms: null, title: "네트워크 정보 없음" };
+    const links = ["server", "internet", "operator"].map((k) => network[k]).filter(Boolean);
+    const up = links.filter((l) => l.is_connected !== false);
+    if (!up.length) return { bars: 0, color: "--err", ms: null, title: "연결 끊김" };
+    const reported = up.map((l) => l.latency_ms).filter((v) => typeof v === "number");
+    if (!reported.length) return { bars: 2, color: "--dim", ms: null, title: `연결됨 · 지연 미보고 · 링크 ${up.length}` };
+    const lat = Math.min(...reported);
+    const bars = lat < 40 ? 4 : lat < 90 ? 3 : lat < 180 ? 2 : 1;
+    const color = bars >= 3 ? "--ok" : bars === 2 ? "--busy" : "--err";
+    return { bars, color, ms: lat, title: `RTT ${Math.round(lat)}ms · 링크 ${up.length}` };
+  }
+  function signalBadge(network) {
+    const { bars, color, ms, title } = netLevel(network); let bs = "";
+    for (let i = 0; i < 4; i++) { const h = 3 + i * 3; bs += `<rect x="${i * 4}" y="${12 - h}" width="2.6" height="${h}" rx="0.5" fill="var(${i < bars ? color : "--line2"})"/>`; }
+    const msTxt = ms != null ? `<span class="ms" style="color:var(${color})">${Math.round(ms)}ms</span>` : "";
+    return `<span class="bdg sig" title="${title}"><svg width="16" height="12" viewBox="0 0 15 12">${bs}</svg>${msTxt}</span>`;
+  }
+  function batteryBadge(battery) {
+    if (!battery || battery.percentage == null) return `<span class="bdg bat na" title="배터리 정보 없음">▱ –</span>`;
+    const p = clamp(battery.percentage, 0, 100), col = p > 50 ? "--ok" : p > 20 ? "--busy" : "--err";
+    const chg = battery.is_charging ? "⚡" : "";
+    return `<span class="bdg bat" title="배터리 ${Math.round(p)}%${battery.is_charging ? " 충전중" : ""}">`
+      + `<span class="batshell"><span class="batfill" style="width:${p}%;background:var(${col})"></span></span>`
+      + `<span class="batpct">${chg}${Math.round(p)}%</span></span>`;
+  }
+  function stateBadge(state) { return `<span class="bdg bstate"><span class="bdot" style="background:var(${STATE_COLOR[state] || "--off"})"></span>${esc(state || "?")}</span>`; }
+  function statusBadges(r) { return `<span class="badges">${signalBadge(r.network)}${batteryBadge(r.battery)}${stateBadge(r.base_state)}</span>`; }
+
+  // ===================================================================== MAP 좌표 변환
+  function poseYaw(pose) { return pose && typeof pose.theta === "number" ? pose.theta : null; }
+  function applyStandard(rawPose, T) {
+    if (!rawPose || !Array.isArray(T)) return null;
+    const rx = +rawPose.x || 0, ry = +rawPose.y || 0, tx = T[0] || 0, ty = T[1] || 0, tt = T[2] || 0, c = Math.cos(tt), s = Math.sin(tt);
+    return { x: tx + c * rx - s * ry, y: ty + s * rx + c * ry, yaw: (tt + (poseYaw(rawPose) || 0)) };
+  }
+  function worldToPixel(x, y, m) {
+    const [ox = 0, oy = 0] = m.origin || [], res = m.resolution || 0.05, h = m.height || 0;
+    return { px: (x - ox) / res, py: (h - 1) - (y - oy) / res };
+  }
+  function pixelToWorld(px, py, m) {
+    const [ox = 0, oy = 0] = m.origin || [], res = m.resolution || 0.05, h = m.height || 0;
+    return { x: px * res + ox, y: ((h - 1) - py) * res + oy };
+  }
+
+  // ===================================================================== 테마 톤 맵 리맵 (점유격자 3색)
+  const _mapTint = new Map();
+  const mapTheme = () => document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  function themedMapUrl(url, cb) {
+    if (!url) { cb(""); return; }
+    const key = mapTheme() + "|" + url;
+    if (_mapTint.has(key)) { cb(_mapTint.get(key)); return; }
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+        const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+        const P = mapTheme() === "light"
+          ? { wall: [26, 43, 64], free: [255, 255, 255], unk: [225, 231, 240] }
+          : { wall: [120, 170, 220], free: [18, 30, 49], unk: [12, 20, 33] };
+        for (let i = 0; i < p.length; i += 4) {
+          const v = (p[i] + p[i + 1] + p[i + 2]) / 3, col = v < 100 ? P.wall : v > 230 ? P.free : P.unk;
+          p[i] = col[0]; p[i + 1] = col[1]; p[i + 2] = col[2];
+        }
+        g.putImageData(d, 0, 0); const out = c.toDataURL("image/png"); _mapTint.set(key, out); cb(out);
+      } catch (e) { cb(url); }
+    };
+    im.onerror = () => cb(url);
+    im.src = url;
+  }
+
+  // ===================================================================== BUS (toast / log / 명령 라우팅)
+  function toast(message) { const t = $("#toast"); t.textContent = message; t.style.display = "block"; clearTimeout(toast._t); toast._t = setTimeout(() => (t.style.display = "none"), 2800); }
+  function logline(m) { const l = $("#log"); l.textContent = "▸ " + m; clearTimeout(logline._t); logline._t = setTimeout(() => (l.textContent = ""), 2600); }
+
+  // 시뮬레이션: 표준 메시지 생성 → 콘솔 로그 + 로봇 상태 반영(서버 relay 대신).
+  function applyEffect(name, params, id) {
+    const r = byId(id); if (!r) return;
+    if (name === "stop") { r.target = null; r.vel = { l: 0, a: 0 }; if (r.base_state !== "ERROR" && r.base_state !== "OFFLINE") r.base_state = "IDLE"; return; }
+    if (r.base_state === "OFFLINE") return;
+    if (name === "navigate_to_pose") { r.target = { x: +params.x || 0, y: +params.y || 0 }; r.base_state = "BUSY"; }
+    else if (name === "navigate_to_waypoint") { const m = mapById(r.standardMapId); const w = m ? { x: (m.width * m.resolution) * (0.2 + 0.6 * Math.random()), y: (m.height * m.resolution) * (0.2 + 0.6 * Math.random()) } : null; if (w) { r.target = w; r.base_state = "BUSY"; } }
+    else if (name === "dock") { r.target = null; r.vel = { l: 0, a: 0 }; r.base_state = "BUSY"; r.busyUntil = Date.now() + 1600; }
+    else if (name === "undock") { r.base_state = "BUSY"; r.busyUntil = Date.now() + 1200; }
+    else if (name === "make_americano") { r.base_state = "BUSY"; r.busyUntil = Date.now() + 2600; }
+    else if (name.startsWith("get_")) { /* 조회 — 상태 무변경 */ }
+    else { r.base_state = "BUSY"; r.busyUntil = Date.now() + 1400; }
+  }
+  function dispatch(name, params, targets) {
+    if (!targets.length) { toast("선택된 로봇 없음"); return; }
+    const msgs = targets.map((id) => { const msg = buildCommand(senderFor(), name, params, id); applyEffect(name, params, id); return msg; });
+    console.log("[command.capability]", msgs);
+    toast(`▶ ${name} → ${targets.join(", ")}`);
+    logline(`${name} → ${targets.join(", ")} · command.capability ${msgs.length}건`);
+    render();
+  }
+  function sendStop(targets) {
+    const ids = targets && targets.length ? targets : [...sel.selected];
+    if (!ids.length) { toast("선택된 로봇 없음"); return; }
+    ids.forEach((id) => { applyEffect("stop", {}, id); console.log("[command.capability]", buildCommand(senderFor(), "stop", {}, id)); });
+    toast(`■ STOP → ${ids.join(", ")}`); render();
+  }
+
+  // ===================================================================== 알람 (IoT is_alarm + 파생: OFFLINE·저배터리)
+  function sevColor(s) { return s === "critical" ? "--err" : s === "warning" ? "--busy" : "--help"; }
+  function sevRank(s) { return s === "critical" ? 3 : s === "warning" ? 2 : 1; }
+  function deriveAlarms() {
+    const out = [];
+    for (const r of ROBOTS) {
+      for (const [sub_id, e] of Object.entries(r.subs || {})) {
+        const io = ((e || {}).robot_state || {}).io || {};
+        if (io.is_alarm) out.push({ key: `dev:${r.robot_id}:${sub_id}`, robot_id: r.robot_id, source: "device", severity: io.severity || "warning", label: `${io.kind || "알람"}${io.value != null ? ` ${io.value}${io.unit || ""}` : ""}` });
+      }
+      if (r.base_state === "OFFLINE") out.push({ key: `off:${r.robot_id}`, robot_id: r.robot_id, source: "derived", severity: "warning", label: "연결 끊김 (OFFLINE)" });
+      const p = r.battery && r.battery.percentage;
+      if (typeof p === "number" && p < 15 && !(r.battery && r.battery.is_charging)) out.push({ key: `bat:${r.robot_id}`, robot_id: r.robot_id, source: "derived", severity: p < 5 ? "critical" : "warning", label: `배터리 부족 ${Math.round(p)}%` });
+    }
+    return out.sort((a, b) => sevRank(b.severity) - sevRank(a.severity));
+  }
+  let _prevAlarmKeys = new Set(), _alarmInited = false;
+  function alarmAlert(alarms) {
+    const keys = new Set(alarms.map((a) => a.key));
+    if (!_alarmInited) { _prevAlarmKeys = keys; _alarmInited = true; return; }
+    const fresh = alarms.filter((a) => !_prevAlarmKeys.has(a.key));
+    _prevAlarmKeys = keys;
+    if (!fresh.length || ($("#almmute") && $("#almmute").checked)) return;
+    beep(fresh.some((a) => a.severity === "critical"));
+    if ($("#almtts") && $("#almtts").checked && window.speechSynthesis) { try { const u = new SpeechSynthesisUtterance("알람. " + fresh[0].label); u.lang = "ko-KR"; speechSynthesis.speak(u); } catch (_) {} }
+  }
+  function beep(critical) {
+    try {
+      const ac = (window.__ac = window.__ac || new (window.AudioContext || window.webkitAudioContext)());
+      if (ac.state === "suspended") ac.resume();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = "sine"; o.frequency.value = critical ? 880 : 660; g.gain.value = 0.06;
+      o.connect(g); g.connect(ac.destination); o.start();
+      if (critical) o.frequency.setValueAtTime(660, ac.currentTime + 0.12);
+      o.stop(ac.currentTime + (critical ? 0.28 : 0.14));
+    } catch (_) {}
+  }
+  function renderAlarms() {
+    const alarms = deriveAlarms();
+    alarmAlert(alarms);
+    const btn = $("#alarmbtn"); if (!btn) return;
+    $("#alarmcount").textContent = alarms.length;
+    btn.classList.toggle("has", alarms.length > 0);
+    btn.style.setProperty("--sev", `var(${sevColor(alarms[0] && alarms[0].severity)})`);
+    const list = $("#alarmlist");
+    if (!alarms.length) { list.innerHTML = `<div class="alm-none">활성 알람 없음</div>`; return; }
+    list.innerHTML = alarms.map((a) =>
+      `<div class="alm" data-id="${esc(a.robot_id)}" style="border-left-color:var(${sevColor(a.severity)})">`
+      + `<span class="ai">${a.source === "device" ? "🚨" : "⚠"}</span>`
+      + `<span class="ab"><div class="at">${esc(a.label)}</div>`
+      + `<div class="as">${esc(a.robot_id)} · ${esc(a.severity)} · ${a.source === "device" ? "기기" : "파생"}</div></span></div>`).join("");
+    list.querySelectorAll(".alm").forEach((el) => el.addEventListener("click", () => {
+      const r = byId(el.dataset.id);
+      if (r && r.standardMapId && STATE.ui.level === "overview") enterMap(r.standardMapId);
+      pick(el.dataset.id); toast(`알람: ${el.dataset.id} 선택`); $("#alarmpanel").hidden = true;
+    }));
+  }
+
+  // ===================================================================== 헤더(요약 칩 · 연결 표시)
+  function visibleRobots() { const f = STATE.ui.filter; return f.size ? ROBOTS.filter((r) => f.has(r.base_state)) : ROBOTS; }
+  function renderConn() {
+    const c = $("#conn");
+    c.textContent = `◉ 시뮬레이션 · ${ROBOTS.length}대 · ⟲${Math.round(STATE.solo.rtt)}ms`;
+    c.className = "conn ok";
+    $("#rostercount").textContent = ROBOTS.length;
+  }
+  function renderSummary() {
+    const bar = $("#summarybar"); bar.innerHTML = "";
+    const counts = {}; ROBOTS.forEach((r) => (counts[r.base_state] = (counts[r.base_state] || 0) + 1));
+    for (const s of SUMMARY_ORDER) {
+      const n = counts[s] || 0;
+      const chip = document.createElement("span");
+      chip.className = "summary-chip" + (STATE.ui.filter.has(s) ? " active" : "") + (n === 0 ? " zero" : "");
+      chip.innerHTML = `<span class="dot" style="background:var(${STATE_COLOR[s]})"></span>${s} ${n}`;
+      chip.onclick = () => {
+        STATE.ui.filter.has(s) ? STATE.ui.filter.delete(s) : STATE.ui.filter.add(s);
+        const vis = new Set(visibleRobots().map((r) => r.robot_id));
+        sel.selected = new Set([...sel.selected].filter((id) => vis.has(id)));
+        if (sel.focusId && !vis.has(sel.focusId)) sel.focusId = [...sel.selected][0] || null;
+        if (STATE.ui.level === "overview") renderOverview(); else render();
+      };
+      bar.appendChild(chip);
+    }
+  }
+
+  // ===================================================================== L0 사이트 전체 (overview)
+  const _ovCollapsed = new Set();
+  function mapImgUrl(m) { return (m && m.image_url) || ""; }
+  function renderOverview() {
+    const grid = $("#overviewgrid"); if (!grid) return;
+    const byMap = {}, unplaced = [];
+    for (const r of ROBOTS) (r.standardMapId ? (byMap[r.standardMapId] = byMap[r.standardMapId] || []) : unplaced).push(r);
+    const sub = $("#ovsub"); if (sub) sub.textContent = `맵 ${MAPS.length} · 로봇 ${ROBOTS.length} · 시뮬레이션`;
+    grid.innerHTML = "";
+    const sites = {};
+    for (const it of MAPS) { const s = it.site, b = it.building; (sites[s] = sites[s] || {})[b] = (sites[s][b] || []); sites[s][b].push(it); }
+    for (const [site, blds] of Object.entries(sites)) {
+      const sh = document.createElement("div"); sh.className = "ovsite"; sh.textContent = "🛰 " + site; grid.appendChild(sh);
+      for (const [bld, items] of Object.entries(blds)) {
+        const bh = document.createElement("div"); bh.className = "ovbuilding"; bh.textContent = `🏢 ${bld} · ${items.length}개 맵`; grid.appendChild(bh);
+        for (const it of items) grid.appendChild(buildMapCard(it, it.map, byMap[it.map.map_id] || []));
+      }
+    }
+    if (unplaced.length) grid.appendChild(buildUnplacedCard(unplaced));
+  }
+  function buildMapCard(it, m, robots) {
+    const card = document.createElement("div"); card.className = "ovcard";
+    const url = mapImgUrl(m);
+    const aspect = (m.width && m.height) ? `aspect-ratio:${m.width}/${m.height};` : "aspect-ratio:3/2;";
+    card.innerHTML = (url ? `<div class="ovthumb" style="${aspect}"></div>` : `<div class="ovthumb nomap">맵 이미지 없음</div>`)
+      + `<div class="ovmeta"><div class="ovname">${esc(m.map_id)}</div>`
+      + `<div class="ovpath">${esc(it.site)} · ${esc(it.building)} · ${esc(it.floor)}</div>`
+      + `<div class="ovstats"></div>`
+      + `<div class="ovrobots"><div class="ovrobots-h"><span class="ovrobots-tg">▾</span> 로봇 <span class="ovrobots-n">0</span></div><div class="ovrobots-list"></div></div></div>`;
+    const thumb = card.querySelector(".ovthumb");
+    if (url) themedMapUrl(url, (u) => { thumb.style.backgroundImage = `url("${u}")`; });
+    // dots
+    if (thumb && !thumb.classList.contains("nomap")) {
+      for (const r of robots) {
+        if (!r.pose || !m.width || !m.height) continue;
+        const std = applyStandard(r.pose, r.toStandard); if (!std) continue;
+        const { px, py } = worldToPixel(std.x, std.y, m);
+        const d = document.createElement("span"); d.className = "ovdot" + (r.base_state === "OFFLINE" ? " off" : "");
+        d.style.cssText = `left:${clamp(px / m.width * 100, 0, 100)}%;top:${clamp(py / m.height * 100, 0, 100)}%;background:var(${STATE_COLOR[r.base_state] || "--off"})`;
+        thumb.appendChild(d);
+      }
+    }
+    const counts = {}; for (const r of robots) counts[r.base_state] = (counts[r.base_state] || 0) + 1;
+    card.querySelector(".ovstats").innerHTML = `<b>로봇 ${robots.length}</b>` + Object.entries(counts).map(([s, n]) =>
+      `<span class="ovchip"><span class="d" style="background:var(${STATE_COLOR[s] || "--off"})"></span>${esc(s)} ${n}</span>`).join("");
+    const robotsEl = card.querySelector(".ovrobots"), listEl = card.querySelector(".ovrobots-list"), tg = card.querySelector(".ovrobots-tg");
+    const sorted = robots.slice().sort((a, b) => (a.base_state === "OFFLINE") - (b.base_state === "OFFLINE") || a.robot_id.localeCompare(b.robot_id));
+    for (const r of sorted) {
+      const off = r.base_state === "OFFLINE";
+      const row = document.createElement("div"); row.className = "ovrow" + (off ? " off" : "");
+      row.innerHTML = `<span class="ovrow-d" style="background:var(${STATE_COLOR[r.base_state] || "--off"})"></span><span class="ovrow-id">${esc(r.robot_id)}</span><span class="ovrow-s">${off ? "오프라인" : esc(r.base_state)}</span>`;
+      row.onclick = (e) => { e.stopPropagation(); enterSolo(r.robot_id); };
+      listEl.appendChild(row);
+    }
+    if (!sorted.length) { const e = document.createElement("div"); e.className = "ovrow empty"; e.textContent = "로봇 없음"; listEl.appendChild(e); }
+    card.querySelector(".ovrobots-n").textContent = robots.length;
+    const col = _ovCollapsed.has(m.map_id); robotsEl.classList.toggle("collapsed", col); tg.textContent = col ? "▸" : "▾";
+    card.querySelector(".ovrobots-h").onclick = (e) => {
+      e.stopPropagation(); const c = !_ovCollapsed.has(m.map_id);
+      c ? _ovCollapsed.add(m.map_id) : _ovCollapsed.delete(m.map_id);
+      robotsEl.classList.toggle("collapsed", c); tg.textContent = c ? "▸" : "▾";
+    };
+    card.onclick = () => enterMap(m.map_id);
+    return card;
+  }
+  function buildUnplacedCard(robots) {
+    const card = document.createElement("div"); card.className = "ovcard";
+    const chips = robots.map((r) => `<span class="ovchip"><span class="d" style="background:var(${STATE_COLOR[r.base_state] || "--off"})"></span>${esc(r.robot_id)}</span>`).join("");
+    card.innerHTML = `<div class="ovthumb nomap">표준맵 미지정 (로봇 T 없음)</div>`
+      + `<div class="ovmeta"><div class="ovname">미배치 로봇</div><div class="ovpath">standard_map_id 없음 — 추상 그리드로 표시</div>`
+      + `<div class="ovstats"><b>로봇 ${robots.length}</b></div><div class="ovstats">${chips}</div></div>`;
+    card.onclick = () => enterMap(null);
+    return card;
+  }
+
+  // ===================================================================== 대시보드 레벨 전환 (L0 ↔ L1)
+  function updateDashboardLevel() {
+    if (!$("#configview").hidden || !$("#missionsview").hidden) return;
+    const ov = STATE.ui.level === "overview" && STATE.ui.view !== "solo";
+    $("#overview").hidden = !ov; $("#stage").hidden = ov; $("#hud").hidden = ov;
+  }
+  function enterMap(mapId) {
+    STATE.ui.mapId = mapId; STATE.ui.level = "map"; STATE.ui.mapView = { zoom: 1, panX: 0, panY: 0 };
+    const ms = $("#mapsel"); if (ms) ms.value = mapId || "";
+    updateDashboardLevel(); render(); renderMinimap();
+  }
+  function backToOverview() { STATE.ui.level = "overview"; updateDashboardLevel(); renderOverview(); }
+
+  // ===================================================================== FLEET 맵
+  const map = $("#map"), maprot = $("#maprot"), roster = $("#roster"), selbox = $("#selbox");
+  const currentMap = () => STATE.ui.mapId ? mapById(STATE.ui.mapId) : null;
+
+  function applyMapBackground(m) {
+    const url = mapImgUrl(m);
+    if (url) {
+      maprot.classList.add("has-map");
+      maprot.style.backgroundSize = "contain"; maprot.style.backgroundPosition = "center"; maprot.style.backgroundRepeat = "no-repeat";
+      maprot.dataset.bg = url;
+      themedMapUrl(url, (themed) => { if (maprot.dataset.bg === url) maprot.style.backgroundImage = `url("${themed}")`; });
+    } else { maprot.classList.remove("has-map"); maprot.dataset.bg = ""; maprot.style.backgroundImage = ""; }
+  }
+  function imageRect(m) {
+    const W = map.clientWidth, H = map.clientHeight, iw = m.width || W, ih = m.height || H;
+    const s = Math.min(W / iw, H / ih), dw = iw * s, dh = ih * s;
+    return { W, H, iw, ih, dw, dh, offX: (W - dw) / 2, offY: (H - dh) / 2 };
+  }
+  function standardPlace(r, m, rect) {
+    if (!m || r.standardMapId !== m.map_id || !r.pose) return null;
+    const std = applyStandard(r.pose, r.toStandard); if (!std) return null;
+    const { px, py } = worldToPixel(std.x, std.y, m);
+    const sx = rect.offX + (px / rect.iw) * rect.dw, sy = rect.offY + (py / rect.ih) * rect.dh;
+    return { x: (sx / rect.W) * 100, y: (sy / rect.H) * 100, yaw: std.yaw };
+  }
+  const unitEl = (id) => maprot.querySelector(`.unit[data-uid="${id}"]`);   // mock id 는 단순(영문/숫자/_) — 안전
+  // 유닛 DOM 은 1회 생성 후 재사용한다. 매 프레임 remove+create 하면 mousedown↔mouseup 사이에
+  // 노드가 사라져 click(=선택) 이벤트가 죽고 CSS transition 도 끊긴다 → sync(생성/제거) + position(좌표만) 분리.
+  function syncUnits() {
+    const want = new Set(visibleRobots().map((r) => r.robot_id));
+    maprot.querySelectorAll(".unit").forEach((u) => { if (!want.has(u.dataset.uid)) u.remove(); });
+    for (const r of visibleRobots()) {
+      if (unitEl(r.robot_id)) continue;
+      const u = document.createElement("div"); u.className = "unit"; u.dataset.uid = r.robot_id;
+      u.innerHTML = `${r.icon}<span class="dir"></span><span class="st"></span><span class="tag">${esc(r.robot_id)}</span>`;
+      u.onmousedown = (e) => e.stopPropagation();
+      u.onclick = (e) => { e.stopPropagation(); pick(r.robot_id, e.shiftKey); };
+      u.ondblclick = (e) => { e.stopPropagation(); enterSolo(r.robot_id); };
+      maprot.appendChild(u);
+    }
+  }
+  function positionUnits() {
+    const m = currentMap(), rect = m ? imageRect(m) : null;
+    for (const r of visibleRobots()) {
+      const u = unitEl(r.robot_id); if (!u) continue;
+      const std = rect ? standardPlace(r, m, rect) : null;
+      const x = std ? std.x : r.sx, y = std ? std.y : r.sy;
+      u.style.left = x + "%"; u.style.top = y + "%";
+      u.classList.toggle("sel", sel.selected.has(r.robot_id));
+      u.classList.toggle("off", r.base_state === "OFFLINE");
+      u.classList.toggle("onmap", !!std);
+      const yaw = std ? std.yaw : poseYaw(r.pose), dir = u.querySelector(".dir");
+      if (yaw != null) { dir.style.display = ""; dir.style.transform = `translateX(-50%) rotate(${(-yaw * 180 / Math.PI).toFixed(0)}deg)`; } else dir.style.display = "none";
+      u.querySelector(".st").style.background = `var(${STATE_COLOR[r.base_state]})`;
+    }
+  }
+  function renderMap() { applyMapBackground(currentMap()); syncUnits(); positionUnits(); applyView(); }
+  function rotVec(rot, x, y) { rot = ((rot % 4) + 4) % 4; if (rot === 1) return { x: -y, y: x }; if (rot === 2) return { x: -x, y: -y }; if (rot === 3) return { x: y, y: -x }; return { x, y }; }
+  function rotRefitScale(rect, rot) { return (rot % 2 === 1) ? Math.min(rect.W / rect.dh, rect.H / rect.dw) : 1; }
+  function applyView() {
+    const m = currentMap();
+    if (!m) { maprot.style.transform = ""; maprot.style.removeProperty("--lblcr"); return; }
+    const rect = imageRect(m), rot = STATE.ui.mapRot || 0, v = STATE.ui.mapView;
+    const scale = rotRefitScale(rect, rot) * (v.zoom || 1);
+    maprot.style.transformOrigin = "center center";
+    maprot.style.transform = `translate(${(v.panX || 0).toFixed(1)}px, ${(v.panY || 0).toFixed(1)}px) rotate(${rot * 90}deg) scale(${scale.toFixed(4)})`;
+    maprot.style.setProperty("--lblcr", `rotate(${-rot * 90}deg) scale(${(1 / scale).toFixed(3)})`);
+    renderMinimap();
+  }
+
+  function renderRoster() {
+    roster.querySelectorAll(".thumb").forEach((e) => e.remove());
+    for (const r of visibleRobots()) {
+      const t = document.createElement("div");
+      t.className = "thumb" + (sel.selected.has(r.robot_id) ? " sel" : "") + (r.base_state === "OFFLINE" ? " off" : "");
+      t.innerHTML = `<div class="thr1"><span class="ic">${r.icon}</span><span class="nm">${esc(r.robot_id)}</span></div>` + statusBadges(r);
+      t.onclick = (e) => pick(r.robot_id, e.shiftKey);
+      t.ondblclick = () => enterSolo(r.robot_id);
+      roster.appendChild(t);
+    }
+  }
+  function renderSelected() {
+    $("#selcount").textContent = sel.selected.size;
+    const grid = $("#selgrid"); grid.innerHTML = "";
+    const ids = [...sel.selected];
+    $("#solobtn").hidden = !(ids.length === 1);
+    if (!ids.length) { $("#selsummary").textContent = "로봇을 선택하세요."; return; }
+    const f = byId(sel.focusId);
+    $("#selsummary").textContent = ids.length === 1 && f ? `${f.robot_id} · ${f.base_state} · ${f.cats.join("+")}` : `${ids.length}대 선택됨 — 아이콘 클릭 시 해당 로봇 스킬`;
+    for (const id of ids) {
+      const r = byId(id); if (!r) continue;
+      const c = document.createElement("div"); c.className = "selicon" + (id === sel.focusId ? " focus" : "");
+      c.innerHTML = `${r.icon}<span class="st" style="position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(${STATE_COLOR[r.base_state]})"></span><span class="n">${esc(id)}</span>`;
+      c.onclick = () => { sel.focusId = id; STATE.ui.drill = null; render(); logline("포커스: " + id); };
+      grid.appendChild(c);
+    }
+  }
+  function capGroups(r) {
+    const groups = {}, known = new Set();
+    for (const [cat, skills] of Object.entries(CAT_SKILLS)) { skills.forEach((s) => known.add(s)); const has = skills.filter((s) => r.capabilities.includes(s)); if (has.length) groups[cat] = has; }
+    const etc = r.capabilities.filter((c) => c !== "stop" && !known.has(c)); if (etc.length) groups["기타"] = etc;
+    return groups;
+  }
+  function renderCmd() {
+    const grid = $("#cmdgrid"); grid.innerHTML = ""; $("#cmdcat").textContent = "";
+    const r = sel.focusId ? byId(sel.focusId) : null;
+    $("#solobtn").onclick = () => sel.focusId && enterSolo(sel.focusId);
+    if (!r) { $("#cmdtitle").textContent = "스킬"; for (let i = 0; i < 9; i++) grid.appendChild(emptyCell()); return; }
+    $("#cmdtitle").textContent = r.robot_id;
+    const flat = r.capabilities, cells = [], groups = capGroups(r);
+    if (STATE.ui.drill) {
+      $("#cmdcat").textContent = STATE.ui.drill;
+      cells.push(skillCell("◀ 뒤로", "back", () => { STATE.ui.drill = null; renderCmd(); }));
+      for (const s of (groups[STATE.ui.drill] || [])) cells.push(skillCell(s));
+    } else if (flat.length <= 9) { for (const s of flat) cells.push(skillCell(s)); }
+    else { for (const c of Object.keys(groups)) cells.push(folderCell(c)); if (flat.includes("stop")) cells.push(skillCell("stop")); }
+    while (cells.length < 9) cells.push(emptyCell());
+    cells.slice(0, 9).forEach((c) => grid.appendChild(c));
+  }
+  function emptyCell() { const d = document.createElement("div"); d.className = "skill empty"; return d; }
+  function skillCell(name, extra, onclick) {
+    const d = document.createElement("div");
+    d.className = "skill" + (extra ? " " + extra : "") + (name === "stop" ? " stop" : "");
+    d.innerHTML = `${SKILL_ICON[name] || "⚙️"}<span class="k">${esc(name)}</span>`;
+    d.onclick = onclick || (() => fireSkill(name));
+    return d;
+  }
+  function folderCell(cat) { const d = document.createElement("div"); d.className = "skill folder"; d.innerHTML = `📁<span class="k">${esc(cat)}</span>`; d.onclick = () => { STATE.ui.drill = cat; renderCmd(); }; return d; }
+  function fireSkill(name) {
+    const targets = [...sel.selected];
+    if (!targets.length) { toast("선택된 로봇 없음"); return; }
+    if (name === "stop") { sendStop(targets); return; }
+    if (name === "velocity_ctrl" && targets.length === 1) { enterSolo(targets[0]); return; }   // 데모 편의: 1:1 진입
+    const spec = CAP_SPEC[name];
+    if (spec && spec.length === 0) { dispatch(name, {}, targets); return; }
+    pfOpen(name, targets);
+  }
+
+  // ---- 선택 ----
+  function pick(id, toggle) {
+    if (toggle) { sel.selected.has(id) ? sel.selected.delete(id) : sel.selected.add(id); }
+    else { sel.selected = new Set([id]); }
+    sel.focusId = sel.selected.has(id) ? id : ([...sel.selected][0] || null);
+    STATE.ui.drill = null; render();
+  }
+  function setSelection(ids) { sel.selected = new Set(ids); sel.focusId = ids[0] || null; STATE.ui.drill = null; render(); }
+
+  // ---- 드래그 박스 ----
+  let drag = null;
+  map.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    const rect = map.getBoundingClientRect();
+    drag = { x: e.clientX - rect.left, y: e.clientY - rect.top, add: e.shiftKey, rect };
+    selbox.style.display = "block"; updateBox(drag.x, drag.y);
   });
-  renderAll();
-}
-function busyThen(r, ms){ setTimeout(()=>{ if(r.base_state==="BUSY"&&!r.target&&r.id!==cockpitId){ r.base_state="IDLE"; renderAll(); } }, ms); }
+  window.addEventListener("mousemove", (e) => { if (drag) updateBox(e.clientX - drag.rect.left, e.clientY - drag.rect.top); });
+  window.addEventListener("mouseup", (e) => {
+    if (!drag) return;
+    const x2 = e.clientX - drag.rect.left, y2 = e.clientY - drag.rect.top, x1 = drag.x, y1 = drag.y;
+    const moved = Math.abs(x2 - x1) > 4 || Math.abs(y2 - y1) > 4;
+    selbox.style.display = "none";
+    if (moved) {
+      const lo = { x: Math.min(x1, x2), y: Math.min(y1, y2) }, hi = { x: Math.max(x1, x2), y: Math.max(y1, y2) };
+      const units = [...maprot.querySelectorAll(".unit")];
+      const hit = visibleRobots().filter((r) => {
+        const el = units.find((u) => u.dataset.uid === r.robot_id); if (!el) return false;
+        const b = el.getBoundingClientRect();
+        const px = b.left + b.width / 2 - drag.rect.left, py = b.top + b.height / 2 - drag.rect.top;
+        return px >= lo.x && px <= hi.x && py >= lo.y && py <= hi.y;
+      }).map((r) => r.robot_id);
+      setSelection([...new Set([...(drag.add ? [...sel.selected] : []), ...hit])]);
+      logline(hit.length ? `${hit.length}대 박스 선택` : "빈 선택");
+    } else if (!drag.add) { setSelection([]); }
+    drag = null;
+  });
+  function updateBox(x, y) { const x1 = Math.min(drag.x, x), y1 = Math.min(drag.y, y); selbox.style.left = x1 + "px"; selbox.style.top = y1 + "px"; selbox.style.width = Math.abs(x - drag.x) + "px"; selbox.style.height = Math.abs(y - drag.y) + "px"; }
 
-/* ===== 미니맵 ===== */
-function renderMinimap(){
-  const cv=$("#minimap canvas"); const rect=cv.getBoundingClientRect();
-  cv.width=rect.width; cv.height=rect.height; const g=cv.getContext("2d");
-  g.fillStyle="#0c120e"; g.fillRect(0,0,cv.width,cv.height);
-  g.strokeStyle="#1c2c22"; for(let i=1;i<5;i++){ g.beginPath(); g.moveTo(cv.width*i/5,0); g.lineTo(cv.width*i/5,cv.height); g.moveTo(0,cv.height*i/5); g.lineTo(cv.width,cv.height*i/5); g.stroke(); }
-  for(const rb of ROBOTS){
-    g.beginPath(); g.arc(cv.width*rb.x/100, cv.height*rb.y/100, selected.has(rb.robot_id)?4:3, 0, 7);
-    g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(STATE_COLOR[rb.base_state]).trim()||"#6fe39a"; g.fill();
-    if(selected.has(rb.robot_id)){ g.strokeStyle="#fff"; g.lineWidth=1; g.stroke(); }
+  // ---- 휠 줌(커서 중심) ----
+  map.addEventListener("wheel", (e) => {
+    if (!currentMap()) return;
+    e.preventDefault();
+    const r = map.getBoundingClientRect();
+    const ux = (e.clientX - r.left) - r.width / 2, uy = (e.clientY - r.top) - r.height / 2;
+    const v = STATE.ui.mapView, z0 = v.zoom || 1, nz = clamp(z0 * (e.deltaY < 0 ? 1.15 : 1 / 1.15), 1, 8), k = nz / z0;
+    v.panX = ux - k * (ux - (v.panX || 0)); v.panY = uy - k * (uy - (v.panY || 0)); v.zoom = nz;
+    if (nz <= 1.0001) { v.zoom = 1; v.panX = 0; v.panY = 0; }
+    applyView();
+  }, { passive: false });
+  // ---- 휠클릭 드래그 팬 ----
+  let panDrag = null;
+  map.addEventListener("mousedown", (e) => {
+    if (e.button !== 1 || !currentMap() || (STATE.ui.mapView.zoom || 1) <= 1.001) return;
+    e.preventDefault(); const v = STATE.ui.mapView; panDrag = { sx: e.clientX, sy: e.clientY, px: v.panX || 0, py: v.panY || 0 }; map.style.cursor = "grabbing";
+  });
+  window.addEventListener("mousemove", (e) => { if (!panDrag) return; const v = STATE.ui.mapView; v.panX = panDrag.px + (e.clientX - panDrag.sx); v.panY = panDrag.py + (e.clientY - panDrag.sy); applyView(); });
+  window.addEventListener("mouseup", () => { if (panDrag) { panDrag = null; map.style.cursor = ""; } });
+  map.addEventListener("auxclick", (e) => { if (e.button === 1) e.preventDefault(); });
+
+  // ---- 우클릭 = navigate_to_pose 이동 명령(선택된 모바일 로봇) ----
+  function screenToWorld(cx, cy, m) {                 // #map 화면px → 표준맵 world(m). #maprot 변환(translate·rotate·scale) 역적용.
+    const im = imageRect(m), rot = STATE.ui.mapRot || 0, v = STATE.ui.mapView, scale = rotRefitScale(im, rot) * (v.zoom || 1);
+    let dx = (cx - im.W / 2 - (v.panX || 0)) / scale, dy = (cy - im.H / 2 - (v.panY || 0)) / scale;   // translate·scale 역
+    const r = rotVec((4 - rot) % 4, dx, dy);          // rotate 역(균일스케일이라 순서 무관)
+    const x2 = r.x + im.W / 2, y2 = r.y + im.H / 2;    // #maprot 좌표(레터박스 공간)
+    const px = ((x2 - im.offX) / im.dw) * im.iw, py = ((y2 - im.offY) / im.dh) * im.ih;   // 이미지 px
+    return pixelToWorld(px, py, m);
   }
-}
+  map.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    if (STATE.ui.level !== "map") return;
+    const m = currentMap();
+    if (!m) { toast("표준맵을 선택하면 우클릭 이동(navigate_to_pose)이 가능합니다"); return; }
+    const movers = [...sel.selected].map(byId).filter((r) => r && r.cats.includes("mobile") && r.standardMapId === m.map_id && r.base_state !== "OFFLINE");
+    if (!movers.length) { toast("현재 맵의 이동 가능한(모바일) 로봇을 먼저 선택하세요"); return; }
+    const rect = map.getBoundingClientRect(), w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, m);
+    const mw = m.width * m.resolution, mh = m.height * m.resolution;
+    const msgs = movers.map((r, i) => {
+      const off = (i - (movers.length - 1) / 2) * 0.6;
+      const tx = clamp(w.x + off, 0.5, mw - 0.5), ty = clamp(w.y, 0.5, mh - 0.5);
+      r.target = { x: tx, y: ty }; r.base_state = "BUSY";
+      return buildCommand(senderFor(), "navigate_to_pose", { x: +fmt(tx), y: +fmt(ty), theta: 0 }, r.robot_id);
+    });
+    console.log("[command.capability]", msgs);
+    toast(`🧭 navigate_to_pose → ${movers.map((r) => r.robot_id).join(", ")}`);
+    logline(`navigate_to_pose (${fmt(w.x)}, ${fmt(w.y)}) → ${movers.length}대`);
+    render();
+  });
 
-/* ===== 선택 로직 ===== */
-function pick(id, toggle){
-  if(toggle){ selected.has(id)?selected.delete(id):selected.add(id); }
-  else selected = new Set([id]);
-  focusId = selected.has(id) ? id : ([...selected][0]||null);
-  drill=null; renderAll();
-}
-function setSelection(ids){ selected=new Set(ids); focusId=ids[0]||null; drill=null; renderAll(); }
-
-/* ===== 드래그 박스 다중선택 ===== */
-let drag=null;
-map.addEventListener("mousedown", e=>{
-  if(e.button!==0) return;
-  const rect=map.getBoundingClientRect();
-  drag={ x:e.clientX-rect.left, y:e.clientY-rect.top, add:e.shiftKey, rect };
-  selbox.style.display="block"; updateBox(drag.x,drag.y);
-});
-window.addEventListener("mousemove", e=>{ if(drag) updateBox(e.clientX-drag.rect.left, e.clientY-drag.rect.top); });
-window.addEventListener("mouseup", e=>{
-  if(!drag) return;
-  const x2=e.clientX-drag.rect.left, y2=e.clientY-drag.rect.top, x1=drag.x, y1=drag.y;
-  const moved = Math.abs(x2-x1)>4 || Math.abs(y2-y1)>4;
-  selbox.style.display="none";
-  if(moved){
-    const lo={x:Math.min(x1,x2),y:Math.min(y1,y2)}, hi={x:Math.max(x1,x2),y:Math.max(y1,y2)};
-    const hit = ROBOTS.filter(r=>{ const px=drag.rect.width*r.x/100, py=drag.rect.height*r.y/100; return px>=lo.x&&px<=hi.x&&py>=lo.y&&py<=hi.y; }).map(r=>r.robot_id);
-    setSelection([...new Set([...(drag.add?[...selected]:[]), ...hit])]);
-    log(hit.length?`${hit.length}대 박스 선택`:"빈 선택");
-  } else if(!drag.add){ setSelection([]); }
-  drag=null;
-});
-function updateBox(x,y){ const x1=Math.min(drag.x,x), y1=Math.min(drag.y,y), w=Math.abs(x-drag.x), h=Math.abs(y-drag.y);
-  selbox.style.left=x1+"px"; selbox.style.top=y1+"px"; selbox.style.width=w+"px"; selbox.style.height=h+"px"; }
-
-/* ===== 우클릭 = navigate_to_pose 이동 명령 ===== */
-map.addEventListener("contextmenu", e=>{
-  e.preventDefault();
-  const rect=map.getBoundingClientRect();
-  const x=Math.max(2,Math.min(98,(e.clientX-rect.left)/rect.width*100));
-  const y=Math.max(2,Math.min(98,(e.clientY-rect.top)/rect.height*100));
-  const movers=[...selected].map(byId).filter(r=>r&&r.mobile);
-  if(!movers.length){ log("이동 가능한(모바일) 로봇을 먼저 선택하세요"); return; }
-  movers.forEach((r,i)=>{ const off=(i-(movers.length-1)/2)*5; r.target={x:Math.max(2,Math.min(98,x+off)),y}; r.base_state="BUSY"; });
-  fireCommand(movers.map(r=>r.robot_id), "navigate_to_pose", {x:+fmt(x/10),y:+fmt(y/10),theta:0});
-  renderAll();
-});
-
-function renderAll(){ syncMap(); renderRoster(); renderSelected(); renderCmd(); renderMinimap(); }
-window.addEventListener("resize", ()=>{ renderMinimap(); if(cockpitId) resizeCanvas(); });
-
-/* ===== 데모 미션 / 정지 ===== */
-$("#btnMission").addEventListener("click", ()=>{
-  log("FleetMission 'coffee_delivery' 시작 (DAG)");
-  const mob=byId("mobile_01"), coffee=byId("coffee_01"), arm=byId("arm_01");
-  mob.target={x:76,y:58}; mob.base_state="BUSY"; fireCommand(["mobile_01"],"navigate_to_pose",{x:7.6,y:5.8});
-  setTimeout(()=>{ coffee.base_state="BUSY"; fireCommand(["coffee_01"],"make_americano",{shots:2}); },2600);
-  setTimeout(()=>{ coffee.base_state="IDLE"; arm.base_state="BUSY"; fireCommand(["arm_01"],"gripper_ctrl",{percentage:100}); },5200);
-  setTimeout(()=>{ arm.base_state="IDLE"; mob.target={x:24,y:30}; mob.base_state="BUSY"; fireCommand(["mobile_01"],"navigate_to_pose",{x:2.4,y:3.0}); },6800);
-  setTimeout(()=>{ log("mission_succeeded · coffee_delivery"); },10800);
-});
-$("#btnStop").addEventListener("click", ()=>{ ROBOTS.forEach(r=>{ r.target=null; r.vel={l:0,a:0}; if(r.base_state!=="ERROR")r.base_state="IDLE"; }); fireCommand(ROBOTS.map(r=>r.robot_id),"stop",{}); renderAll(); });
-
-/* ===== COCKPIT (1:1) ===== */
-const ckEl=$("#cockpit"), cv2=$("#ckCanvas"), ctx=cv2.getContext("2d");
-function enterCockpit(id){ const r=byId(id); if(!r) return;
-  cockpitId=id; selected=new Set([id]); focusId=id; r.base_state="TELEOP";
-  fireCommand([id],"velocity_ctrl",{}); log(`teleop_started · ${id}`);
-  $("#ckName").textContent=r.robot_id; $("#ckType").textContent=r.cats.join("+");
-  $("#ckCaps").innerHTML = r.capabilities.filter(c=>c!=="velocity_ctrl"&&c!=="navigate_to_pose").slice(0,6)
-    .map(c=>`<button class="ck-cap" onclick="ckCap('${c}')">${SKILL_ICON[c]||"⚙️"} ${c}</button>`).join("");
-  ckEl.classList.add("open"); resizeCanvas(); renderAll();
-}
-function ckCap(name){ const id=cockpitId; if(!id) return; fireCommand([id],name,{}); }
-function exitCockpit(){ const r=byId(cockpitId); if(r){ r.base_state="IDLE"; r.vel={l:0,a:0}; log(`teleop_ended · ${r.robot_id}`);} cockpitId=null; ckEl.classList.remove("open"); renderAll(); }
-$("#ckExit").addEventListener("click", exitCockpit);
-document.addEventListener("keydown", e=>{ if(e.key==="Escape"&&cockpitId) exitCockpit(); });
-function resizeCanvas(){ const r=cv2.parentElement.getBoundingClientRect(); cv2.width=r.width; cv2.height=r.height; }
-let camOff=0;
-function drawCam(r){
-  const w=cv2.width,h=cv2.height; if(!w) return;
-  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,"#0c1410"); g.addColorStop(.5,"#0f1a14"); g.addColorStop(.5,"#070a08"); g.addColorStop(1,"#04060500");
-  ctx.fillStyle="#070a08"; ctx.fillRect(0,0,w,h);
-  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  const hz=h*0.5; camOff+=r.vel.l*6; const turn=r.vel.a*60;
-  for(let i=0;i<14;i++){ let z=((i*40-camOff)%560+560)%560; const p=z/560; const y=hz+(h-hz)*p*p; const a=0.5*(1-p);
-    ctx.strokeStyle=`rgba(111,227,154,${a})`; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-  for(let i=-6;i<=6;i++){ const vx=w/2+i*70-turn; ctx.strokeStyle="rgba(111,227,154,0.16)"; ctx.beginPath(); ctx.moveTo(w/2-turn,hz); ctx.lineTo(vx,h); ctx.stroke(); }
-  ctx.fillStyle="rgba(111,227,154,0.12)"; ctx.fillRect(0,hz-2,w,4);
-  for(let k=0;k<2;k++){ let z=((k*280+140-camOff)%560+560)%560; const p=z/560; const y=hz+(h-hz)*p*p; const size=10+p*p*120; const x=w/2+(k===0?-1:1)*(40+turn*0.5)*(0.3+p);
-    ctx.fillStyle=`rgba(227,${150-k*40},111,${0.25+0.5*p})`; ctx.fillRect(x-size/2,y-size,size,size); }
-}
-function updateCockpit(){ const r=byId(cockpitId); if(!r) return;
-  $("#ckState").textContent=r.base_state; $("#ckBat").textContent=Math.round(r.bat)+"%";
-  $("#ckLin").textContent=fmt(r.vel.l)+" m/s"; $("#ckAng").textContent=fmt(r.vel.a)+" rad/s"; drawCam(r); }
-/* 조이스틱 */
-const joy=$("#joy"), knob=$("#knob"); let jdrag=false;
-function joyMove(cx,cy){ const r=joy.getBoundingClientRect(); const dx=cx-(r.left+r.width/2), dy=cy-(r.top+r.height/2);
-  const max=r.width/2-18; const dist=Math.min(max,Math.hypot(dx,dy)); const ang=Math.atan2(dy,dx); const kx=Math.cos(ang)*dist, ky=Math.sin(ang)*dist;
-  knob.style.transform=`translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
-  const rb=byId(cockpitId); if(rb){ rb.vel.l=-ky/max*1.6; rb.vel.a=kx/max*1.4; } }
-function joyEnd(){ jdrag=false; knob.style.transform="translate(-50%,-50%)"; const rb=byId(cockpitId); if(rb) rb.vel={l:0,a:0}; }
-joy.addEventListener("pointerdown",e=>{ jdrag=true; joy.setPointerCapture(e.pointerId); joyMove(e.clientX,e.clientY); });
-joy.addEventListener("pointermove",e=>{ if(jdrag) joyMove(e.clientX,e.clientY); });
-joy.addEventListener("pointerup",joyEnd); joy.addEventListener("pointercancel",joyEnd);
-
-/* ===== SIM TICK ===== */
-function step(){
-  tick++;
-  for(const r of ROBOTS){
-    if(r.target){ const dx=r.target.x-r.x, dy=r.target.y-r.y, d=Math.hypot(dx,dy);
-      if(d<1.2){ r.x=r.target.x; r.y=r.target.y; r.target=null; if(r.robot_id!==cockpitId) r.base_state="IDLE"; }
-      else { const sp=Math.min(1.1,d*0.18); r.x+=dx/d*sp; r.y+=dy/d*sp; r.theta=Math.atan2(dy,dx); } }
-    if(r.robot_id===cockpitId && (r.vel.l||r.vel.a)){ r.theta+=r.vel.a*0.07; r.x+=Math.cos(r.theta)*r.vel.l*0.7; r.y+=Math.sin(r.theta)*r.vel.l*0.7;
-      r.x=Math.max(2,Math.min(98,r.x)); r.y=Math.max(2,Math.min(98,r.y)); }
-    const moving = r.base_state==="BUSY" || (r.robot_id===cockpitId&&(r.vel.l||r.vel.a));
-    if(moving) r.bat=Math.max(0,r.bat-0.04); else r.bat=Math.max(0,r.bat-0.004);
+  // ---- 미니맵 ----
+  function minimapGeom(m, cvW, cvH) {
+    const rot = STATE.ui.mapRot || 0;
+    const ew = rot % 2 ? m.height : m.width, eh = rot % 2 ? m.width : m.height;
+    const s = Math.min(cvW / ew, cvH / eh), dispW = ew * s, dispH = eh * s, offX = (cvW - dispW) / 2, offY = (cvH - dispH) / 2;
+    const toCanvas = (fx, fy) => { let rfx, rfy; if (rot === 1) { rfx = 1 - fy; rfy = fx; } else if (rot === 2) { rfx = 1 - fx; rfy = 1 - fy; } else if (rot === 3) { rfx = fy; rfy = 1 - fx; } else { rfx = fx; rfy = fy; } return { x: offX + rfx * dispW, y: offY + rfy * dispH }; };
+    const toFraction = (cx, cy) => { const rfx = (cx - offX) / dispW, rfy = (cy - offY) / dispH; let fx, fy; if (rot === 1) { fx = rfy; fy = 1 - rfx; } else if (rot === 2) { fx = 1 - rfx; fy = 1 - rfy; } else if (rot === 3) { fx = 1 - rfy; fy = rfx; } else { fx = rfx; fy = rfy; } return { fx, fy }; };
+    return { rot, s, dispW, dispH, offX, offY, toCanvas, toFraction };
   }
-  syncMap();
-  if(tick%4===0){ renderRoster(); renderSelected(); renderMinimap(); }
-  if(cockpitId) updateCockpit();
-}
+  let _miniImg = null, _miniUrl = "";
+  function renderMinimap() {
+    const cv = $("#minimap canvas"); if (!cv) return;
+    const r = cv.getBoundingClientRect(); if (!r.width) return;
+    cv.width = r.width; cv.height = r.height;
+    const g = cv.getContext("2d");
+    g.fillStyle = cssVar("--card2"); g.fillRect(0, 0, cv.width, cv.height);
+    const m = currentMap(), url = m && mapImgUrl(m);
+    if (!(url && m.width && m.height)) {
+      _miniUrl = ""; _miniImg = null;
+      g.strokeStyle = cssVar("--line");
+      for (let i = 1; i < 5; i++) { g.beginPath(); g.moveTo(cv.width * i / 5, 0); g.lineTo(cv.width * i / 5, cv.height); g.moveTo(0, cv.height * i / 5); g.lineTo(cv.width, cv.height * i / 5); g.stroke(); }
+      for (const rb of visibleRobots()) { g.beginPath(); g.arc(cv.width * rb.sx / 100, cv.height * rb.sy / 100, sel.selected.has(rb.robot_id) ? 4 : 3, 0, 7); g.fillStyle = cssVar(STATE_COLOR[rb.base_state]); g.fill(); }
+      return;
+    }
+    const gm = minimapGeom(m, cv.width, cv.height), rot = gm.rot;
+    if (_miniUrl !== url) { _miniUrl = url; _miniImg = null; themedMapUrl(url, (themed) => { const im = new Image(); im.onload = () => { if (_miniUrl === url) { _miniImg = im; renderMinimap(); } }; im.src = themed; }); }
+    if (_miniImg) { const dw0 = m.width * gm.s, dh0 = m.height * gm.s; g.save(); g.translate(cv.width / 2, cv.height / 2); g.rotate(rot * Math.PI / 2); g.drawImage(_miniImg, -dw0 / 2, -dh0 / 2, dw0, dh0); g.restore(); }
+    for (const rb of visibleRobots()) {
+      if (rb.standardMapId !== m.map_id || !rb.pose) continue;
+      const std = applyStandard(rb.pose, rb.toStandard); if (!std) continue;
+      const { px, py } = worldToPixel(std.x, std.y, m), p = gm.toCanvas(px / m.width, py / m.height);
+      g.beginPath(); g.arc(p.x, p.y, sel.selected.has(rb.robot_id) ? 4 : 3, 0, 7); g.fillStyle = cssVar(STATE_COLOR[rb.base_state]); g.fill();
+      if (sel.selected.has(rb.robot_id)) { g.strokeStyle = cssVar("--ink"); g.lineWidth = 1; g.stroke(); }
+    }
+    if ((STATE.ui.mapView.zoom || 1) > 1.001) {
+      const im = imageRect(m), v = STATE.ui.mapView, scale = rotRefitScale(im, rot) * (v.zoom || 1), cw = map.clientWidth, ch = map.clientHeight;
+      let minfx = 1, minfy = 1, maxfx = 0, maxfy = 0;
+      for (const [ux, uy] of [[-cw / 2, -ch / 2], [cw / 2, -ch / 2], [cw / 2, ch / 2], [-cw / 2, ch / 2]]) {
+        const rv = rotVec((4 - rot) % 4, ux - (v.panX || 0), uy - (v.panY || 0));
+        const fx = (rv.x / scale + cw / 2 - im.offX) / im.dw, fy = (rv.y / scale + ch / 2 - im.offY) / im.dh;
+        minfx = Math.min(minfx, fx); maxfx = Math.max(maxfx, fx); minfy = Math.min(minfy, fy); maxfy = Math.max(maxfy, fy);
+      }
+      minfx = Math.max(0, minfx); minfy = Math.max(0, minfy); maxfx = Math.min(1, maxfx); maxfy = Math.min(1, maxfy);
+      const cs = [gm.toCanvas(minfx, minfy), gm.toCanvas(maxfx, minfy), gm.toCanvas(maxfx, maxfy), gm.toCanvas(minfx, maxfy)];
+      const xs = cs.map((c) => c.x), ys = cs.map((c) => c.y), bx = Math.min(...xs), by = Math.min(...ys);
+      g.fillStyle = "rgba(255,255,255,0.10)"; g.fillRect(bx, by, Math.max(...xs) - bx, Math.max(...ys) - by);
+      g.strokeStyle = cssVar("--accent"); g.lineWidth = 1.5; g.strokeRect(bx, by, Math.max(...xs) - bx, Math.max(...ys) - by);
+    }
+  }
+  function minimapNav(e) {
+    const m = currentMap(); if (!m || !m.width || !m.height) return;
+    if ((STATE.ui.mapView.zoom || 1) <= 1.001) return;
+    const cv = $("#minimap canvas"), r = cv.getBoundingClientRect(), gm = minimapGeom(m, cv.width, cv.height);
+    const mx = (e.clientX - r.left) * (cv.width / r.width), my = (e.clientY - r.top) * (cv.height / r.height);
+    let { fx, fy } = gm.toFraction(mx, my); fx = clamp(fx, 0, 1); fy = clamp(fy, 0, 1);
+    const im = imageRect(m), rot = gm.rot, v = STATE.ui.mapView, scale = rotRefitScale(im, rot) * (v.zoom || 1), cw = map.clientWidth, ch = map.clientHeight;
+    const sv = rotVec(rot, (im.offX + fx * im.dw - cw / 2) * scale, (im.offY + fy * im.dh - ch / 2) * scale);
+    v.panX = -sv.x; v.panY = -sv.y; applyView();
+  }
 
-/* ===== BOOT ===== */
-buildMap(); renderAll();
-log("NEXUS 시그널링 연결됨 · 6대 등록 (시뮬레이션)");
-setInterval(step, 90);
+  function render() { renderMap(); renderRoster(); renderSelected(); renderCmd(); renderMinimap(); renderSummary(); renderConn(); }
+  function renderDashboard() { renderConn(); renderSummary(); renderAlarms(); if (STATE.ui.view === "solo") return; if (STATE.ui.level === "overview") renderOverview(); else render(); }
+
+  // ===================================================================== 단축키
+  window.addEventListener("keydown", (e) => {
+    if (STATE.ui.view === "solo") { if (e.key === "Escape") { e.preventDefault(); closeCockpit(); } return; }
+    if ($("#paramback").style.display === "flex") { if (e.key === "Escape") { e.preventDefault(); pfClose(); } return; }
+    const tag = (e.target && e.target.tagName) || ""; if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (STATE.ui.level !== "map") return;
+    if (e.key === "Escape") { setSelection([]); return; }
+    if (e.key === "s" || e.key === "S") { sendStop([...sel.selected]); return; }
+    if (e.key === "f" || e.key === "F") { if (sel.focusId) enterSolo(sel.focusId); return; }
+    if (/^[1-9]$/.test(e.key)) {
+      if (e.ctrlKey || e.metaKey) { STATE.groups[e.key] = [...sel.selected]; saveGroups(); toast(`그룹 ${e.key} 저장(${sel.selected.size})`); e.preventDefault(); }
+      else { const g = (STATE.groups[e.key] || []).filter((id) => byId(id)); if (!g.length) { toast(`그룹 ${e.key} 비어있음`); return; } setSelection(g); toast(`그룹 ${e.key} 호출(${g.length})`); }
+    }
+  });
+
+  // ===================================================================== PARAM FORM
+  function pfOpen(name, targets) {
+    const spec = CAP_SPEC[name], back = $("#paramback"), form = $("#paramform");
+    const tgtLabel = targets.length === 1 ? targets[0] : `${targets.length}대`;
+    let rows = "";
+    for (const p of (spec || [])) {
+      if (p.type === "pose") {
+        const f = (k, d) => `<div class="param-row"><label>${k}</label><input data-pk="${k}" type="number" step="any" value="${d}"></div>`;
+        rows += `<div class="sub" style="margin-top:6px">pose (Pose3D · 쿼터니안 정준)</div><div class="param-grid7">${f("x", 0)}${f("y", 0)}${f("z", 0)}${f("qx", 0)}${f("qy", 0)}${f("qz", 0)}${f("qw", 1)}</div>`;
+      } else {
+        const isNum = p.type === "number";
+        const ph = p.type === "array" ? "콤마 구분 (예: 0, 1.57, -1.57)" : (p.default != null ? p.default : "");
+        rows += `<div class="param-row ${p.required ? "req" : ""}"><label>${esc(p.key)}</label>
+          <input data-pk="${esc(p.key)}" data-pt="${esc(p.type)}" type="${isNum ? "number" : "text"}" ${isNum ? 'step="any"' : ""}
+            ${p.min != null ? `min="${esc(p.min)}"` : ""} ${p.max != null ? `max="${esc(p.max)}"` : ""}
+            value="${esc(p.default != null ? p.default : "")}" placeholder="${esc(ph)}"><span class="punit">${esc(p.unit || "")}</span></div>`;
+      }
+    }
+    form.innerHTML = `<h3>${SKILL_ICON[name] || "⚙️"} ${esc(name)}</h3><div class="sub">대상: ${esc(tgtLabel)} · command.capability</div>${rows}<div class="param-err" id="pf_err"></div><div class="param-actions"><button id="pf_cancel">취소</button><button class="go" id="pf_send">전송</button></div>`;
+    back.style.display = "flex";
+    const first = form.querySelector("input"); if (first) first.focus();
+    $("#pf_cancel").onclick = pfClose;
+    $("#pf_send").onclick = () => {
+      const err = $("#pf_err"); err.textContent = ""; let params = {};
+      try {
+        if ((spec || []).some((p) => p.type === "pose")) {
+          const pose = {}; form.querySelectorAll("[data-pk]").forEach((inp) => { pose[inp.dataset.pk] = Number(inp.value); });
+          for (const k of ["x", "y", "z", "qx", "qy", "qz", "qw"]) if (Number.isNaN(pose[k])) throw new Error(`pose.${k} 숫자 필요`);
+          params.pose = pose;
+        } else {
+          const inputs = {}; form.querySelectorAll("[data-pk]").forEach((inp) => { inputs[inp.dataset.pk] = inp; });
+          for (const p of (spec || [])) {
+            const inp = inputs[p.key], raw = (inp ? inp.value : "").trim();
+            if (raw === "") { if (p.required) throw new Error(`${p.key} 필수`); continue; }
+            if (p.type === "number") { const v = Number(raw); if (Number.isNaN(v)) throw new Error(`${p.key} 숫자 필요`); if (p.min != null && v < p.min) throw new Error(`${p.key} 최소 ${p.min}`); if (p.max != null && v > p.max) throw new Error(`${p.key} 최대 ${p.max}`); params[p.key] = v; }
+            else if (p.type === "array") { const a = raw.split(",").map((s) => Number(s.trim())); if (a.some((n) => Number.isNaN(n))) throw new Error(`${p.key}: 숫자 배열 필요`); params[p.key] = a; }
+            else params[p.key] = raw;
+          }
+        }
+      } catch (e) { err.textContent = String(e.message || e); return; }
+      pfClose(); dispatch(name, params, targets);
+    };
+  }
+  function pfClose() { $("#paramback").style.display = "none"; $("#paramform").innerHTML = ""; }
+  $("#paramback").addEventListener("mousedown", (e) => { if (e.target === $("#paramback")) pfClose(); });
+
+  // ===================================================================== 1:1 콕핏 (시뮬레이션)
+  const COCKPIT_HTML = `
+    <div class="cockpit-bar">
+      <span class="cockpit-title">◈ 1:1 직접관제 — <b class="cockpit-rid"></b></span>
+      <span class="cockpit-badge ok" data-el="conn">connected</span>
+      <span class="cockpit-lat" data-el="lat"></span>
+      <span class="cockpit-presets" data-el="presets">
+        <button data-preset="keyboard" class="on" title="WASD 주행 · 화살표 시점 · Shift 가속 · Space 정지">⌨ 키보드</button>
+        <button data-preset="mouse" title="마우스 이동 = 카메라 시점(팬/틸트) · 주행은 WASD">🖱 마우스</button>
+      </span>
+      <button class="cockpit-msgbtn" data-el="msgbtn" title="메시지 송수신 로그 on/off">📋 메시지</button>
+      <span class="cockpit-spacer"></span>
+      <button class="cockpit-stop" data-el="stop">■ STOP</button>
+      <button class="cockpit-exit" data-el="exit">✕ 나가기 (Esc)</button>
+    </div>
+    <div class="cockpit-body">
+      <div class="cockpit-left">
+        <div class="cockpit-pane"><div class="cockpit-h">상태</div><pre class="cockpit-status" data-el="status">상태 수신 대기…</pre></div>
+        <div class="cockpit-pane"><div class="cockpit-h">스킬 (capability)</div><div class="cockpit-skills" data-el="skills"></div></div>
+        <div class="cockpit-pane"><div class="cockpit-h">텔레옵 <span class="cockpit-dim">(WASD/화살표 · 버튼 hold)</span></div>
+          <div class="cockpit-pad" data-el="pad">
+            <button data-lin="0.4" data-ang="0" style="grid-area:up">▲</button>
+            <button data-lin="0" data-ang="0.6" style="grid-area:left">◀</button>
+            <button data-lin="0" data-ang="0" style="grid-area:mid" class="cockpit-pad-stop">●</button>
+            <button data-lin="0" data-ang="-0.6" style="grid-area:right">▶</button>
+            <button data-lin="-0.4" data-ang="0" style="grid-area:down">▼</button>
+          </div>
+        </div>
+        <div class="cockpit-pane"><div class="cockpit-h">링크 지연 (RTT, ms)</div>
+          <canvas class="latency-chart" data-el="chart"></canvas>
+          <div class="cockpit-legend">
+            <span class="lg lg-srv">server <b data-lv="server">–</b></span><span class="lg lg-net">internet <b data-lv="internet">–</b></span><span class="lg lg-op">operator <b data-lv="operator">–</b></span>
+            <button class="cockpit-lattoggle" data-el="lattoggle">자세히 ▾</button>
+          </div>
+          <div class="cockpit-lat-detail" data-el="latdetail" hidden></div>
+        </div>
+      </div>
+      <div class="cockpit-main" data-el="main">
+        <div class="cockpit-cam" data-el="videos"></div>
+        <div class="cockpit-minimap empty" data-el="minimap"><span class="cockpit-mm-ph">지도 대기</span></div>
+        <div class="cockpit-inhud" data-el="inhud">
+          <div class="hud-pad hud-l"><span class="hud-lbl">주행</span><div class="hud-dot"></div></div>
+          <div class="hud-pad hud-r"><span class="hud-lbl">시점</span><div class="hud-dot"></div></div>
+          <div class="hud-trig hud-tl" title="감속(L2)"><i></i></div>
+          <div class="hud-trig hud-tr" title="가속(R2)"><i></i></div>
+          <div class="hud-stop">STOP</div>
+        </div>
+        <div class="cockpit-mouselock" data-el="mouselock" hidden>🖱 클릭 = 마우스 시점 잠금 · Esc 해제</div>
+      </div>
+    </div>
+    <pre class="cockpit-log" data-el="log"></pre>`;
+
+  let CK = null;   // 활성 콕핏 세션
+  const keys = new Set();
+  function enterSolo(robotId) {
+    if (!robotId || STATE.ui.view === "solo") return;
+    const r = byId(robotId); if (!r || r.base_state === "OFFLINE") { toast("OFFLINE 로봇은 1:1 불가"); return; }
+    STATE.ui.view = "solo";
+    STATE.solo = { robotId, latency: { server: [], internet: [], operator: [] }, rtt: STATE.solo.rtt };
+    r.base_state = "TELEOP"; r.target = null;
+    $("#app").hidden = true; $("#cockpit").hidden = false;
+    const m = $("#cockpit"); m.innerHTML = COCKPIT_HTML;
+    const q = (s) => m.querySelector(s);
+    CK = {
+      robotId, preset: "keyboard", dpad: { lin: 0, ang: 0 }, mouse: { pan: 0, tilt: 0, locked: false }, camOff: 0, axes: new Array(8).fill(0), buttons: new Array(16).fill(0),
+      els: { conn: q('[data-el="conn"]'), lat: q('[data-el="lat"]'), status: q('[data-el="status"]'), skills: q('[data-el="skills"]'), videos: q('[data-el="videos"]'), main: q('[data-el="main"]'), minimap: q('[data-el="minimap"]'), inhud: q('[data-el="inhud"]'), presets: q('[data-el="presets"]'), mouselock: q('[data-el="mouselock"]'), log: q('[data-el="log"]'), chart: q('[data-el="chart"]') },
+    };
+    m.querySelector(".cockpit-rid").textContent = robotId;
+    // 카메라 캔버스
+    const cam = CK.els.videos; cam.innerHTML = ""; const cv = document.createElement("canvas"); cam.appendChild(cv); CK.cam = cv;
+    // 스킬
+    CK.els.skills.innerHTML = "";
+    r.capabilities.filter((c) => c !== "stop").forEach((name) => { const b = document.createElement("button"); b.className = "cockpit-skill"; b.textContent = name; b.onclick = () => { const spec = CAP_SPEC[name]; if (spec && spec.length === 0) dispatch(name, {}, [robotId]); else pfOpen(name, [robotId]); }; CK.els.skills.appendChild(b); });
+    // 버튼 배선
+    q('[data-el="exit"]').onclick = closeCockpit;
+    q('[data-el="stop"]').onclick = () => { applyEffect("stop", {}, robotId); r.base_state = "TELEOP"; CK.buttons[1] = 1; ckLog("■ 비상정지"); console.log("[command.capability]", buildCommand(cfg.operatorId, "stop", {}, robotId)); };
+    const msgbtn = q('[data-el="msgbtn"]'); msgbtn.onclick = () => { CK.msgLog = !CK.msgLog; msgbtn.classList.toggle("on", CK.msgLog); };
+    const lt = q('[data-el="lattoggle"]'); lt.onclick = () => { const d = q('[data-el="latdetail"]'); const show = d.hidden; d.hidden = !show; lt.textContent = show ? "자세히 ▴" : "자세히 ▾"; };
+    CK.els.presets.querySelectorAll("button").forEach((b) => b.onclick = () => setPreset(b.dataset.preset));
+    // D-pad hold
+    m.querySelectorAll('[data-el="pad"] button').forEach((b) => {
+      const lin = +b.dataset.lin || 0, ang = +b.dataset.ang || 0;
+      const press = (e) => { e.preventDefault(); CK.dpad = { lin, ang }; }, release = () => { CK.dpad = { lin: 0, ang: 0 }; };
+      b.addEventListener("pointerdown", press); b.addEventListener("pointerup", release); b.addEventListener("pointerleave", release); b.addEventListener("pointercancel", release);
+    });
+    // 마우스 프리셋: 메인 영역 Pointer Lock
+    CK.els.mouselock.onclick = () => { if (CK.preset === "mouse" && CK.els.main.requestPointerLock) CK.els.main.requestPointerLock(); };
+    setPreset("keyboard");
+    ckLog(`1:1 진입: ${robotId} · WebRTC P2P 시그널링(시뮬)`);
+    console.log("[command.capability]", buildCommand(cfg.operatorId, "velocity_ctrl", {}, robotId));
+    resizeCockpit(); renderConn();
+  }
+  function setPreset(name) {
+    if (!CK) return; CK.preset = name;
+    CK.els.presets.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.preset === name));
+    CK.els.mouselock.hidden = !(name === "mouse" && !CK.mouse.locked);
+    if (name !== "mouse" && document.pointerLockElement) document.exitPointerLock();
+    ckLog("프리셋 → " + name);
+  }
+  function ckLog(msg) { if (!CK || !CK.els.log) return; CK.els.log.textContent += msg + "\n"; if (CK.els.log.textContent.length > 9000) CK.els.log.textContent = CK.els.log.textContent.slice(-7000); CK.els.log.scrollTop = CK.els.log.scrollHeight; }
+  function closeCockpit() {
+    if (!CK) return;
+    if (document.pointerLockElement) document.exitPointerLock();
+    const r = byId(CK.robotId); if (r && r.base_state === "TELEOP") { r.base_state = "IDLE"; r.vel = { l: 0, a: 0 }; }
+    CK = null; STATE.ui.view = "fleet"; STATE.solo.robotId = null;
+    $("#cockpit").hidden = true; $("#cockpit").innerHTML = ""; $("#app").hidden = false;
+    if (STATE.ui.level === "overview") renderOverview(); else render();
+    renderDashboard();
+  }
+  // 입력 → axes[8] (cockpit-core 매핑 그대로)
+  function gatherInput() {
+    const ax = new Array(8).fill(0), bt = new Array(16).fill(0);
+    if (CK.preset !== "mouse" || true) {   // 주행 키는 두 프리셋 공통
+      if (keys.has("KeyW")) ax[1] += 1; if (keys.has("KeyS")) ax[1] -= 1;
+      if (keys.has("KeyA")) ax[0] -= 1; if (keys.has("KeyD")) ax[0] += 1;
+      if (keys.has("ArrowRight")) ax[2] += 1; if (keys.has("ArrowLeft")) ax[2] -= 1;
+      if (keys.has("ArrowUp")) ax[3] += 1; if (keys.has("ArrowDown")) ax[3] -= 1;
+      if (keys.has("ShiftLeft") || keys.has("ShiftRight")) ax[5] = 1;
+    }
+    if (CK.preset === "mouse") { ax[2] += CK.mouse.pan; ax[3] += CK.mouse.tilt; }   // 마우스 = 시점(팬/틸트)
+    if (CK.dpad.lin) ax[1] += CK.dpad.lin; if (CK.dpad.ang) ax[0] += -CK.dpad.ang;
+    if (keys.has("Space")) bt[1] = 1;
+    for (let i = 0; i < 8; i++) ax[i] = clamp(ax[i], -1, 1);
+    return { ax, bt };
+  }
+  function updateInputHUD(axes, buttons) {
+    const h = CK.els.inhud; if (!h) return;
+    const setDot = (s, ax, ay) => { const d = h.querySelector(s); if (!d) return; const x = clamp(ax, -1, 1), y = clamp(ay, -1, 1); d.style.left = (50 + x * 42) + "%"; d.style.top = (50 - y * 42) + "%"; const mag = Math.min(1, Math.hypot(x, y)); d.style.opacity = (0.3 + 0.7 * mag).toFixed(2); d.classList.toggle("on", mag > 0.02); };
+    setDot(".hud-l .hud-dot", axes[0], axes[1]); setDot(".hud-r .hud-dot", axes[2], axes[3]);
+    const tl = h.querySelector(".hud-tl i"), tr = h.querySelector(".hud-tr i");
+    if (tl) tl.style.height = (clamp(axes[4], 0, 1) * 100) + "%"; if (tr) tr.style.height = (clamp(axes[5], 0, 1) * 100) + "%";
+    const stop = h.querySelector(".hud-stop"); if (stop) stop.classList.toggle("on", (buttons[1] || 0) > 0);
+  }
+  function renderCockpitMinimap() {
+    const box = CK.els.minimap, r = byId(CK.robotId), m = mapById(r.standardMapId);
+    if (!m || !r.pose) { box.classList.add("empty"); return; }
+    box.classList.remove("empty"); const ph = box.querySelector(".cockpit-mm-ph"); if (ph) ph.remove();
+    const url = mapImgUrl(m);
+    if (box.dataset.img !== url) { box.dataset.img = url; themedMapUrl(url, (u) => { box.style.backgroundImage = `url("${u}")`; }); box.style.aspectRatio = `${m.width}/${m.height}`; }
+    const std = applyStandard(r.pose, r.toStandard); const { px, py } = worldToPixel(std.x, std.y, m);
+    let dot = box.querySelector(".cockpit-mm-dot"); if (!dot) { dot = document.createElement("div"); dot.className = "cockpit-mm-dot"; box.appendChild(dot); }
+    dot.style.left = clamp(px / m.width * 100, 0, 100) + "%"; dot.style.top = clamp(py / m.height * 100, 0, 100) + "%";
+    dot.style.transform = `translate(-50%,-50%) rotate(${(-(std.yaw || 0) * 180 / Math.PI).toFixed(0)}deg)`;
+  }
+  function renderCockpitStatus() {
+    const r = byId(CK.robotId), pose = r.pose, bat = r.battery || {};
+    CK.els.status.textContent =
+      `base_state : ${r.base_state}\n` +
+      `mission    : -\n` +
+      `pose       : x=${fmt(pose.x)} y=${fmt(pose.y)} θ=${fmt(pose.theta)}\n` +
+      `battery    : ${bat.percentage != null ? Math.round(bat.percentage) + "%" : "-"}${bat.is_charging ? " ⚡" : ""}`;
+    CK.els.lat.textContent = `RTT  srv ${last("server")} · net ${last("internet")} · op ${last("operator")} ms`;
+  }
+  const last = (k) => { const a = STATE.solo.latency[k]; const p = a.length ? a[a.length - 1] : null; return p && p.ms != null ? Math.round(p.ms) : "–"; };
+  // 시뮬 지연 샘플 + 차트
+  function pushLatency() {
+    const t = Date.now(), r = byId(CK.robotId), base = r.network || {};
+    const jitter = (b) => b == null ? null : Math.max(5, b + (Math.random() - 0.5) * b * 0.4);
+    const add = (k, b) => { const arr = STATE.solo.latency[k]; arr.push({ t, ms: jitter(b), up: b != null }); if (arr.length > RING) arr.shift(); };
+    add("server", (base.server || {}).latency_ms || 25); add("internet", (base.internet || {}).latency_ms || 55); add("operator", (base.operator || {}).latency_ms || 32);
+    renderChart(); updateLatencyLegend();
+  }
+  function updateLatencyLegend() {
+    if (!CK) return;
+    for (const k of ["server", "internet", "operator"]) { const el = CK.els.lat.parentElement.querySelector(`[data-lv="${k}"]`); if (el) el.textContent = last(k) === "–" ? "–" : last(k) + "ms"; }
+    const det = $('#cockpit [data-el="latdetail"]'); if (det && !det.hidden) {
+      const row = (l, v) => `<div class="latleg"><span>${l}</span><b>${v}</b></div>`;
+      det.innerHTML = row("로봇 ↔ 서버", last("server") + "ms") + row("로봇 ↔ 오퍼레이터", last("operator") + "ms") + row("로봇 ↔ 인터넷", last("internet") + "ms") + row("콘솔 ↔ 서버", Math.round(STATE.solo.rtt) + "ms");
+    }
+  }
+  function renderChart() {
+    const cv = CK && CK.els.chart; if (!cv) return; const r = cv.getBoundingClientRect(); if (!r.width) return;
+    cv.width = r.width; cv.height = r.height; const g = cv.getContext("2d"), W = cv.width, H = cv.height; g.clearRect(0, 0, W, H);
+    let max = 50; for (const k of ["server", "internet", "operator"]) for (const p of STATE.solo.latency[k]) if (p.ms != null && p.ms > max) max = p.ms; max = Math.ceil(max / 50) * 50;
+    g.strokeStyle = cssVar("--line"); g.lineWidth = 1; for (let i = 1; i < 4; i++) { const y = H * i / 4; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    g.fillStyle = cssVar("--dim"); g.font = "9px Consolas"; g.fillText(max + "ms", 2, 9);
+    const draw = (k, color, dash) => { const arr = STATE.solo.latency[k]; if (arr.length < 2) return; g.strokeStyle = color; g.lineWidth = 1.4; g.setLineDash(dash); g.beginPath(); let pen = false; const step = W / (RING - 1); arr.forEach((p, i) => { if (p.ms == null) { pen = false; return; } const x = W - (arr.length - 1 - i) * step, y = H - (p.ms / max) * (H - 4) - 2; if (!pen) { g.moveTo(x, y); pen = true; } else g.lineTo(x, y); }); g.stroke(); };
+    draw("server", cssVar("--ok"), []); draw("internet", cssVar("--help"), [5, 3]); draw("operator", cssVar("--accent2"), [1, 3]); g.setLineDash([]);
+  }
+  function drawCam(r, axes) {
+    const cv = CK.cam, ctx = cv.getContext("2d");
+    const rect = cv.getBoundingClientRect();                 // 매 프레임 self-size(레이아웃 타이밍 무관 — 0폭 방지)
+    if (rect.width && (cv.width !== Math.round(rect.width) || cv.height !== Math.round(rect.height))) { cv.width = rect.width; cv.height = rect.height; }
+    const w = cv.width, h = cv.height; if (!w) return;
+    const lin = axes[1] * (1 + axes[5] * 0.8), turn = (axes[2] - axes[0]) * 1.0, tilt = axes[3];
+    const pan = (axes[2]) * 60;                          // 좌우 시점 → 소실점 이동
+    CK.camOff += lin * 6;
+    const vpx = w / 2 - pan;                              // 소실점 x
+    const hz = h * (0.46 + tilt * 0.12);                 // 지평선(틸트 반영)
+    // 하늘
+    const sky = ctx.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, "#0c1a2e"); sky.addColorStop(1, "#16314f");
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, w, hz);
+    // 지면(밝은 surface 톤 → 카메라 느낌)
+    const grd = ctx.createLinearGradient(0, hz, 0, h); grd.addColorStop(0, "#1b3552"); grd.addColorStop(1, "#0b1626");
+    ctx.fillStyle = grd; ctx.fillRect(0, hz, w, h - hz);
+    // 지평선 라인
+    ctx.strokeStyle = "rgba(108,196,232,0.55)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, hz); ctx.lineTo(w, hz); ctx.stroke();
+    // 지면 가로 격자(전진 시 흐르는 원근선)
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 18; i++) { let z = ((i * 40 - CK.camOff) % 720 + 720) % 720; const p = z / 720, y = hz + (h - hz) * p * p, a = 0.55 * (1 - p) + 0.08; ctx.strokeStyle = `rgba(108,196,232,${a.toFixed(3)})`; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    // 세로 수렴선(소실점)
+    for (let i = -8; i <= 8; i++) { const vx = w / 2 + i * 78 - pan; ctx.strokeStyle = "rgba(108,196,232,0.28)"; ctx.beginPath(); ctx.moveTo(vpx, hz); ctx.lineTo(vx, h); ctx.stroke(); }
+    // 장애물(다가오는 박스)
+    for (let k = 0; k < 3; k++) { let z = ((k * 240 + 120 - CK.camOff) % 720 + 720) % 720; const p = z / 720, y = hz + (h - hz) * p * p, size = 14 + p * p * 150, x = vpx + (k - 1) * (70 + turn * 26) * (0.3 + p * 1.2); ctx.fillStyle = `rgba(227,${160 - k * 30},111,${(0.35 + 0.5 * p).toFixed(2)})`; ctx.fillRect(x - size / 2, y - size, size, size); ctx.strokeStyle = "rgba(227,185,111,0.8)"; ctx.lineWidth = 1; ctx.strokeRect(x - size / 2, y - size, size, size); }
+    // HUD 오버레이(조준선 + REC + 속도)
+    ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(w / 2, h / 2, 28, 0, 7); ctx.moveTo(w / 2 - 40, h / 2); ctx.lineTo(w / 2 - 12, h / 2); ctx.moveTo(w / 2 + 12, h / 2); ctx.lineTo(w / 2 + 40, h / 2); ctx.moveTo(w / 2, h / 2 - 40); ctx.lineTo(w / 2, h / 2 - 12); ctx.moveTo(w / 2, h / 2 + 12); ctx.lineTo(w / 2, h / 2 + 40); ctx.stroke();
+    ctx.fillStyle = "#e36f6f"; ctx.beginPath(); ctx.arc(16, 18, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#dceefb"; ctx.font = "11px Consolas"; ctx.fillText("REC · CAM_FRONT", 28, 22);
+    ctx.fillText(`v ${(lin * 1.2).toFixed(2)} m/s  ω ${(turn).toFixed(2)} rad/s`, 12, h - 12);
+  }
+  function resizeCockpit() { if (!CK) return; const cam = CK.cam; const r = cam.parentElement.getBoundingClientRect(); cam.width = r.width; cam.height = r.height; renderChart(); }
+
+  // 콕핏 입력 리스너 (window 단위, 활성 시에만)
+  window.addEventListener("keydown", (e) => {
+    if (STATE.ui.view !== "solo" || !CK) return;
+    if (e.code === "Tab") { e.preventDefault(); setPreset(CK.preset === "keyboard" ? "mouse" : "keyboard"); return; }
+    if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight", "Space"].includes(e.code)) { e.preventDefault(); keys.add(e.code); }
+  });
+  window.addEventListener("keyup", (e) => { keys.delete(e.code); });
+  document.addEventListener("pointerlockchange", () => { if (!CK) return; CK.mouse.locked = document.pointerLockElement === CK.els.main; CK.els.mouselock.hidden = !(CK.preset === "mouse" && !CK.mouse.locked); });
+  document.addEventListener("mousemove", (e) => { if (!CK || CK.preset !== "mouse" || !CK.mouse.locked) return; CK.mouse.pan = clamp(CK.mouse.pan + e.movementX * 0.01, -1, 1); CK.mouse.tilt = clamp(CK.mouse.tilt - e.movementY * 0.01, -1, 1); });
+
+  // ===================================================================== 플릿 미션 (시뮬레이션)
+  const TEMPLATES = [
+    { name: "coffee_delivery", description: "커피 제조 → 운반 → 전달 (DAG)", tasks: [
+      { task_id: "brew", robot: "coffee_01", mission: "make_americano" },
+      { task_id: "pickup", robot: "arm_01", mission: "gripper_ctrl" },
+      { task_id: "deliver", robot: "mobile_01", mission: "navigate_to_pose" }] },
+    { name: "patrol_loop", description: "순찰 로봇 2대 경로 루프", tasks: [
+      { task_id: "patrol_a", robot: "patrol_03", mission: "navigate_to_waypoint" },
+      { task_id: "patrol_b", robot: "agv_02", mission: "navigate_to_waypoint" }] },
+    { name: "warehouse_sort", description: "물류 AGV 분류 작업", tasks: [
+      { task_id: "fetch", robot: "agv_01", mission: "navigate_to_pose" },
+      { task_id: "sort", robot: "agv_02", mission: "navigate_to_waypoint" }] },
+  ];
+  let RUNS = [], runSeq = 0, missionsTimer = null;
+  function buildMissions() {
+    const v = $("#missionsview");
+    v.innerHTML = `<div class="cfgwrap"><h2>🚩 플릿 미션</h2>
+      <section class="cfg"><h3>미션 시작</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select id="nxm-tpl" style="flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:7px 9px"></select>
+          <button class="btn pri" id="nxm-go">시작</button></div>
+        <div id="nxm-hint" style="font-size:12px;color:var(--dim);margin-top:8px"></div></section>
+      <section class="cfg"><h3>진행 중 / 최근 런</h3><div id="nxm-runs" style="display:flex;flex-direction:column;gap:10px"></div></section></div>`;
+    v.querySelector("#nxm-tpl").innerHTML = TEMPLATES.map((t) => `<option value="${t.name}">${t.name} — ${t.description}</option>`).join("");
+    v.querySelector("#nxm-go").onclick = startMission;
+    renderRuns();
+  }
+  function startMission() {
+    const name = $("#nxm-tpl").value, tpl = TEMPLATES.find((t) => t.name === name); if (!tpl) return;
+    const run = { run_id: "run-" + (++runSeq), name, state: "running", started_at: Date.now(), tasks: {} };
+    tpl.tasks.forEach((t, i) => run.tasks[t.task_id] = { ...t, state: "pending", startAt: Date.now() + i * 1800, doneAt: Date.now() + i * 1800 + 1600 });
+    RUNS.unshift(run);
+    $("#nxm-hint").textContent = `시작됨: ${name}`;
+    toast(`🚩 플릿 미션 시작: ${name}`); logline(`FleetMission '${name}' 시작 (DAG)`);
+    renderRuns();
+  }
+  function tickMissions() {
+    const now = Date.now(); let changed = false;
+    for (const run of RUNS) {
+      if (run.state !== "running") continue;
+      let allDone = true;
+      for (const t of Object.values(run.tasks)) {
+        if (t.state === "pending" && now >= t.startAt) { t.state = "running"; changed = true; }
+        if (t.state === "running" && now >= t.doneAt) { t.state = "succeeded"; changed = true; const r = byId(t.robot); if (r && r.base_state === "BUSY") r.base_state = "IDLE"; }
+        else if (t.state === "running") { const r = byId(t.robot); if (r && r.base_state !== "OFFLINE" && r.base_state !== "ERROR") r.base_state = "BUSY"; }
+        if (t.state !== "succeeded" && t.state !== "failed") allDone = false;
+      }
+      if (allDone) { run.state = "succeeded"; changed = true; logline(`mission_succeeded · ${run.name}`); }
+    }
+    if (changed && !$("#missionsview").hidden) renderRuns();
+  }
+  function renderRuns() {
+    const el = document.getElementById("nxm-runs"); if (!el) return;
+    if (!RUNS.length) { el.innerHTML = '<div style="color:var(--dim)">실행 중인 플릿 미션 없음</div>'; return; }
+    const col = { running: "--busy", succeeded: "--ok", failed: "--err", aborted: "--off", pending: "--dim" };
+    el.innerHTML = RUNS.slice(0, 12).map((run) => {
+      const tasks = Object.values(run.tasks).map((t) => `<span title="${t.robot} · ${t.mission}" style="font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:5px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(${col[t.state] || "--dim"});margin-right:5px;vertical-align:middle"></span>${t.task_id}</span>`).join(" ");
+      const abort = run.state === "running" ? `<button class="btn" data-abort="${run.run_id}">중단</button>` : "";
+      const badge = `<span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;color:var(--on-accent);background:var(${col[run.state] || "--dim"})">${run.state}</span>`;
+      return `<div style="border:1px solid var(--line);border-radius:8px;padding:11px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px"><b>${run.name}</b><span style="display:flex;gap:8px;align-items:center">${badge}${abort}</span></div><div style="display:flex;flex-wrap:wrap;gap:5px">${tasks}</div></div>`;
+    }).join("");
+    el.querySelectorAll("[data-abort]").forEach((b) => b.onclick = () => { const run = RUNS.find((r) => r.run_id === b.dataset.abort); if (run) { run.state = "aborted"; Object.values(run.tasks).forEach((t) => { if (t.state === "running" || t.state === "pending") t.state = "aborted"; }); renderRuns(); } });
+  }
+
+  // ===================================================================== 셸 (사이드바 · 뷰 전환 · 설정)
+  function showShellView(v) {
+    document.querySelectorAll(".navitem[data-view]").forEach((n) => n.classList.toggle("active", n.dataset.view === v));
+    $("#missionsview").hidden = true; if (missionsTimer) { clearInterval(missionsTimer); missionsTimer = null; }
+    if (v === "config") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = false; renderConfig(); return; }
+    if (v === "missions") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = true; $("#missionsview").hidden = false; buildMissions(); missionsTimer = setInterval(tickMissions, 600); return; }
+    $("#configview").hidden = true; updateDashboardLevel();
+    if (STATE.ui.level === "map") { render(); renderMinimap(); } else renderOverview();
+  }
+  function renderConfig() {
+    $("#cfgapi").value = ""; $("#cfgpoll").value = cfg.poll; $("#cfgttl").value = cfg.offlineTtl;
+    $("#cfgconn").textContent = `◉ 시뮬레이션(서버 없음) · 로봇 ${ROBOTS.length} · 데모`;
+    $("#cfgice").textContent = JSON.stringify([{ urls: "stun:stun.l.google.com:19302" }, { urls: "turn:turn.example.org:3478", username: "demo", credential: "•••" }], null, 1);
+    $("#cfgsites").textContent = JSON.stringify(MAPS.map((it) => ({ site: it.site, building: it.building, floor: it.floor, map_id: it.map.map_id })), null, 1);
+  }
+  function toggleTheme() {
+    const toLight = document.documentElement.getAttribute("data-theme") !== "light";
+    if (toLight) document.documentElement.setAttribute("data-theme", "light"); else document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem("nexus_ui.theme", toLight ? "light" : "dark");
+    const tb = $("#themebtn"); if (tb) tb.textContent = toLight ? "☀" : "◐";
+    _mapTint.clear(); _miniUrl = "";   // 테마 톤 맵 캐시 무효화
+    if (STATE.ui.view === "solo") { renderChart(); renderCockpitMinimap(); }
+    else if (STATE.ui.level === "overview" && $("#overview").hidden === false) renderOverview();
+    else { renderMap(); renderMinimap(); }
+  }
+  function setupShell() {
+    const app = $("#app");
+    if (localStorage.getItem("nexus_demo.navCollapsed") === "1") app.classList.add("nav-collapsed");
+    $("#navtoggle").addEventListener("click", () => { app.classList.toggle("nav-collapsed"); localStorage.setItem("nexus_demo.navCollapsed", app.classList.contains("nav-collapsed") ? "1" : "0"); setTimeout(renderMinimap, 170); });
+    document.querySelectorAll(".navitem[data-view]").forEach((it) => it.addEventListener("click", () => showShellView(it.dataset.view)));
+    $("#navmapeditor").addEventListener("click", (e) => { e.preventDefault(); toast("맵 에디터는 실제 NEXUS 콘솔에서 제공됩니다 (데모 제외)"); });
+    $("#themebtn").addEventListener("click", toggleTheme);
+    $("#themebtn").textContent = document.documentElement.getAttribute("data-theme") === "light" ? "☀" : "◐";
+    $("#cfgtheme").addEventListener("click", toggleTheme);
+    $("#cfgapply").addEventListener("click", () => toast("데모 — 서버 설정은 시뮬레이션에서 적용되지 않습니다"));
+    // 서버 입력(데모)
+    $("#srvgo").addEventListener("click", () => toast("데모 — 서버 연결 없이 동작하는 시뮬레이션입니다"));
+    $("#srvurl").addEventListener("keydown", (e) => { if (e.key === "Enter") toast("데모 — 서버 연결 없이 동작하는 시뮬레이션입니다"); });
+    // 맵 셀렉터
+    const ms = $("#mapsel");
+    ms.innerHTML = ['<option value="">맵 없음(추상 그리드)</option>'].concat(MAPS.map((it) => `<option value="${it.map.map_id}">${esc(it.site)}·${esc(it.building)}·${esc(it.floor)} — ${esc(it.map.map_id)}</option>`)).join("");
+    ms.addEventListener("change", () => { STATE.ui.mapId = ms.value || null; if (STATE.ui.level === "map") renderMap(); });
+    $("#tooverview").addEventListener("click", backToOverview);
+    $("#maprotbtn").addEventListener("click", () => { STATE.ui.mapRot = ((STATE.ui.mapRot || 0) + 1) % 4; STATE.ui.mapView = { zoom: 1, panX: 0, panY: 0 }; renderMap(); });
+    // 미니맵 클릭/드래그
+    const mmcv = $("#minimap canvas"); let mmdrag = false; mmcv.style.cursor = "pointer";
+    mmcv.addEventListener("mousedown", (e) => { mmdrag = true; minimapNav(e); });
+    window.addEventListener("mousemove", (e) => { if (mmdrag) minimapNav(e); });
+    window.addEventListener("mouseup", () => { mmdrag = false; });
+    // 알람 패널
+    const ab = $("#alarmbtn"), ap = $("#alarmpanel");
+    ab.addEventListener("click", (e) => { e.stopPropagation(); ap.hidden = !ap.hidden; if (window.__ac && window.__ac.state === "suspended") window.__ac.resume(); });
+    document.addEventListener("click", (e) => { if (!ap.hidden && !$("#alarmwrap").contains(e.target)) ap.hidden = true; });
+    const mute = $("#almmute"), tts = $("#almtts");
+    mute.checked = localStorage.getItem("nexus_demo.almMute") === "1"; mute.addEventListener("change", () => localStorage.setItem("nexus_demo.almMute", mute.checked ? "1" : "0"));
+    tts.checked = localStorage.getItem("nexus_demo.almTts") === "1"; tts.addEventListener("change", () => localStorage.setItem("nexus_demo.almTts", tts.checked ? "1" : "0"));
+  }
+  window.addEventListener("resize", () => { if (STATE.ui.view === "solo") resizeCockpit(); else { renderMinimap(); if (STATE.ui.mapId && STATE.ui.level === "map") renderMap(); } });
+
+  // ===================================================================== SIM TICK
+  let tick = 0;
+  function step() {
+    tick++;
+    const dt = 1;
+    for (const r of ROBOTS) {
+      if (r.base_state === "OFFLINE") continue;
+      // 콕핏 조종 로봇
+      if (CK && r.robot_id === CK.robotId) {
+        const { ax, bt } = gatherInput(); CK.axes = ax; CK.buttons = bt;
+        const stop = bt[1] > 0;
+        const lin = stop ? 0 : ax[1] * (1 + ax[5] * 0.8) * 0.12, ang = stop ? 0 : (-ax[0]) * 0.06;
+        r.vel = { l: lin, a: ang };
+        r.pose.theta += ang; r.pose.x += Math.cos(r.pose.theta) * lin; r.pose.y += Math.sin(r.pose.theta) * lin;
+        clampPose(r);
+        if (lin || ang) r.battery.percentage = Math.max(0, (r.battery.percentage ?? 50) - 0.02);
+        continue;
+      }
+      // busy 타임아웃
+      if (r.busyUntil && Date.now() > r.busyUntil && r.base_state === "BUSY" && !r.target) { r.base_state = "IDLE"; r.busyUntil = 0; }
+      // navigate target (world meters)
+      if (r.target) {
+        const dx = r.target.x - r.pose.x, dy = r.target.y - r.pose.y, d = Math.hypot(dx, dy);
+        if (d < 0.3) { r.pose.x = r.target.x; r.pose.y = r.target.y; r.target = null; r.base_state = "IDLE"; }
+        else { const sp = Math.min(0.22, d * 0.12); r.pose.x += dx / d * sp; r.pose.y += dy / d * sp; r.pose.theta = Math.atan2(dy, dx); }
+        clampPose(r);
+        if (r.battery && r.battery.percentage != null) r.battery.percentage = Math.max(0, r.battery.percentage - 0.01);
+      }
+    }
+    // 콕핏 렌더
+    if (CK) { drawCam(byId(CK.robotId), CK.axes); updateInputHUD(CK.axes, CK.buttons); if (tick % 3 === 0) { renderCockpitStatus(); renderCockpitMinimap(); } if (tick % 4 === 0) pushLatency(); }
+    // 플릿 렌더(맵 표시 중) — 유닛은 위치만 갱신(DOM 재생성 X → 클릭/transition 유지)
+    if (STATE.ui.view !== "solo") {
+      if (STATE.ui.level === "map" && !$("#stage").hidden) { positionUnits(); }
+      if (tick % 8 === 0) { renderSummary(); renderConn(); renderAlarms(); if (STATE.ui.level === "map" && !$("#hud").hidden) { renderRoster(); renderSelected(); renderMinimap(); } else if (STATE.ui.level === "overview" && !$("#overview").hidden) renderOverview(); }
+    }
+    // 콘솔↔서버 RTT 시뮬
+    STATE.solo.rtt = clamp(STATE.solo.rtt + (Math.random() - 0.5) * 4, 14, 60);
+  }
+  function clampPose(r) { const m = mapById(r.standardMapId); if (!m) return; const mw = m.width * m.resolution, mh = m.height * m.resolution; r.pose.x = clamp(r.pose.x, 0.5, mw - 0.5); r.pose.y = clamp(r.pose.y, 0.5, mh - 0.5); }
+
+  // ===================================================================== BOOT
+  setupShell();
+  updateDashboardLevel();
+  renderDashboard();
+  logline("NEXUS 관제 콘솔 — 시뮬레이션 시작 · 로봇 11대 등록");
+  setInterval(step, 90);
+})();
 </script>
 </body>
 </html>

@@ -192,6 +192,48 @@
   .unit .st{ position:absolute; top:-4px; right:-4px; width:10px; height:10px; border-radius:50%; border:1px solid var(--bg); }
   .unit .dir{ position:absolute; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent;
     border-bottom:7px solid color-mix(in srgb, var(--ink) 67%, transparent); top:-9px; left:50%; transform-origin:50% 24px; }
+  /* 표준맵 위: 실측 풋프린트 박스(박스 통째 yaw 회전) — 아이콘 상자 대체 */
+  .unit .glyph{ display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+  .unit .fp{ position:absolute; left:50%; top:50%; transform-origin:50% 50%; box-sizing:border-box;
+    border:2px solid var(--line); border-radius:2px; display:none; pointer-events:none; }
+  .unit .fp .fpdir{ position:absolute; left:50%; top:-8px; width:0; height:0; border-left:5px solid transparent;
+    border-right:5px solid transparent; border-bottom:8px solid currentColor; transform:translateX(-50%); }
+  .unit.hasfp{ background:transparent; border-color:transparent; box-shadow:none; }
+  .unit.hasfp:hover{ transform:none; }
+  .unit.hasfp .glyph, .unit.hasfp .dir{ display:none; }
+  .unit.hasfp .fp{ display:block; }
+  .unit.hasfp.sel .fp{ box-shadow:0 0 0 2px var(--accent), 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent); }
+  /* 맵 유닛 신호막대(우상단) */
+  .unit .usig{ position:absolute; top:-9px; right:-9px; z-index:6; line-height:0; padding:1px 2px; border-radius:3px;
+    background:color-mix(in srgb, var(--bg) 78%, transparent); }
+  .unit .usig svg{ display:block; }
+  /* 맵 좌표/픽셀 readout(좌하단) */
+  #mapcoord{ position:absolute; left:8px; bottom:8px; z-index:4; font:11px/1.3 ui-monospace,monospace; color:var(--ink2);
+    background:color-mix(in srgb, var(--bg) 80%, transparent); border:1px solid var(--line); border-radius:4px; padding:2px 7px; pointer-events:none; display:none; }
+  /* 어택땅 미리보기 화살표 */
+  #movearrow{ position:absolute; inset:0; width:100%; height:100%; z-index:8; pointer-events:none; display:none; }
+  /* 정렬 마법사 */
+  #selactions{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:7px; }
+  .alignbadge{ font-size:10px; padding:2px 7px; border-radius:10px; border:1px solid var(--line); color:var(--ink2); }
+  .alignbadge.ok{ color:var(--ok); border-color:var(--ok); } .alignbadge.no{ color:var(--busy); border-color:var(--busy); }
+  .alignbtn{ font-size:11px; padding:4px 9px; border-radius:6px; background:var(--accent); color:var(--on-accent); border:1px solid var(--accent); cursor:pointer; }
+  #alignwiz{ position:absolute; top:42px; right:8px; z-index:9; width:250px; font-size:12px; color:var(--ink2);
+    background:color-mix(in srgb, var(--bg) 92%, transparent); border:1px solid var(--accent); border-radius:8px; padding:10px 12px; }
+  #alignwiz h4{ margin:0 0 6px; font-size:13px; color:var(--ink); }
+  #alignwiz .awstep{ background:var(--card2); border-radius:5px; padding:6px 8px; margin:6px 0; color:var(--ink); }
+  #alignwiz .awrow{ font:11px/1.5 ui-monospace,monospace; color:var(--dim); }
+  #alignwiz .awt{ font:11px/1.5 ui-monospace,monospace; color:var(--accent); }
+  #alignwiz label{ display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; color:var(--dim); }
+  #alignwiz input{ flex:1; background:var(--card2); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:3px 5px; }
+  #alignwiz .awbtns{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  #alignwiz button{ flex:1; min-width:52px; background:var(--card); border:1px solid var(--line); color:var(--ink2); border-radius:5px; padding:5px 6px; font-size:11px; cursor:pointer; }
+  #alignwiz button.pri{ background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+  #alignwiz button:disabled{ opacity:.4; cursor:default; }
+  #alignghost{ position:absolute; width:34px; height:34px; margin:-17px 0 0 -17px; z-index:5; pointer-events:none;
+    border:2px dashed var(--accent); border-radius:4px; background:color-mix(in srgb, var(--accent) 22%, transparent);
+    display:flex; align-items:center; justify-content:center; font-size:15px; }
+  #alignghost .agdir{ position:absolute; top:-8px; left:50%; width:0; height:0; border-left:5px solid transparent;
+    border-right:5px solid transparent; border-bottom:8px solid var(--accent); transform-origin:50% 25px; }
   #selbox{ position:absolute; border:1px solid var(--accent); background:color-mix(in srgb, var(--accent) 13%, transparent); display:none; pointer-events:none; z-index:8; }
   /* 우측 roster */
   #roster{ width:178px; margin:8px 8px 8px 0; border:1px solid var(--line); border-radius:6px; padding:6px;
@@ -245,6 +287,11 @@
   .skill.folder{ color:var(--accent2); }
   .skill.back{ color:var(--ink2); }
   .skill.stop{ color:var(--err); border-color:var(--err-line); }
+  /* RTS 고정 슬롯(1=이동,2=정지) + 미지원 비활성 */
+  .skill{ position:relative; }
+  .skill.fixed{ border-color:var(--accent); }
+  .skill.fixed .slot{ position:absolute; top:2px; left:4px; font:9px/1 ui-monospace,monospace; color:var(--accent); }
+  .skill.disabled{ opacity:.4; filter:grayscale(.7); cursor:not-allowed; border-color:var(--line); }
 
   /* 토스트 / 로그 */
   .log{ position:fixed; right:10px; bottom:194px; max-width:46vw; font-size:11px; color:var(--ink2); opacity:.9; pointer-events:none; z-index:30; }
@@ -295,6 +342,17 @@
   .cockpit-presets button.on{ background:var(--accent); color:#fff; }
   .cockpit-msgbtn{ background:var(--card); border:1px solid var(--line); color:var(--ink2); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
   .cockpit-msgbtn.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  /* 비주얼 피킹 버튼 + 영상 무장 상태 */
+  .cockpit-vpick{ background:var(--card); border:1px solid var(--line); color:var(--ink2); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .cockpit-vpick.on{ background:var(--ok); border-color:var(--ok); color:var(--on-accent); font-weight:600; }
+  .cockpit-cam.vpick-armed{ outline:2px solid var(--ok); outline-offset:-2px; }
+  .cockpit-cam.vpick-armed canvas{ cursor:crosshair; }
+  /* 콕핏 감도 슬라이더 2분할(조작/시야) */
+  .cockpit-sens{ display:flex; flex-direction:column; gap:7px; }
+  .cockpit-sens .srow{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink2); }
+  .cockpit-sens .srow label{ width:34px; color:var(--dim); flex:none; }
+  .cockpit-sens .srow input[type=range]{ flex:1; accent-color:var(--accent); }
+  .cockpit-sens .srow b{ width:40px; text-align:right; color:var(--ink); font:11px/1 ui-monospace,monospace; flex:none; }
   /* 미니맵(좌측하단) */
   .cockpit-minimap{ position:absolute; left:12px; bottom:12px; width:200px; max-width:32%; aspect-ratio:3/2; z-index:6;
     background:#0a0e14 center/contain no-repeat; border:1px solid var(--accent); border-radius:8px; box-shadow:0 2px 12px rgba(0,0,0,.5); overflow:hidden; }
@@ -383,7 +441,7 @@
     </nav>
     <div id="content">
       <div id="stage" hidden>
-        <div id="map"><div id="maprot"></div><button id="tooverview" title="사이트 전체 보기">← 사이트</button><select id="mapsel" title="표준맵 선택"></select><button id="maprotbtn" title="90° 회전 (보기 전용)">⟳ 90°</button><div id="selbox"></div></div>
+        <div id="map"><div id="maprot"><div id="alignghost" hidden><span class="agdir"></span></div></div><button id="tooverview" title="사이트 전체 보기">← 사이트</button><select id="mapsel" title="표준맵 선택"></select><button id="maprotbtn" title="90° 회전 (보기 전용)">⟳ 90°</button><div id="selbox"></div><svg id="movearrow"></svg><div id="mapcoord"></div><div id="alignwiz" hidden></div></div>
         <div id="roster"><div class="rtitle">로봇 <span id="rostercount">0</span></div></div>
       </div>
       <div id="hud" hidden>
@@ -392,6 +450,7 @@
           <div class="lbl">선택 <span id="selcount">0</span></div>
           <div id="selsummary">로봇을 선택하세요.</div>
           <div id="selgrid"></div>
+          <div id="selactions"></div>
         </div>
         <div class="pane" id="cmd">
           <div class="lbl"><span id="cmdtitle">스킬</span><span class="solo" id="solobtn" hidden>1:1 진입 →</span><span id="cmdcat"></span></div>
@@ -459,13 +518,13 @@
     mobile: ["navigate_to_pose", "navigate_to_waypoint", "velocity_ctrl", "dock", "undock"],
     manipulator: ["joint_ctrl", "cartesian_ctrl", "gripper_ctrl", "home_position", "joint_preset"],
     camera: ["pan_tilt", "pan_tilt_zoom"],
-    station: ["make_americano"],
+    station: ["make_americano", "order"],
   };
   const SKILL_ICON = {
     navigate_to_pose: "🧭", navigate_to_waypoint: "📍", velocity_ctrl: "🕹️", dock: "🔌", undock: "⏏️",
     joint_ctrl: "🦾", cartesian_ctrl: "✋", gripper_ctrl: "🤏", home_position: "🏠", joint_preset: "📐",
-    pan_tilt: "📷", pan_tilt_zoom: "🔭", make_americano: "☕", stop: "🛑",
-    get_pose: "📌", get_battery: "🔋", get_joints: "📊",
+    pan_tilt: "📷", pan_tilt_zoom: "🔭", make_americano: "☕", order: "🧾", stop: "🛑",
+    get_pose: "📌", get_battery: "🔋", get_joints: "📊", visual_pick: "🎯",
   };
   const CAT_ICON = { mobile: "🚙", manipulator: "🦾", camera: "📷", humanoid: "🤖", station: "☕" };
   const STATE_COLOR = { IDLE: "--off", BUSY: "--busy", TELEOP: "--accent2", NEED_HELP: "--help", ERROR: "--err", OFFLINE: "--off" };
@@ -504,10 +563,15 @@
       { key: "zoom", type: "number", default: 1.0, min: 0 },
     ],
     make_americano: [{ key: "shots", type: "number", default: 2, min: 1, max: 4 }],
+    order: [{ key: "drinks", type: "strings", required: true, hint: "메뉴 콤마구분(최대 3): ICE_AMERICANO, ESPRESSO, LATTE" }],
+    visual_pick: [{ key: "u", type: "number", unit: "px", required: true }, { key: "v", type: "number", unit: "px", required: true }],
     stop: [],
     get_pose: [], get_battery: [], get_joints: [],
   };
   const RING = 120;
+  // 신규(nexus_ui 6/30~7/1): 실측 풋프린트 치수(m) · 최소 렌더 px · RTS 고정 스킬 · 어택땅 드래그 임계
+  const FOOT_CAT = { mobile: { w: 0.6, l: 0.8 }, manipulator: { w: 0.5, l: 0.5 }, camera: { w: 0.25, l: 0.25 }, humanoid: { w: 0.5, l: 0.6 }, station: { w: 0.5, l: 0.5 } };
+  const MIN_FP = 12, FIXED_SKILLS = ["navigate_to_pose", "stop"], MOVE_DRAG_PX = 8;
   const cfg = window.__NEXUS__;
 
   // ===================================================================== 표준맵 합성 (점유격자 PNG dataURL)
@@ -615,9 +679,16 @@
     const reported = up.map((l) => l.latency_ms).filter((v) => typeof v === "number");
     if (!reported.length) return { bars: 2, color: "--dim", ms: null, title: `연결됨 · 지연 미보고 · 링크 ${up.length}` };
     const lat = Math.min(...reported);
-    const bars = lat < 40 ? 4 : lat < 90 ? 3 : lat < 180 ? 2 : 1;
-    const color = bars >= 3 ? "--ok" : bars === 2 ? "--busy" : "--err";
+    // nexus_ui 6/30 티어: <10 최상(4·KETI블루) · <30 양호(4) · <80(3) · <150(2·황) · ≥150(1·적)
+    const bars = lat < 30 ? 4 : lat < 80 ? 3 : lat < 150 ? 2 : 1;
+    const color = lat < 10 ? "--accent" : bars >= 3 ? "--ok" : bars === 2 ? "--busy" : "--err";
     return { bars, color, ms: lat, title: `RTT ${Math.round(lat)}ms · 링크 ${up.length}` };
+  }
+  // 맵 유닛 우상단 소형 신호막대(4칸 SVG) — 상태점을 대체
+  function unitSignalSVG(network) {
+    const { bars, color, title } = netLevel(network); let bs = "";
+    for (let i = 0; i < 4; i++) { const h = 2 + i * 2.1; bs += `<rect x="${i * 3}" y="${(9 - h).toFixed(1)}" width="2" height="${h.toFixed(1)}" rx="0.4" fill="var(${i < bars ? color : "--line2"})"/>`; }
+    return { svg: `<svg width="11" height="9" viewBox="0 0 11 9">${bs}</svg>`, title };
   }
   function signalBadge(network) {
     const { bars, color, ms, title } = netLevel(network); let bs = "";
@@ -918,7 +989,7 @@
     for (const r of visibleRobots()) {
       if (unitEl(r.robot_id)) continue;
       const u = document.createElement("div"); u.className = "unit"; u.dataset.uid = r.robot_id;
-      u.innerHTML = `${r.icon}<span class="dir"></span><span class="st"></span><span class="tag">${esc(r.robot_id)}</span>`;
+      u.innerHTML = `<span class="glyph">${r.icon}</span><span class="dir"></span><div class="fp"><span class="fpdir"></span></div><span class="usig"></span><span class="tag">${esc(r.robot_id)}</span>`;
       u.onmousedown = (e) => e.stopPropagation();
       u.onclick = (e) => { e.stopPropagation(); pick(r.robot_id, e.shiftKey); };
       u.ondblclick = (e) => { e.stopPropagation(); enterSolo(r.robot_id); };
@@ -935,9 +1006,22 @@
       u.classList.toggle("sel", sel.selected.has(r.robot_id));
       u.classList.toggle("off", r.base_state === "OFFLINE");
       u.classList.toggle("onmap", !!std);
-      const yaw = std ? std.yaw : poseYaw(r.pose), dir = u.querySelector(".dir");
-      if (yaw != null) { dir.style.display = ""; dir.style.transform = `translateX(-50%) rotate(${(-yaw * 180 / Math.PI).toFixed(0)}deg)`; } else dir.style.display = "none";
-      u.querySelector(".st").style.background = `var(${STATE_COLOR[r.base_state]})`;
+      const yaw = std ? std.yaw : poseYaw(r.pose), dir = u.querySelector(".dir"), col = STATE_COLOR[r.base_state] || "--off";
+      // 표준맵 위 → 실측 풋프린트 박스(상태색·yaw 회전), 밖 → 아이콘+방향화살표
+      const fp = u.querySelector(".fp");
+      if (std && rect && m) {
+        const pxPerM = (1 / m.resolution) * (rect.dw / rect.iw);
+        const dim = FOOT_CAT[r.cats[0]] || FOOT_CAT.mobile;
+        const wpx = Math.max(MIN_FP, dim.w * pxPerM), lpx = Math.max(MIN_FP, dim.l * pxPerM);
+        fp.style.width = wpx.toFixed(1) + "px"; fp.style.height = lpx.toFixed(1) + "px";
+        fp.style.marginLeft = (-wpx / 2).toFixed(1) + "px"; fp.style.marginTop = (-lpx / 2).toFixed(1) + "px";
+        fp.style.transform = `rotate(${(std.yaw != null ? -std.yaw * 180 / Math.PI : 0).toFixed(0)}deg)`;
+        fp.style.borderColor = `var(${col})`; fp.style.color = `var(${col})`;
+        fp.style.background = `color-mix(in srgb, var(${col}) 20%, transparent)`;
+        u.classList.add("hasfp");
+      } else u.classList.remove("hasfp");
+      if (yaw != null && !std) { dir.style.display = ""; dir.style.transform = `translateX(-50%) rotate(${(-yaw * 180 / Math.PI).toFixed(0)}deg)`; } else dir.style.display = "none";
+      const sig = u.querySelector(".usig"), ss = unitSignalSVG(r.network); sig.innerHTML = ss.svg; sig.title = ss.title;
     }
   }
   function renderMap() { applyMapBackground(currentMap()); syncUnits(); positionUnits(); applyView(); }
@@ -967,7 +1051,7 @@
   }
   function renderSelected() {
     $("#selcount").textContent = sel.selected.size;
-    const grid = $("#selgrid"); grid.innerHTML = "";
+    const grid = $("#selgrid"); grid.innerHTML = ""; $("#selactions").innerHTML = "";
     const ids = [...sel.selected];
     $("#solobtn").hidden = !(ids.length === 1);
     if (!ids.length) { $("#selsummary").textContent = "로봇을 선택하세요."; return; }
@@ -979,6 +1063,16 @@
       c.innerHTML = `${r.icon}<span class="st" style="position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(${STATE_COLOR[r.base_state]})"></span><span class="n">${esc(id)}</span>`;
       c.onclick = () => { sel.focusId = id; STATE.ui.drill = null; render(); logline("포커스: " + id); };
       grid.appendChild(c);
+    }
+    // 정렬 마법사: 1대(모바일·현재 표준맵) 선택 시 상태 배지 + 진입 버튼
+    const acts = $("#selactions");
+    if (ids.length === 1 && f && f.cats.includes("mobile") && f.pose && STATE.ui.level === "map" && currentMap() && f.standardMapId === currentMap().map_id) {
+      const aligned = f.toStandard && (f.toStandard[0] || f.toStandard[1] || f.toStandard[2]);
+      const badge = document.createElement("span"); badge.className = "alignbadge " + (aligned ? "ok" : "no");
+      badge.textContent = aligned ? "✓ 표준맵 정렬됨" : "⚠ 정렬 안 됨(identity)";
+      const btn = document.createElement("button"); btn.className = "alignbtn"; btn.textContent = "🧭 정렬 마법사";
+      btn.onclick = () => startAlign(f.robot_id);
+      acts.appendChild(badge); acts.appendChild(btn);
     }
   }
   function capGroups(r) {
@@ -993,15 +1087,25 @@
     $("#solobtn").onclick = () => sel.focusId && enterSolo(sel.focusId);
     if (!r) { $("#cmdtitle").textContent = "스킬"; for (let i = 0; i < 9; i++) grid.appendChild(emptyCell()); return; }
     $("#cmdtitle").textContent = r.robot_id;
-    const flat = r.capabilities, cells = [], groups = capGroups(r);
+    const cells = [], groups = capGroups(r);
+    // RTS 고정 슬롯: 1=이동(navigate_to_pose), 2=정지(stop) — 미보유면 회색 비활성
+    FIXED_SKILLS.forEach((name, i) => cells.push(fixedCell(name, i + 1, r.capabilities.includes(name))));
+    const rest = r.capabilities.filter((c) => !FIXED_SKILLS.includes(c));
     if (STATE.ui.drill) {
       $("#cmdcat").textContent = STATE.ui.drill;
       cells.push(skillCell("◀ 뒤로", "back", () => { STATE.ui.drill = null; renderCmd(); }));
-      for (const s of (groups[STATE.ui.drill] || [])) cells.push(skillCell(s));
-    } else if (flat.length <= 9) { for (const s of flat) cells.push(skillCell(s)); }
-    else { for (const c of Object.keys(groups)) cells.push(folderCell(c)); if (flat.includes("stop")) cells.push(skillCell("stop")); }
+      for (const s of (groups[STATE.ui.drill] || [])) if (!FIXED_SKILLS.includes(s)) cells.push(skillCell(s));
+    } else if (rest.length <= 7) { for (const s of rest) cells.push(skillCell(s)); }
+    else { for (const c of Object.keys(groups)) { const gs = groups[c].filter((s) => !FIXED_SKILLS.includes(s)); if (gs.length) cells.push(folderCell(c)); } }
     while (cells.length < 9) cells.push(emptyCell());
     cells.slice(0, 9).forEach((c) => grid.appendChild(c));
+  }
+  function fixedCell(name, slot, enabled) {
+    const d = document.createElement("div");
+    d.className = "skill fixed" + (name === "stop" ? " stop" : "") + (enabled ? "" : " disabled");
+    d.innerHTML = `<span class="slot">${slot}</span>${SKILL_ICON[name] || "⚙️"}<span class="k">${esc(name)}</span>`;
+    d.onclick = enabled ? () => fireSkill(name) : () => toast(`${name} — 미지원 로봇`);
+    return d;
   }
   function emptyCell() { const d = document.createElement("div"); d.className = "skill empty"; return d; }
   function skillCell(name, extra, onclick) {
@@ -1032,9 +1136,10 @@
   function setSelection(ids) { sel.selected = new Set(ids); sel.focusId = ids[0] || null; STATE.ui.drill = null; render(); }
 
   // ---- 드래그 박스 ----
-  let drag = null;
+  let drag = null, ALIGN = null;
   map.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
+    if (ALIGN) { alignClick(e); return; }   // 정렬 마법사 진행 중 = 좌클릭은 위치/방향 지정
     const rect = map.getBoundingClientRect();
     drag = { x: e.clientX - rect.left, y: e.clientY - rect.top, add: e.shiftKey, rect };
     selbox.style.display = "block"; updateBox(drag.x, drag.y);
@@ -1091,26 +1196,124 @@
     const px = ((x2 - im.offX) / im.dw) * im.iw, py = ((y2 - im.offY) / im.dh) * im.ih;   // 이미지 px
     return pixelToWorld(px, py, m);
   }
-  map.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-    if (STATE.ui.level !== "map") return;
+  // ---- 어택땅 θ 지정: 짧은 우클릭=목표 향함(auto θ) · 우클릭 드래그(≥8px)=θ 직접 지정 ----
+  const movearrow = $("#movearrow"), mapcoord = $("#mapcoord");
+  const wrapAng = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  let atk = null;
+  map.addEventListener("contextmenu", (e) => e.preventDefault());   // 브라우저 컨텍스트메뉴 억제(어택땅 우클릭 사용)
+  map.addEventListener("mousedown", (e) => {
+    if (e.button !== 2 || STATE.ui.level !== "map") return;
     const m = currentMap();
-    if (!m) { toast("표준맵을 선택하면 우클릭 이동(navigate_to_pose)이 가능합니다"); return; }
+    if (!m) { toast("표준맵을 선택하면 우클릭 이동(어택땅)이 가능합니다"); return; }
     const movers = [...sel.selected].map(byId).filter((r) => r && r.cats.includes("mobile") && r.standardMapId === m.map_id && r.base_state !== "OFFLINE");
     if (!movers.length) { toast("현재 맵의 이동 가능한(모바일) 로봇을 먼저 선택하세요"); return; }
-    const rect = map.getBoundingClientRect(), w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, m);
-    const mw = m.width * m.resolution, mh = m.height * m.resolution;
-    const msgs = movers.map((r, i) => {
-      const off = (i - (movers.length - 1) / 2) * 0.6;
+    const rect = map.getBoundingClientRect();
+    atk = { m, movers, rect, sx: e.clientX - rect.left, sy: e.clientY - rect.top, dragged: false };
+    e.preventDefault(); e.stopPropagation();
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!atk) return;
+    const cx = e.clientX - atk.rect.left, cy = e.clientY - atk.rect.top;
+    if (Math.hypot(cx - atk.sx, cy - atk.sy) >= MOVE_DRAG_PX) { atk.dragged = true; drawMoveArrow(atk.sx, atk.sy, cx, cy); }
+    else movearrow.style.display = "none";
+  });
+  window.addEventListener("mouseup", (e) => {
+    if (!atk) return; const a = atk; atk = null; movearrow.style.display = "none";
+    if (e.button !== 2) return;
+    const cx = e.clientX - a.rect.left, cy = e.clientY - a.rect.top;
+    const w = screenToWorld(a.sx, a.sy, a.m);                         // 목표 = 처음 누른 지점
+    const cur = a.dragged ? screenToWorld(cx, cy, a.m) : null;        // 드래그 끝 = 정면 방향
+    const mw = a.m.width * a.m.resolution, mh = a.m.height * a.m.resolution;
+    const msgs = a.movers.map((r, i) => {
+      const off = (i - (a.movers.length - 1) / 2) * 0.6;
       const tx = clamp(w.x + off, 0.5, mw - 0.5), ty = clamp(w.y, 0.5, mh - 0.5);
-      r.target = { x: tx, y: ty }; r.base_state = "BUSY";
-      return buildCommand(senderFor(), "navigate_to_pose", { x: +fmt(tx), y: +fmt(ty), theta: 0 }, r.robot_id);
+      let hw;
+      if (a.dragged && cur) hw = Math.atan2(cur.y - ty, cur.x - tx);  // 목표→커서: 도착 시 바라볼 방향
+      else { const std = applyStandard(r.pose, r.toStandard) || r.pose; hw = Math.atan2(ty - std.y, tx - std.x); }  // auto: 목표를 향함
+      const thetaRaw = wrapAng(hw - (r.toStandard ? r.toStandard[2] : 0));   // 표준맵 회전 성분 제거 → raw θ
+      r.target = { x: tx, y: ty, theta: thetaRaw }; r.base_state = "BUSY";
+      return buildCommand(senderFor(), "navigate_to_pose", { x: +fmt(tx), y: +fmt(ty), theta: +fmt(thetaRaw) }, r.robot_id);
     });
     console.log("[command.capability]", msgs);
-    toast(`🧭 navigate_to_pose → ${movers.map((r) => r.robot_id).join(", ")}`);
-    logline(`navigate_to_pose (${fmt(w.x)}, ${fmt(w.y)}) → ${movers.length}대`);
+    toast(`🧭 navigate_to_pose ${a.dragged ? "· θ 지정" : "· 목표 향함"} → ${a.movers.map((r) => r.robot_id).join(", ")}`);
+    logline(`navigate_to_pose (${fmt(w.x)}, ${fmt(w.y)}) θ ${a.dragged ? "드래그" : "auto"} → ${a.movers.length}대`);
     render();
   });
+  function drawMoveArrow(x1, y1, x2, y2) {
+    const ang = Math.atan2(y2 - y1, x2 - x1), L = 11, W = 5.5;
+    const bx = x2 - L * Math.cos(ang), by = y2 - L * Math.sin(ang);
+    const pts = `${x2},${y2} ${bx - W * Math.sin(ang)},${by + W * Math.cos(ang)} ${bx + W * Math.sin(ang)},${by - W * Math.cos(ang)}`;
+    movearrow.innerHTML = `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 3"/><polygon points="${pts}" fill="var(--accent)"/>`;
+    movearrow.style.display = "block";
+  }
+  // ---- 맵 호버 좌표/픽셀 readout(좌하단) ----
+  map.addEventListener("mousemove", (e) => {
+    const m = STATE.ui.level === "map" ? currentMap() : null;
+    if (!m) { mapcoord.style.display = "none"; return; }
+    const rect = map.getBoundingClientRect(), w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, m), pxp = worldToPixel(w.x, w.y, m);
+    if (pxp.px < 0 || pxp.py < 0 || pxp.px > m.width || pxp.py > m.height) { mapcoord.style.display = "none"; return; }
+    mapcoord.textContent = `px(${Math.round(pxp.px)}, ${Math.round(pxp.py)}) · world(${fmt(w.x)}, ${fmt(w.y)})m`;
+    mapcoord.style.display = "block";
+  });
+  map.addEventListener("mouseleave", () => { mapcoord.style.display = "none"; });
+
+  // ---- 정렬 마법사: 콘솔에서 로봇 표준맵 정렬을 클릭 2번으로 등록/수정(SE(2) 닫힌식) ----
+  function startAlign(robotId) {
+    const r = byId(robotId), m = currentMap();
+    if (!r || !m || r.standardMapId !== m.map_id) { toast("해당 로봇의 표준맵을 먼저 여세요"); return; }
+    ALIGN = { robotId, step: "place", place: null, aim: null, T: null };
+    toast("🧭 정렬: ① 로봇이 실제 있는 위치를 지도에서 클릭"); renderAlign();
+  }
+  function alignClick(e) {
+    const m = currentMap(); if (!m) { ALIGN = null; renderAlign(); return; }
+    const rect = map.getBoundingClientRect(), w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, m);
+    if (ALIGN.step === "place") { ALIGN.place = { x: w.x, y: w.y }; ALIGN.step = "aim"; }
+    else if (ALIGN.step === "aim") { ALIGN.aim = { x: w.x, y: w.y }; ALIGN.step = "done"; solveAlign(); }
+    renderAlign();
+  }
+  function solveAlign() {
+    const r = byId(ALIGN.robotId); if (!r || !ALIGN.place || !ALIGN.aim) return;
+    const rawYaw = poseYaw(r.pose) || 0, rx = +r.pose.x || 0, ry = +r.pose.y || 0;
+    const hw = Math.atan2(ALIGN.aim.y - ALIGN.place.y, ALIGN.aim.x - ALIGN.place.x);   // 표준맵 정면
+    const th = wrapAng(hw - rawYaw), c = Math.cos(th), s = Math.sin(th);
+    ALIGN.T = [ALIGN.place.x - (c * rx - s * ry), ALIGN.place.y - (s * rx + c * ry), th];   // applyStandard 역산
+  }
+  function renderAlign() {
+    const wiz = $("#alignwiz"), A = ALIGN;
+    if (!A) { wiz.hidden = true; renderGhost(); return; }
+    const r = byId(A.robotId), m = currentMap();
+    const stepTxt = A.step === "place" ? "① 로봇이 실제 있는 위치를 클릭" : A.step === "aim" ? "② 로봇 정면(바라보는) 방향을 클릭" : "✓ 변환 계산됨 — 저장하세요";
+    const raw = `raw (${fmt(r.pose.x)}, ${fmt(r.pose.y)}, ${((poseYaw(r.pose) || 0) * 180 / Math.PI).toFixed(0)}°)`;
+    const Ttxt = A.T ? `T = [${fmt(A.T[0])}, ${fmt(A.T[1])}, ${(A.T[2] * 180 / Math.PI).toFixed(1)}°]` : "—";
+    wiz.innerHTML = `<h4>🧭 정렬 마법사</h4>
+      <div class="awrow">${esc(r.robot_id)} · ${esc(m ? m.map_id : "")}</div>
+      <div class="awstep">${stepTxt}</div>
+      <div class="awrow">${raw}</div>
+      <div class="awt">${Ttxt}</div>
+      ${A.step === "done" ? `<label>θ° 미세조정 <input id="awtheta" type="number" step="1" value="${(A.T[2] * 180 / Math.PI).toFixed(0)}"></label>` : ""}
+      <div class="awbtns">
+        <button class="pri" id="awsave" ${A.step === "done" ? "" : "disabled"}>저장</button>
+        <button id="awreset">다시</button><button id="awdel">정렬삭제</button><button id="awcancel">취소</button>
+      </div>`;
+    wiz.hidden = false;
+    $("#awcancel").onclick = () => { ALIGN = null; renderAlign(); };
+    $("#awreset").onclick = () => { ALIGN = { robotId: A.robotId, step: "place", place: null, aim: null, T: null }; renderAlign(); };
+    $("#awdel").onclick = () => { r.toStandard = [0, 0, 0]; if (r.map) r.map.to_standard = [0, 0, 0]; console.log("[DELETE /api/alignments]", r.robot_id); toast("정렬 삭제 → identity"); ALIGN = null; renderAlign(); render(); };
+    $("#awsave").onclick = () => { if (!A.T) return; r.toStandard = [A.T[0], A.T[1], A.T[2]]; if (r.map) r.map.to_standard = r.toStandard.slice(); console.log("[POST /api/alignments]", { robot_id: r.robot_id, standard_map_id: m.map_id, to_standard: r.toStandard }); toast("✓ 정렬 저장됨"); ALIGN = null; renderAlign(); render(); };
+    const awt = $("#awtheta"); if (awt) awt.oninput = () => { const d = +awt.value; if (!Number.isNaN(d)) { A.T[2] = d * Math.PI / 180; wiz.querySelector(".awt").textContent = `T = [${fmt(A.T[0])}, ${fmt(A.T[1])}, ${d.toFixed(1)}°]`; renderGhost(); } };
+    renderGhost();
+  }
+  function renderGhost() {
+    const ghost = $("#alignghost"), A = ALIGN, m = currentMap();
+    if (!A || !A.place || !m) { if (ghost) ghost.hidden = true; return; }
+    const r = byId(A.robotId), rect = imageRect(m), { px, py } = worldToPixel(A.place.x, A.place.y, m);
+    const sx = rect.offX + (px / rect.iw) * rect.dw, sy = rect.offY + (py / rect.ih) * rect.dh;
+    ghost.style.left = (sx / rect.W * 100) + "%"; ghost.style.top = (sy / rect.H * 100) + "%";
+    ghost.textContent = r.icon; const dir = document.createElement("span"); dir.className = "agdir";
+    const hw = A.T ? A.T[2] + (poseYaw(r.pose) || 0) : (A.aim ? Math.atan2(A.aim.y - A.place.y, A.aim.x - A.place.x) : 0);
+    dir.style.transform = `translateX(-50%) rotate(${(-hw * 180 / Math.PI).toFixed(0)}deg)`;
+    ghost.appendChild(dir); ghost.hidden = false;
+  }
 
   // ---- 미니맵 ----
   function minimapGeom(m, cvW, cvH) {
@@ -1172,7 +1375,7 @@
     v.panX = -sv.x; v.panY = -sv.y; applyView();
   }
 
-  function render() { renderMap(); renderRoster(); renderSelected(); renderCmd(); renderMinimap(); renderSummary(); renderConn(); }
+  function render() { renderMap(); renderRoster(); renderSelected(); renderCmd(); renderMinimap(); renderSummary(); renderConn(); if (ALIGN) renderGhost(); }
   function renderDashboard() { renderConn(); renderSummary(); renderAlarms(); if (STATE.ui.view === "solo") return; if (STATE.ui.level === "overview") renderOverview(); else render(); }
 
   // ===================================================================== 단축키
@@ -1201,7 +1404,7 @@
         rows += `<div class="sub" style="margin-top:6px">pose (Pose3D · 쿼터니안 정준)</div><div class="param-grid7">${f("x", 0)}${f("y", 0)}${f("z", 0)}${f("qx", 0)}${f("qy", 0)}${f("qz", 0)}${f("qw", 1)}</div>`;
       } else {
         const isNum = p.type === "number";
-        const ph = p.type === "array" ? "콤마 구분 (예: 0, 1.57, -1.57)" : (p.default != null ? p.default : "");
+        const ph = p.type === "array" ? "콤마 구분 (예: 0, 1.57, -1.57)" : p.type === "strings" ? (p.hint || "콤마 구분 문자열") : (p.default != null ? p.default : "");
         rows += `<div class="param-row ${p.required ? "req" : ""}"><label>${esc(p.key)}</label>
           <input data-pk="${esc(p.key)}" data-pt="${esc(p.type)}" type="${isNum ? "number" : "text"}" ${isNum ? 'step="any"' : ""}
             ${p.min != null ? `min="${esc(p.min)}"` : ""} ${p.max != null ? `max="${esc(p.max)}"` : ""}
@@ -1226,6 +1429,7 @@
             if (raw === "") { if (p.required) throw new Error(`${p.key} 필수`); continue; }
             if (p.type === "number") { const v = Number(raw); if (Number.isNaN(v)) throw new Error(`${p.key} 숫자 필요`); if (p.min != null && v < p.min) throw new Error(`${p.key} 최소 ${p.min}`); if (p.max != null && v > p.max) throw new Error(`${p.key} 최대 ${p.max}`); params[p.key] = v; }
             else if (p.type === "array") { const a = raw.split(",").map((s) => Number(s.trim())); if (a.some((n) => Number.isNaN(n))) throw new Error(`${p.key}: 숫자 배열 필요`); params[p.key] = a; }
+            else if (p.type === "strings") { const a = raw.split(",").map((s) => s.trim()).filter(Boolean); if (p.required && !a.length) throw new Error(`${p.key} 필수`); params[p.key] = a; }
             else params[p.key] = raw;
           }
         }
@@ -1248,6 +1452,7 @@
       </span>
       <button class="cockpit-msgbtn" data-el="msgbtn" title="메시지 송수신 로그 on/off">📋 메시지</button>
       <span class="cockpit-spacer"></span>
+      <button class="cockpit-vpick" data-el="vpick" title="비주얼 피킹 — 카메라 영상의 대상 클릭 → visual_pick(u,v)">🎯 피킹</button>
       <button class="cockpit-stop" data-el="stop">■ STOP</button>
       <button class="cockpit-exit" data-el="exit">✕ 나가기 (Esc)</button>
     </div>
@@ -1262,6 +1467,12 @@
             <button data-lin="0" data-ang="0" style="grid-area:mid" class="cockpit-pad-stop">●</button>
             <button data-lin="0" data-ang="-0.6" style="grid-area:right">▶</button>
             <button data-lin="-0.4" data-ang="0" style="grid-area:down">▼</button>
+          </div>
+        </div>
+        <div class="cockpit-pane"><div class="cockpit-h">감도 <span class="cockpit-dim">(출력 상한)</span></div>
+          <div class="cockpit-sens">
+            <div class="srow"><label>조작</label><input type="range" min="1" max="100" step="1" data-el="sensdrive"><b data-el="sensdriveval">100%</b></div>
+            <div class="srow"><label>시야</label><input type="range" min="1" max="100" step="1" data-el="senslook"><b data-el="senslookval">80%</b></div>
           </div>
         </div>
         <div class="cockpit-pane"><div class="cockpit-h">링크 지연 (RTT, ms)</div>
@@ -1300,7 +1511,7 @@
     const m = $("#cockpit"); m.innerHTML = COCKPIT_HTML;
     const q = (s) => m.querySelector(s);
     CK = {
-      robotId, preset: "keyboard", dpad: { lin: 0, ang: 0 }, mouse: { pan: 0, tilt: 0, locked: false }, camOff: 0, axes: new Array(8).fill(0), buttons: new Array(16).fill(0),
+      robotId, preset: "keyboard", dpad: { lin: 0, ang: 0 }, mouse: { pan: 0, tilt: 0, locked: false }, sens: { drive: 1.0, look: 0.8 }, vpick: false, camOff: 0, axes: new Array(8).fill(0), buttons: new Array(16).fill(0),
       els: { conn: q('[data-el="conn"]'), lat: q('[data-el="lat"]'), status: q('[data-el="status"]'), skills: q('[data-el="skills"]'), videos: q('[data-el="videos"]'), main: q('[data-el="main"]'), minimap: q('[data-el="minimap"]'), inhud: q('[data-el="inhud"]'), presets: q('[data-el="presets"]'), mouselock: q('[data-el="mouselock"]'), log: q('[data-el="log"]'), chart: q('[data-el="chart"]') },
     };
     m.querySelector(".cockpit-rid").textContent = robotId;
@@ -1313,6 +1524,21 @@
     q('[data-el="exit"]').onclick = closeCockpit;
     q('[data-el="stop"]').onclick = () => { applyEffect("stop", {}, robotId); r.base_state = "TELEOP"; CK.buttons[1] = 1; ckLog("■ 비상정지"); console.log("[command.capability]", buildCommand(cfg.operatorId, "stop", {}, robotId)); };
     const msgbtn = q('[data-el="msgbtn"]'); msgbtn.onclick = () => { CK.msgLog = !CK.msgLog; msgbtn.classList.toggle("on", CK.msgLog); };
+    // 감도 슬라이더(조작/시야)
+    const sd = q('[data-el="sensdrive"]'), sl = q('[data-el="senslook"]');
+    if (sd) { sd.value = Math.round(CK.sens.drive * 100); sd.oninput = () => { CK.sens.drive = +sd.value / 100; q('[data-el="sensdriveval"]').textContent = sd.value + "%"; }; }
+    if (sl) { sl.value = Math.round(CK.sens.look * 100); sl.oninput = () => { CK.sens.look = +sl.value / 100; q('[data-el="senslookval"]').textContent = sl.value + "%"; }; }
+    // 비주얼 피킹: 🎯 무장 → 카메라 캔버스 클릭 → visual_pick(u,v)
+    const vpickBtn = q('[data-el="vpick"]'), camWrap = CK.els.videos;
+    if (vpickBtn) vpickBtn.onclick = () => { CK.vpick = !CK.vpick; vpickBtn.classList.toggle("on", CK.vpick); camWrap.classList.toggle("vpick-armed", CK.vpick); if (CK.vpick) ckLog("🎯 비주얼 피킹 무장 — 카메라 영상의 대상을 클릭하세요"); };
+    CK.cam.addEventListener("click", (ev) => {
+      if (!CK.vpick) return;
+      const rc = CK.cam.getBoundingClientRect();
+      const u = Math.round((ev.clientX - rc.left) / rc.width * (CK.cam.width || rc.width));
+      const v = Math.round((ev.clientY - rc.top) / rc.height * (CK.cam.height || rc.height));
+      CK.vpick = false; if (vpickBtn) vpickBtn.classList.remove("on"); camWrap.classList.remove("vpick-armed");
+      dispatch("visual_pick", { u, v }, [CK.robotId]); ckLog(`🎯 visual_pick(u=${u}, v=${v}) → ${CK.robotId}`);
+    });
     const lt = q('[data-el="lattoggle"]'); lt.onclick = () => { const d = q('[data-el="latdetail"]'); const show = d.hidden; d.hidden = !show; lt.textContent = show ? "자세히 ▴" : "자세히 ▾"; };
     CK.els.presets.querySelectorAll("button").forEach((b) => b.onclick = () => setPreset(b.dataset.preset));
     // D-pad hold
@@ -1358,6 +1584,8 @@
     if (CK.preset === "mouse") { ax[2] += CK.mouse.pan; ax[3] += CK.mouse.tilt; }   // 마우스 = 시점(팬/틸트)
     if (CK.dpad.lin) ax[1] += CK.dpad.lin; if (CK.dpad.ang) ax[0] += -CK.dpad.ang;
     if (keys.has("Space")) bt[1] = 1;
+    // 감도(출력 상한): 조작=주행 축[0,1], 시야=시점 축[2,3]
+    ax[0] *= CK.sens.drive; ax[1] *= CK.sens.drive; ax[2] *= CK.sens.look; ax[3] *= CK.sens.look;
     for (let i = 0; i < 8; i++) ax[i] = clamp(ax[i], -1, 1);
     return { ax, bt };
   }

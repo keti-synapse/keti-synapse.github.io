@@ -270,7 +270,7 @@
           <a href="gerri.html#cockpit" class="c-node cockpit"><span class="ic">🕹️</span><span class="nm">COCKPIT</span><span class="rl">1:1 조작</span></a>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 1.</b> SYNAPSE 시스템 개요. 모든 컴포넌트는 중심의 <code class="inline">synapse</code> 표준을 <em>import</em> 하여 동일한 status·command 인터페이스로 대화한다. 의존성은 언제나 안쪽(표준)을 향한다.</p>
+      <p class="figcaption"><b>Figure 1.</b> SYNAPSE <span class="nb">시스템 개요.</span> 모든 컴포넌트는 중심의 <code class="inline">synapse</code> 표준을 <em>import</em> 하여 동일한 status·command 인터페이스로 대화한다. 의존성은 <span class="nb">언제나 안쪽(표준)을</span> 향한다.</p>
     </div>
   </div>
 </section>
@@ -284,8 +284,8 @@
     </div>
     <div class="prose">
       <p class="lead-para"><strong>status·command를 통일하면, 어떤 관제 화면이든 모든 로봇을 같은 인터페이스로 다룰 수 있다.</strong></p>
-      <p>SYNAPSE는 모바일·매니퓰레이터·휴머노이드 등 <strong>이기종 멀티로봇</strong>을 단일 메시지 표준(<code class="inline">synapse</code>)으로 추상화하는 플랫폼이다. 로봇에 <code class="inline">tom_and_gerri</code>를 설치하는 것만으로 표준 status/command가 자동으로 노출되며, 별도 서버 연동 작업 없이 <strong>1:1 원격조작(COCKPIT)</strong>과 <strong>N:N 플릿 관제(NEXUS)</strong>가 하나의 코드베이스 위에서 동시에 활성화된다.</p>
-      <p>설계의 중심에는 <strong>클린 아키텍처</strong>가 있다. 모든 컴포넌트는 가장 안쪽의 <code class="inline">synapse</code> 표준을 import하고, 의존성은 언제나 안쪽을 향한다. 전송 계층(WebRTC), GUI, 데이터베이스, 로봇 SDK는 모두 바깥의 교체 가능한 세부사항이다. 상태의 <em>원본</em>은 로봇(엣지)이 소유하고, 서버는 그 사본(뷰)만 캐시한다 — <strong>Edge-Authoritative</strong> 원칙이다.</p>
+      <p>SYNAPSE는 모바일·매니퓰레이터·휴머노이드 등 <strong>이기종 멀티로봇</strong>을 <span class="nb">단일 메시지</span> 표준(<code class="inline">synapse</code>)으로 <span class="nb">추상화하는 플랫폼이다.</span> 로봇에 <code class="inline">tom_and_gerri</code>를 <span class="nb">설치하는 것만으로</span> <span class="nb">표준 status/command가</span> <span class="nb">자동으로 노출되며,</span> <span class="nb">별도 서버</span> <span class="nb">연동 작업 없이</span> <strong>1:1 원격조작(COCKPIT)</strong>과 <strong>N:N 플릿 관제(NEXUS)</strong>가 <span class="nb">하나의 코드베이스</span> <span class="nb">위에서 동시에</span> <span class="nb">활성화된다.</span></p>
+      <p>설계의 중심에는 <strong>클린 아키텍처</strong>가 있다. <span class="nb">모든 컴포넌트는</span> <span class="nb">가장 안쪽의</span> <code class="inline">synapse</code> <span class="nb">표준을 import하고,</span> 의존성은 <span class="nb">언제나 안쪽을</span> <span class="nb">향한다.</span> 전송 계층(WebRTC), GUI, 데이터베이스, <span class="nb">로봇 SDK는</span> 모두 <span class="nb">바깥의 교체</span> <span class="nb">가능한 세부사항이다.</span> 상태의 <em>원본</em>은 <span class="nb">로봇(엣지)이 소유하고,</span> 서버는 <span class="nb">그 사본(뷰)만</span> <span class="nb">캐시한다</span> — <strong>Edge-Authoritative</strong> <span class="nb">원칙이다.</span></p>
     </div>
   </div>
 </section>
@@ -296,7 +296,7 @@
     <div class="section-head">
       <span class="eyebrow">Motivation</span>
       <h2 class="section-title">왜 이 프로젝트인가 — 마주한 문제</h2>
-      <p class="section-lead"><span class="s">이 스프린트는 비용이 크지만, 얻는 것이 더 크다.</span><span class="s">SYNAPSE는 <strong>기술 표준</strong>과 <strong>팀 문화</strong> 둘 다를 겨냥한다.</span></p>
+      <p class="section-lead"><span class="s">이 스프린트는 <span class="nb">비용이 크지만,</span> <span class="nb">얻는 것이</span> 더 크다.</span><span class="s">SYNAPSE는 <strong>기술 표준</strong>과 <strong>팀 문화</strong> <span class="nb">둘 다를</span> 겨냥한다.</span></p>
     </div>
     <div class="prob-cards">
       <div class="prob-card">
@@ -325,7 +325,7 @@
       </div>
     </div>
     <div class="prose mt-32">
-      <div class="note"><span class="s"><b>핵심:</b> 표준이 섬을 잇고, 소통이 표준을 살아있게 한다.</span><span class="s">최소 한 명 이상은 이 SW 아키텍처를 전부 이해하고, 수요에 맞게 필요/불필요를 조정할 수 있어야 한다.</span></div>
+      <div class="note"><span class="s"><b>핵심:</b> 표준이 <span class="nb">섬을 잇고,</span> 소통이 <span class="nb">표준을 살아있게</span> 한다.</span><span class="s">최소 <span class="nb">한 명 이상은</span> 이 SW 아키텍처를 <span class="nb">전부 이해하고,</span> 수요에 맞게 필요/불필요를 <span class="nb">조정할 수 있어야</span> 한다.</span></div>
     </div>
   </div>
 </section>
@@ -336,7 +336,7 @@
     <div class="section-head">
       <span class="eyebrow">Key Concept</span>
       <h2 class="section-title">올인원 — 설치 즉시 플릿의 일부</h2>
-      <p class="section-lead"><span class="s">로봇에 <code class="inline">tom_and_gerri</code>를 설치하면 <code class="inline">synapse</code> 표준 status/command가 자동 노출된다.</span><span class="s">별도 작업 없이 NEXUS 플릿에서 즉시 관제 가능 — 한 번의 설치로 <span class="nb">1:1 + N:N 동시 ON.</span></span></p>
+      <p class="section-lead"><span class="s">로봇에 <code class="inline">tom_and_gerri</code>를 설치하면 <code class="inline">synapse</code> 표준 status/command가 <span class="nb">자동 노출된다.</span></span><span class="s">별도 작업 없이 <span class="nb">NEXUS 플릿에서</span> <span class="nb">즉시 관제 가능</span> — 한 번의 설치로 <span class="nb">1:1 + N:N 동시 ON.</span></span></p>
     </div>
     <div class="ao-steps">
       <div class="ao-step">
@@ -344,7 +344,7 @@
         <div class="ao-num">1</div>
         <div class="ao-ic">🖥️</div>
         <div class="ao-title">tom_and_gerri 설치</div>
-        <div class="ao-desc">로봇 위 TOM(물리 HW)에 코어 SW를 올리고, SubController를 작성해 로봇 SDK와 연결한다.</div>
+        <div class="ao-desc">로봇 위 TOM(물리 HW)에 <span class="nb">코어 SW를</span> 올리고, SubController를 작성해 <span class="nb">로봇 SDK와</span> 연결한다.</div>
       </div>
       <div class="ao-step">
         <div class="ao-arrow">→</div>
@@ -357,7 +357,7 @@
         <div class="ao-num">3</div>
         <div class="ao-ic">🗄️</div>
         <div class="ao-title">플릿 자동 관제</div>
-        <div class="ao-desc">NEXUS가 즉시 인식. 1:1 COCKPIT 조작과 N:N 플릿 관제가 동시에 활성화된다.</div>
+        <div class="ao-desc">NEXUS가 <span class="nb">즉시 인식.</span> 1:1 COCKPIT 조작과 N:N 플릿 관제가 <span class="nb">동시에 활성화된다.</span></div>
       </div>
     </div>
   </div>
@@ -369,7 +369,7 @@
     <div class="section-head">
       <span class="eyebrow">Architecture</span>
       <h2 class="section-title">클린 아키텍처 — 의존성은 안쪽으로</h2>
-      <p class="section-lead"><span class="s">바깥은 교체 가능한 세부사항, 안쪽은 안정적인 표준.</span><span class="s">의존 화살표는 항상 바깥에서 안쪽을 향하며, 안쪽은 바깥을 모른다.</span></p>
+      <p class="section-lead"><span class="s">바깥은 <span class="nb">교체 가능한</span> 세부사항, 안쪽은 <span class="nb">안정적인 표준.</span></span><span class="s">의존 화살표는 항상 <span class="nb">바깥에서 안쪽을</span> 향하며, 안쪽은 <span class="nb">바깥을 모른다.</span></span></p>
     </div>
     <div class="figure">
       <div class="figure-frame">
@@ -401,7 +401,7 @@
           </div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 2.</b> 레이어드 클린 아키텍처. <code class="inline">synapse</code>는 정의만 담고 실행 로직이 없다 — 여기를 바꾸면 전체가 흔들리므로 가장 신중히 관리된다.</p>
+      <p class="figcaption"><b>Figure 2.</b> <span class="nb">레이어드 클린</span> <span class="nb">아키텍처.</span> <code class="inline">synapse</code>는 <span class="nb">정의만 담고</span> <span class="nb">실행 로직이 없다</span> — <span class="nb">여기를 바꾸면</span> <span class="nb">전체가 흔들리므로</span> <span class="nb">가장 신중히</span> <span class="nb">관리된다.</span></p>
     </div>
 
     <div class="figure mt-40">
@@ -431,7 +431,7 @@
     <div class="section-head">
       <span class="eyebrow">Components</span>
       <h2 class="section-title">6개의 핵심 컴포넌트</h2>
-      <p class="section-lead"><span class="s">각 컴포넌트는 명확한 단일 책임을 가진다.</span><span class="s"><strong class="nb">TAG = TOM + AND + GERRI</strong>, <span class="nb">한 로봇 분(分)의 묶음이다.</span></span></p>
+      <p class="section-lead"><span class="s">각 컴포넌트는 <span class="nb">명확한 단일</span> <span class="nb">책임을 가진다.</span></span><span class="s"><strong class="nb">TAG = TOM + AND + GERRI</strong>, <span class="nb">한 로봇 분(分)의 묶음이다.</span></span></p>
     </div>
     <div class="comp-cards">
       <a href="synapse.html" class="comp-card">
@@ -440,7 +440,7 @@
           <div class="comp-ic">🧠</div>
           <div class="comp-name" style="color:var(--syn);">synapse</div>
           <div class="comp-abbr">공통 표준 레이어 · pip 패키지</div>
-          <div class="comp-desc">모든 컴포넌트가 import하는 중심 표준. Topics, Messages 6종, Enums 6개, 자료구조, 미션 모델, <code class="inline">standardize()</code>를 정의한다. 정의만 하고 실행 로직은 없다.</div>
+          <div class="comp-desc"><span class="nb">모든 컴포넌트가</span> <span class="nb">import하는</span> <span class="nb">중심 표준.</span> Topics, Messages 6종, Enums 6개, 자료구조, 미션 모델, <code class="inline">standardize()</code>를 <span class="nb">정의한다.</span> <span class="nb">정의만 하고</span> <span class="nb">실행 로직은 없다.</span></div>
           <div class="comp-chips"><span class="chip">Topics</span><span class="chip">Messages·6</span><span class="chip">Enums·6</span><span class="chip">standardize()</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--syn);">자세히 보기</span><span class="ar">↗</span></div>
@@ -451,7 +451,7 @@
           <div class="comp-ic">🖥️</div>
           <div class="comp-name" style="color:var(--tom);">TOM</div>
           <div class="comp-abbr">Tele-operation Module · 물리 HW</div>
-          <div class="comp-desc">로봇에 1:1로 부착되는 물리 컴퓨팅 모듈(NUC·Jetson 등). tom_and_gerri SW를 구동하는 현장 엣지 장치이자 <strong>상태 원본의 소유자</strong>.</div>
+          <div class="comp-desc"><span class="nb">로봇에 1:1로</span> <span class="nb">부착되는</span> <span class="nb">물리 컴퓨팅</span> 모듈(NUC·Jetson 등). <span class="nb">tom_and_gerri SW를</span> <span class="nb">구동하는</span> <span class="nb">현장 엣지 장치이자</span> <strong>상태 원본의 소유자</strong>.</div>
           <div class="comp-chips"><span class="chip">NUC / Jetson</span><span class="chip">Edge Device</span><span class="chip">Edge-Authoritative</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--tom);">자세히 보기</span><span class="ar">↗</span></div>
@@ -462,7 +462,7 @@
           <div class="comp-ic">🌐</div>
           <div class="comp-name" style="color:var(--and);">AND</div>
           <div class="comp-abbr">Adaptive Network Daemon · 외부 통신</div>
-          <div class="comp-desc">외부 통신 전담 데몬(<code class="inline">_and_/</code>). 현재 WebRTC(rtc2kng) 기반. 내부 버스(pypubsub)와 완전 분리되어 전송 방식 교체 시 GERRI 로직 불변. Sub는 AND 직접 사용 금지.</div>
+          <div class="comp-desc"><span class="nb">외부 통신</span> <span class="nb">전담 데몬</span>(<code class="inline">_and_/</code>). 현재 <span class="nb">WebRTC(rtc2kng) 기반.</span> <span class="nb">내부 버스(pypubsub)와</span> <span class="nb">완전 분리되어</span> <span class="nb">전송 방식</span> <span class="nb">교체 시</span> <span class="nb">GERRI 로직 불변.</span> Sub는 <span class="nb">AND 직접</span> <span class="nb">사용 금지.</span></div>
           <div class="comp-chips"><span class="chip">WebRTC</span><span class="chip">pypubsub 브리지</span><span class="chip">Transport 독립</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--and);">자세히 보기</span><span class="ar">↗</span></div>
@@ -473,7 +473,7 @@
           <div class="comp-ic">🎮</div>
           <div class="comp-name" style="color:var(--gerri);">GERRI</div>
           <div class="comp-abbr">Global Extended Remote Robot Interface · 제어 SW</div>
-          <div class="comp-desc">로봇 제어 SW 패밀리. <strong>Base</strong>(게이트웨이·분배·base_state 파생) / <strong>Sub</strong>(Capability 구현, 외부 통신 모름) / <strong>Mission</strong>(시퀀스) 3계층.</div>
+          <div class="comp-desc"><span class="nb">로봇 제어</span> <span class="nb">SW 패밀리.</span> <strong>Base</strong>(게이트웨이·분배·base_state 파생) / <strong>Sub</strong>(Capability 구현, 외부 통신 모름) / <strong>Mission</strong>(시퀀스) <span class="nb">3계층.</span></div>
           <div class="comp-chips"><span class="chip">BaseController</span><span class="chip">SubController</span><span class="chip">MissionRunner</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--gerri);">자세히 보기</span><span class="ar">↗</span></div>
@@ -484,7 +484,7 @@
           <div class="comp-ic">🗄️</div>
           <div class="comp-name" style="color:var(--nexus);">NEXUS</div>
           <div class="comp-abbr">플릿 관제 서버 · 게이트웨이</div>
-          <div class="comp-desc">N:N 다중로봇 통합 관제 + 원격 접속 게이트웨이. <strong>FastAPI + Uvicorn</strong>, 상태는 in-memory 레지스트리(P2 SQLite). API-first. <code class="inline">python -m nexus</code> 단일 명령 기동.</div>
+          <div class="comp-desc"><span class="nb">N:N 다중로봇</span> <span class="nb">통합 관제</span> + <span class="nb">원격 접속</span> <span class="nb">게이트웨이.</span> <strong>FastAPI + Uvicorn</strong>, 상태는 <span class="nb">in-memory 레지스트리</span>(재시작 생존용 SQLite 스냅샷 영속 옵션). API-first. <code class="inline">python -m nexus</code> <span class="nb">단일 명령 기동.</span></div>
           <div class="comp-chips"><span class="chip">FastAPI</span><span class="chip">/ws/{room}</span><span class="chip">API-first</span><span class="chip">Single-site</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--nexus);">자세히 보기</span><span class="ar">↗</span></div>
@@ -495,7 +495,7 @@
           <div class="comp-ic">🕹️</div>
           <div class="comp-name" style="color:var(--cockpit);">COCKPIT</div>
           <div class="comp-abbr">1:1 원격 조작 UI · WebRTC P2P</div>
-          <div class="comp-desc">단일 로봇과 WebRTC P2P로 직결되는 1:1 조작 인터페이스. <code class="inline">window.__COCKPIT__</code> 설정 주입으로 동작. Standalone / NEXUS-context 두 모드.</div>
+          <div class="comp-desc"><span class="nb">단일 로봇과</span> WebRTC P2P로 직결되는 <span class="nb">1:1 조작</span> 인터페이스. <code class="inline">window.__COCKPIT__</code> <span class="nb">설정 주입으로</span> 동작. Standalone / NEXUS-context <span class="nb">두 모드.</span></div>
           <div class="comp-chips"><span class="chip">WebRTC P2P</span><span class="chip">1:1</span><span class="chip">config 주입</span><span class="chip">tag별 커스텀</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--cockpit);">자세히 보기</span><span class="ar">↗</span></div>
@@ -510,7 +510,7 @@
     <div class="section-head">
       <span class="eyebrow">Communication</span>
       <h2 class="section-title">3-Way Hybrid 통신</h2>
-      <p class="section-lead"><span class="s">NEXUS는 시그널링 중계와 대시보드 캐시만 담당한다.</span><span class="s">실제 제어·미디어 데이터는 WebRTC P2P로 직결되어 NEXUS를 거치지 않는다.</span></p>
+      <p class="section-lead"><span class="s">NEXUS는 <span class="nb">시그널링 중계와</span> <span class="nb">대시보드 캐시만</span> 담당한다.</span><span class="s">실제 제어·미디어 데이터는 WebRTC P2P로 직결되어 <span class="nb">NEXUS를 거치지</span> 않는다.</span></p>
     </div>
     <div class="figure">
       <div class="figure-frame">
@@ -555,31 +555,31 @@
           </div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 4.</b> 3-Way Hybrid 통신 구조. 시그널링은 NEXUS가 <em>sender/receiver만 보고</em> JSON을 그대로 중계하며, 핸드셰이크 이후 제어·미디어는 P2P로 빠진다.</p>
+      <p class="figcaption"><b>Figure 4.</b> <span class="nb">3-Way Hybrid</span> <span class="nb">통신 구조.</span> 시그널링은 <span class="nb">NEXUS가</span> <em>sender/receiver만 보고</em> JSON을 <span class="nb">그대로 중계하며,</span> <span class="nb">핸드셰이크 이후</span> <span class="nb">제어·미디어는</span> <span class="nb">P2P로 빠진다.</span></p>
     </div>
 
     <div class="section-head mt-48">
       <h2 class="section-title" style="font-size:clamp(24px,2.6vw,32px);">사용자 3계층 — 역할이지 고정 위치 아님</h2>
-      <p class="section-lead"><span class="s">2 ⇄ 3 전환은 클릭 한 번.</span><span class="s">N:N 관제와 1:1 조작 사이를 지연·재접속 없이 오간다.</span></p>
+      <p class="section-lead"><span class="s">2 ⇄ 3 전환은 <span class="nb">클릭 한 번.</span></span><span class="s">N:N 관제와 1:1 조작 사이를 <span class="nb">지연·재접속 없이</span> 오간다.</span></p>
     </div>
     <div class="user-layers">
       <div class="user-layer">
         <div class="user-num" style="background:var(--bg2);color:var(--text2);">1</div>
         <div class="user-title">현장 관리자</div>
         <div class="user-sub">Local · LAN 직접 접속</div>
-        <div class="user-desc">사이트 현장에서 LAN으로 NEXUS에 직접 접속. 지연 없이 로봇 상태 확인 및 간단 조작.</div>
+        <div class="user-desc">사이트 현장에서 LAN으로 NEXUS에 <span class="nb">직접 접속.</span> <span class="nb">지연 없이</span> 로봇 상태 확인 및 <span class="nb">간단 조작.</span></div>
       </div>
       <div class="user-layer">
         <div class="user-num" style="background:var(--nexus-l);color:var(--nexus);">2</div>
         <div class="user-title">서버 관제사</div>
         <div class="user-sub">WebSocket · N:N 플릿</div>
-        <div class="user-desc">NEXUS 관제 UI로 전체 플릿 N:N 모니터링. 미션 조작·스케줄링. 특정 로봇 클릭 → 1:1 전환.</div>
+        <div class="user-desc">NEXUS 관제 UI로 <span class="nb">전체 플릿</span> N:N 모니터링. 미션 조작·스케줄링. <span class="nb">특정 로봇 클릭</span> → 1:1 전환.</div>
       </div>
       <div class="user-layer">
         <div class="user-num" style="background:var(--acc-l);color:var(--acc);">3</div>
         <div class="user-title">1:1 원격 관제사</div>
         <div class="user-sub">WebRTC · COCKPIT</div>
-        <div class="user-desc">대시보드에서 로봇 클릭 → 즉시 WebRTC P2P COCKPIT 진입. 카메라·조이스틱으로 정밀 원격 조작.</div>
+        <div class="user-desc"><span class="nb">대시보드에서</span> <span class="nb">로봇 클릭</span> → 즉시 WebRTC P2P COCKPIT 진입. 카메라·조이스틱으로 <span class="nb">정밀 원격 조작.</span></div>
       </div>
     </div>
   </div>
@@ -591,7 +591,7 @@
     <div class="section-head">
       <span class="eyebrow">Mission System</span>
       <h2 class="section-title">3계층 미션 구조</h2>
-      <p class="section-lead"><span class="s">"실패는 정상, 인간 개입 우선."</span><span class="s">FleetMission → RobotMission → Task 순으로 위임한다.</span><span class="s">Python 함수·JSON·REST 모두 지원.</span></p>
+      <p class="section-lead"><span class="s">"실패는 정상, <span class="nb">인간 개입 우선."</span></span><span class="s">FleetMission → RobotMission → Task <span class="nb">순으로 위임한다.</span></span><span class="s">Python 함수·JSON·REST <span class="nb">모두 지원.</span></span></p>
     </div>
     <div class="g2" style="align-items:start;gap:28px;">
       <div>
@@ -600,7 +600,7 @@
             <div class="mtier-num" style="background:var(--nexus);">1</div>
             <div>
               <div class="mtier-name">FleetMission</div>
-              <div class="mtier-desc">다중 로봇 조율. FleetTask 그래프(DAG)를 <code class="inline">depends_on</code>으로 정의. <em>설계상 NEXUS가 조율 담당(P3 예정)</em>, 로봇 점유는 TOM 책임.</div>
+              <div class="mtier-desc"><span class="nb">다중 로봇 조율.</span> FleetTask 그래프(DAG)를 <code class="inline">depends_on</code>으로 정의. <em>NEXUS가 조율(<code class="inline">FleetMissionRunner</code> 구현됨)</em>, <span class="nb">로봇 점유·실행은</span> <span class="nb">TOM 책임.</span></div>
             </div>
             <div class="mtier-owner" style="background:#fff;color:var(--nexus);">NEXUS</div>
           </div>
@@ -609,7 +609,7 @@
             <div class="mtier-num" style="background:var(--gerri);">2</div>
             <div>
               <div class="mtier-name">RobotMission</div>
-              <div class="mtier-desc">단일 로봇의 Task 시퀀스 실행. <code class="inline">MissionRunner</code>가 관리. 상태는 로봇 측 보유 → 재접속 시 자동 복구. 개입: NEED_HELP → TELEOP → resume/abort.</div>
+              <div class="mtier-desc"><span class="nb">단일 로봇의</span> <span class="nb">Task 시퀀스 실행.</span> <code class="inline">MissionRunner</code>가 <span class="nb">관리.</span> 상태는 <span class="nb">로봇 측 보유</span> → <span class="nb">재접속 시</span> <span class="nb">자동 복구.</span> 개입: NEED_HELP → TELEOP → resume/abort.</div>
             </div>
             <div class="mtier-owner" style="background:#fff;color:var(--gerri);">GERRI</div>
           </div>
@@ -673,13 +673,13 @@
     <div class="section-head">
       <span class="eyebrow">Current Sprint</span>
       <h2 class="section-title">목표: NEXUS UI 조작으로 모바일 로봇을 실제로 움직인다</h2>
-      <p class="section-lead"><span class="s">완료 기준 — status 수신 + command 반영 + 이동 + N:N→1:1 전환까지 End-to-End.</span><span class="s">가능한 항목은 테스트를 먼저 짜는 TDD 기반.</span></p>
+      <p class="section-lead"><span class="s">완료 기준 — status 수신 + command 반영 + 이동 + N:N→1:1 <span class="nb">전환까지</span> End-to-End.</span><span class="s"><span class="nb">가능한 항목은</span> <span class="nb">테스트를 먼저 짜는</span> TDD 기반.</span></p>
     </div>
     <div class="phase-grid">
       <div class="phase-item">
         <div class="phase-label" style="color:var(--syn);">PHASE 0</div>
         <div class="phase-title">synapse 단위 테스트</div>
-        <div class="phase-desc">normalize/standardize · build_message · mission 직렬화 · capability 매칭. 전체의 토대.</div>
+        <div class="phase-desc">normalize/standardize · build_message · mission 직렬화 · capability 매칭. <span class="nb">전체의 토대.</span></div>
       </div>
       <div class="phase-item">
         <div class="phase-label" style="color:var(--tom);">PHASE 1</div>

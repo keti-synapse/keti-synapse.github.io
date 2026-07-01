@@ -182,8 +182,8 @@
     <h1 class="proj-name">NEXUS</h1>
     <p class="proj-full"><em>한 사이트의 플릿 매니저 · WebRTC 시그널링 게이트웨이</em></p>
     <p class="proj-lead">
-      <span class="s">단일 사이트의 로봇 플릿을 한곳에서 보는 <strong>관제 서버</strong>이자, 운영자↔로봇 P2P 연결을 이어주는 <strong>WebRTC 시그널링 릴레이</strong>.</span>
-      <span class="s">상태의 <em>원본</em>은 로봇(엣지)이 소유하고, NEXUS는 그 사본(뷰·캐시)만 들고 있는 <strong>Edge-Authoritative</strong> 설계다.</span>
+      <span class="s">단일 사이트의 <span class="nb">로봇 플릿을</span> <span class="nb">한곳에서 보는</span> <strong>관제 서버</strong>이자, 운영자↔로봇 P2P 연결을 <span class="nb">이어주는</span> <strong>WebRTC 시그널링 릴레이</strong>.</span>
+      <span class="s">상태의 <em>원본</em>은 <span class="nb">로봇(엣지)이</span> 소유하고, NEXUS는 그 <span class="nb">사본(뷰·캐시)만</span> 들고 있는 <strong>Edge-Authoritative</strong> 설계다.</span>
     </p>
     <div class="file-chips">
       <span class="file-chip"><b>python -m nexus</b></span>
@@ -208,27 +208,27 @@
     <div class="section-head">
       <span class="eyebrow">Overview</span>
       <h2 class="section-title">한 사이트를 책임지는 뷰·캐시 서버</h2>
-      <p class="section-lead"><span class="s">NEXUS 한 대 = 한 사이트의 플릿 매니저.</span><span class="s">상태의 진실은 로봇에 있고, 서버는 그 사본을 모아 보여줄 뿐이다.</span></p>
+      <p class="section-lead"><span class="s">NEXUS 한 대 = 한 사이트의 <span class="nb">플릿 매니저.</span></span><span class="s">상태의 진실은 <span class="nb">로봇에 있고,</span> 서버는 그 사본을 <span class="nb">모아 보여줄 뿐이다.</span></span></p>
     </div>
     <div class="prose">
-      <p class="lead-para"><strong>NEXUS는 진실의 원본(SSOT)이 아니다.</strong> 각 로봇(TOM)이 자기 상태의 권위를 가지며, NEXUS는 WebSocket으로 받은 상태를 메모리에 캐시해 대시보드에 비춰주는 <em>뷰</em>다.</p>
-      <p>그래서 NEXUS의 책임은 둘로 좁다. 첫째, 연결된 로봇들의 <strong>status를 모아 캐시</strong>하고 REST로 노출한다(<code class="inline">/api/robots</code>). 둘째, 운영자와 로봇이 직접 만나도록 <strong>WebRTC 시그널링을 중계</strong>한다(<code class="inline">/ws/{room}</code>). 핸드셰이크가 끝나면 미디어·DataChannel은 P2P로 직결되고 NEXUS는 데이터 경로에서 빠진다 — 작은 시그널링 JSON만 오간다.</p>
-      <p>의존성도 좁다. NEXUS가 import하는 것은 공통 표준 <code class="inline">synapse</code> 하나뿐이며(메시지 토픽 <code class="inline">Topic</code> 사용), <code class="inline">tom_and_gerri</code>나 <code class="inline">tag_*</code> 같은 로봇 코드는 전혀 import하지 않는다 — <strong>코드 결합도 0</strong>, 오직 네트워크 메시지 표준으로만 대화한다.</p>
-      <div class="note mt-8"><span class="s"><b>Edge-Authoritative.</b> 연결 끊김(OFFLINE)조차 NEXUS가 단정하지 않는다.</span><span class="s"><code class="inline">/api/robots</code>는 <code class="inline">server_time</code>을 함께 내려주고, 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 로 스스로 판단한다.</span></div>
+      <p class="lead-para"><strong>NEXUS는 진실의 원본(SSOT)이 아니다.</strong> 각 로봇(TOM)이 <span class="nb">자기 상태의</span> <span class="nb">권위를 가지며,</span> NEXUS는 WebSocket으로 받은 상태를 <span class="nb">메모리에 캐시해</span> <span class="nb">대시보드에 비춰주는</span> <em>뷰</em>다.</p>
+      <p>그래서 NEXUS의 책임은 <span class="nb">둘로 좁다.</span> 첫째, <span class="nb">연결된 로봇들의</span> <strong>status를 모아 캐시</strong>하고 <span class="nb">REST로 노출한다</span>(<code class="inline">/api/robots</code>). 둘째, <span class="nb">운영자와 로봇이</span> <span class="nb">직접 만나도록</span> <strong>WebRTC 시그널링을 중계</strong>한다(<code class="inline">/ws/{room}</code>). 핸드셰이크가 끝나면 미디어·DataChannel은 <span class="nb">P2P로 직결되고</span> NEXUS는 <span class="nb">데이터 경로에서</span> <span class="nb">빠진다</span> — 작은 시그널링 <span class="nb">JSON만 오간다.</span></p>
+      <p>의존성도 좁다. NEXUS가 import하는 것은 <span class="nb">공통 표준</span> <code class="inline">synapse</code> 하나뿐이며(메시지 토픽 <code class="inline">Topic</code> 사용), <code class="inline">tom_and_gerri</code>나 <code class="inline">tag_*</code> 같은 <span class="nb">로봇 코드는</span> 전혀 import하지 않는다 — <strong>코드 결합도 0</strong>, 오직 <span class="nb">네트워크 메시지</span> <span class="nb">표준으로만</span> <span class="nb">대화한다.</span></p>
+      <div class="note mt-8"><span class="s"><b>Edge-Authoritative.</b> 연결 끊김(OFFLINE)조차 NEXUS가 <span class="nb">단정하지 않는다.</span></span><span class="s"><code class="inline">/api/robots</code>는 <code class="inline">server_time</code>을 함께 내려주고, 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 로 스스로 판단한다.</span></div>
     </div>
 
     <div class="figure mt-40">
       <div class="figure-frame">
         <div class="kv-grid">
-          <div class="kv"><div class="k">역할</div><div class="v">단일 사이트 플릿 관제 + WebRTC 시그널링 게이트웨이</div></div>
+          <div class="kv"><div class="k">역할</div><div class="v"><span class="nb">단일 사이트</span> <span class="nb">플릿 관제</span> + WebRTC <span class="nb">시그널링 게이트웨이</span></div></div>
           <div class="kv"><div class="k">백엔드</div><div class="v">FastAPI + Uvicorn (ASGI) · pydantic ≥ 2.0 · <code>websockets</code></div></div>
-          <div class="kv"><div class="k">상태 저장</div><div class="v">in-memory dict 레지스트리 (P1) · SQLite(sqlmodel)는 P2 옵션, 아직 미사용</div></div>
+          <div class="kv"><div class="k">상태 저장</div><div class="v">in-memory dict <span class="nb">레지스트리가 기본</span> · <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> 옵션(<code class="inline">persistence.py</code>, stdlib sqlite3 최소 구현) — <code class="inline">NEXUS_DB_PATH</code>로 켬(<code class="inline">run.sh</code> 기본 ON). <span class="nb">이력·시계열 DB는</span> <span class="nb">확장 예정</span></div></div>
           <div class="kv"><div class="k">기동</div><div class="v"><code>python -m nexus</code> 단일 명령 · 빌드 없음</div></div>
           <div class="kv"><div class="k">의존</div><div class="v">오직 <code>synapse</code> import (tom_and_gerri·tag 미import → 결합도 0)</div></div>
           <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.0.1 · 13 tests passing</div></div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 1.</b> NEXUS 핵심 사실. 상태 원본은 로봇이 소유하고 NEXUS는 뷰/캐시 — P1은 메모리 레지스트리이며 영속 DB는 도입 전이다.</p>
+      <p class="figcaption"><b>Figure 1.</b> NEXUS 핵심 사실. <span class="nb">상태 원본은</span> <span class="nb">로봇이 소유하고</span> NEXUS는 뷰/캐시 — P1은 <span class="nb">메모리 레지스트리이며</span> <span class="nb">영속 DB는</span> <span class="nb">도입 전이다.</span></p>
     </div>
   </div>
 </section>
@@ -239,11 +239,11 @@
     <div class="section-head">
       <span class="eyebrow">Stack &amp; Boot</span>
       <h2 class="section-title">기술 스택과 단일 명령 기동</h2>
-      <p class="section-lead"><span class="s">실시간 제어는 엣지에, 미디어는 P2P에 맡기므로 NEXUS는 IO 중심이다.</span><span class="s">async·WebSocket·OpenAPI를 기본 제공하는 FastAPI + Uvicorn 한 켤레로 충분하다.</span></p>
+      <p class="section-lead"><span class="s">실시간 제어는 <span class="nb">엣지에,</span> 미디어는 <span class="nb">P2P에 맡기므로</span> NEXUS는 <span class="nb">IO 중심이다.</span></span><span class="s">async·WebSocket·OpenAPI를 <span class="nb">기본 제공하는</span> FastAPI + Uvicorn <span class="nb">한 켤레로 충분하다.</span></span></p>
     </div>
 
     <div class="prose">
-      <p>패키지는 6개 모듈로 단순하다. <code class="inline">__main__.py</code>가 <code class="inline">uvicorn.run(create_app())</code>을 띄우고, <code class="inline">app.py</code>의 <code class="inline">create_app()</code> 팩토리가 라우트와 <code class="inline">RelayHub</code>·<code class="inline">RobotRegistry</code>를 조립한다. <code class="inline">relay.py</code>는 룸 기반 시그널링 릴레이, <code class="inline">registry.py</code>는 <code class="inline">(robot_id, sub_id)</code> 상태 캐시, <code class="inline">gateway.py</code>는 콕핏 정적 서빙 + config 주입, <code class="inline">config.py</code>는 정적 Pydantic 설정을 담당한다. npm·webpack 같은 빌드 단계는 없다.</p>
+      <p>패키지는 <span class="nb">6개 모듈로</span> <span class="nb">단순하다.</span> <code class="inline">__main__.py</code>가 <code class="inline">uvicorn.run(create_app())</code>을 띄우고, <code class="inline">app.py</code>의 <code class="inline">create_app()</code> 팩토리가 <span class="nb">라우트와</span> <code class="inline">RelayHub</code>·<code class="inline">RobotRegistry</code>를 조립한다. <code class="inline">relay.py</code>는 <span class="nb">룸 기반</span> <span class="nb">시그널링 릴레이,</span> <code class="inline">registry.py</code>는 <code class="inline">(robot_id, sub_id)</code> <span class="nb">상태 캐시,</span> <code class="inline">gateway.py</code>는 <span class="nb">콕핏 정적 서빙</span> + config 주입, <code class="inline">config.py</code>는 <span class="nb">정적 Pydantic</span> <span class="nb">설정을 담당한다.</span> npm·webpack 같은 <span class="nb">빌드 단계는</span> <span class="nb">없다.</span></p>
     </div>
 
     <div class="figure mt-32">
@@ -289,7 +289,7 @@
     <div class="section-head">
       <span class="eyebrow">HTTP &amp; WebSocket API</span>
       <h2 class="section-title">엔드포인트 한눈에</h2>
-      <p class="section-lead"><span class="s"><code class="inline">app.py</code>가 노출하는 전부 — REST 2개 + 게이트웨이 2개 + 통합 WS 1개다.</span><span class="s">site/floor는 URL 네임스페이스일 뿐, 콕핏 폴더는 robot id로 고른다.</span></p>
+      <p class="section-lead"><span class="s"><code class="inline">app.py</code>가 노출하는 전부 — REST 2개 + 게이트웨이 2개 + 통합 WS 1개다.</span><span class="s">site/floor는 URL 네임스페이스일 뿐, <span class="nb">콕핏 폴더는</span> robot id로 <span class="nb">고른다.</span></span></p>
     </div>
     <div class="figure">
       <div class="tbl-wrap">
@@ -301,7 +301,7 @@
             <tr>
               <td><span class="method get">GET</span></td>
               <td><span class="path">/api/robots</span></td>
-              <td><span class="ret">{"robots":[{robot_id, subs:{sub_id:entry}, last_seen}…], "server_time":float}</span><br>등록 로봇을 robot_id로 묶어 반환. 클라이언트가 <b>server_time − last_seen</b>으로 OFFLINE 추론.</td>
+              <td><span class="ret">{"robots":[{robot_id, subs:{sub_id:entry}, last_seen}…], "server_time":float}</span><br><span class="nb">등록 로봇을</span> robot_id로 <span class="nb">묶어 반환.</span> 클라이언트가 <b>server_time − last_seen</b>으로 <span class="nb">OFFLINE 추론.</span></td>
             </tr>
             <tr>
               <td><span class="method get">GET</span></td>
@@ -337,7 +337,7 @@
     <div class="section-head">
       <span class="eyebrow">Signaling Relay &amp; Status Cache</span>
       <h2 class="section-title">하나의 WS, 세 갈래 처리</h2>
-      <p class="section-lead"><span class="s">단일 엔드포인트 <code class="inline">/ws/{room}</code>가 메시지 종류에 따라 캐시 / 브로드캐스트 / 1:1 라우팅으로 갈린다.</span><span class="s">시그널링 JSON은 해석 없이 원문 그대로 전달된다.</span></p>
+      <p class="section-lead"><span class="s">단일 엔드포인트 <code class="inline">/ws/{room}</code>가 <span class="nb">메시지 종류에 따라</span> 캐시 / 브로드캐스트 / 1:1 라우팅으로 <span class="nb">갈린다.</span></span><span class="s">시그널링 JSON은 <span class="nb">해석 없이</span> <span class="nb">원문 그대로</span> 전달된다.</span></p>
     </div>
 
     <div class="figure">
@@ -364,7 +364,7 @@
     </div>
 
     <div class="prose mt-32">
-      <div class="note"><span class="s"><b>한 줄 규칙.</b> 핸들러는 메시지의 <b>봉투</b>(<code class="inline">sender</code> / <code class="inline">receiver</code>)만 보고 JSON 원문을 그대로 중계한다 — SDP·ICE 페이로드는 들여다보지 않는다.</span><span class="s"><code class="inline">robot.status</code>만은 라우팅 대상에서 빠져 레지스트리에 캐시만 된다.</span></div>
+      <div class="note"><span class="s"><b>한 줄 규칙.</b> 핸들러는 메시지의 <b>봉투</b>(<code class="inline">sender</code> / <code class="inline">receiver</code>)만 보고 JSON 원문을 그대로 중계한다 — SDP·ICE 페이로드는 들여다보지 않는다.</span><span class="s"><code class="inline">robot.status</code>만은 <span class="nb">라우팅 대상에서</span> <span class="nb">빠져</span> 레지스트리에 <span class="nb">캐시만 된다.</span></span></div>
     </div>
   </div>
 </section>
@@ -375,7 +375,7 @@
     <div class="section-head">
       <span class="eyebrow">Robot-first WebRTC</span>
       <h2 class="section-title">로봇이 먼저 offer를 만드는 핸드셰이크</h2>
-      <p class="section-lead"><span class="s">운영자의 <code class="inline">ready</code> 신호를 받은 <em>로봇</em>이 offer를 만든다.</span><span class="s">설계상 NEXUS는 시그널링까지만 — 핸드셰이크 후 미디어·데이터는 P2P로 직결된다.</span></p>
+      <p class="section-lead"><span class="s">운영자의 <code class="inline">ready</code> <span class="nb">신호를 받은</span> <em>로봇</em>이 offer를 <span class="nb">만든다.</span></span><span class="s">설계상 NEXUS는 <span class="nb">시그널링까지만</span> — 핸드셰이크 후 <span class="nb">미디어·데이터는</span> P2P로 <span class="nb">직결된다.</span></span></p>
     </div>
 
     <div class="figure">
@@ -466,11 +466,11 @@
     <div class="section-head">
       <span class="eyebrow">Data Model &amp; Registry</span>
       <h2 class="section-title">(robot_id, sub_id)로 캐시하고 robot_id로 묶기</h2>
-      <p class="section-lead"><span class="s">레지스트리는 <code class="inline">(robot_id, sub_id)</code> 키로 status를 upsert한다.</span><span class="s">보통 1 로봇 = 1 base = 1 피어지만, 드물게 물리적으로 분리된 디바이스는 별도 sub로 발행한다.</span></p>
+      <p class="section-lead"><span class="s">레지스트리는 <code class="inline">(robot_id, sub_id)</code> 키로 status를 upsert한다.</span><span class="s">보통 1 로봇 = 1 base = 1 피어지만, 드물게 <span class="nb">물리적으로 분리된</span> 디바이스는 <span class="nb">별도 sub로</span> <span class="nb">발행한다.</span></span></p>
     </div>
 
     <div class="prose">
-      <p>한 로봇이 여러 sub(또는 분리 디바이스)로 status를 따로 발행해도, <code class="inline">/api/robots</code>는 이를 <strong>robot_id 기준으로 묶어</strong> 한 로봇처럼 보여준다. 묶인 그룹의 <code class="inline">last_seen</code>은 sub들 중 가장 최신 시각이다. 드물게 물리적으로 갈라진 경우에는 <code class="inline">mobile_01.arm</code> 같은 피어 id로 구분한다. <code class="inline">robot_id</code>가 없는 status는 라우팅 불가로 폐기되며(경고 로그), 잘못된 메시지가 서버를 죽이지 않게 한다.</p>
+      <p>한 로봇이 여러 sub(또는 분리 디바이스)로 status를 <span class="nb">따로 발행해도,</span> <code class="inline">/api/robots</code>는 이를 <strong>robot_id 기준으로 묶어</strong> <span class="nb">한 로봇처럼</span> <span class="nb">보여준다.</span> 묶인 그룹의 <code class="inline">last_seen</code>은 sub들 중 <span class="nb">가장 최신</span> <span class="nb">시각이다.</span> 드물게 <span class="nb">물리적으로</span> <span class="nb">갈라진 경우에는</span> <code class="inline">mobile_01.arm</code> 같은 <span class="nb">피어 id로</span> <span class="nb">구분한다.</span> <code class="inline">robot_id</code>가 없는 status는 <span class="nb">라우팅 불가로</span> 폐기되며(경고 로그), <span class="nb">잘못된 메시지가</span> <span class="nb">서버를 죽이지</span> <span class="nb">않게 한다.</span></p>
     </div>
 
     <div class="figure mt-32">
@@ -492,63 +492,63 @@
     </div>
 
     <div class="prose mt-32">
-      <div class="note"><span class="s"><b>OFFLINE은 클라이언트가 판정한다.</b> NEXUS는 단정하지 않고, 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 인지로 스스로 판단한다.</span></div>
+      <div class="note"><span class="s"><b>OFFLINE은 클라이언트가 판정한다.</b> NEXUS는 <span class="nb">단정하지 않고,</span> 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 인지로 <span class="nb">스스로 판단한다.</span></span></div>
     </div>
 
     <div class="split mt-40">
       <div class="split-box does">
         <h4>✅ NEXUS가 하는 것</h4>
-        <div class="split-li"><span class="mk">📊</span><span><b>status 수집·캐시</b> — (robot_id, sub_id) upsert, robot_id로 그룹화 노출</span></div>
+        <div class="split-li"><span class="mk">📊</span><span><b>status 수집·캐시</b> — (robot_id, sub_id) upsert, robot_id로 <span class="nb">그룹화 노출</span></span></div>
         <div class="split-li"><span class="mk">🔀</span><span><b>WebRTC 시그널링 릴레이</b> — ready 브로드캐스트, offer/answer/candidate 1:1</span></div>
-        <div class="split-li"><span class="mk">🗂️</span><span><b>콕핏 게이트웨이</b> — 정적 서빙 + window.__COCKPIT__ 주입</span></div>
+        <div class="split-li"><span class="mk">🗂️</span><span><b>콕핏 게이트웨이</b> — <span class="nb">정적 서빙</span> + window.__COCKPIT__ 주입</span></div>
         <div class="split-li"><span class="mk">🌐</span><span><b>사이트/맵 config 제공</b> — /api/sites로 트리 노출</span></div>
       </div>
       <div class="split-box not">
         <h4>🚫 NEXUS가 하지 않는 것</h4>
-        <div class="split-li"><span class="mk">💾</span><span><b>제어·미디어 중계 X</b> — 카메라·DataChannel은 P2P 직결</span></div>
-        <div class="split-li"><span class="mk">📌</span><span><b>상태 원본 보유 X</b> — SSOT는 로봇(엣지). NEXUS는 사본</span></div>
-        <div class="split-li"><span class="mk">🗃️</span><span><b>영속 DB X (P1)</b> — in-memory dict. SQLite는 P2 옵션</span></div>
+        <div class="split-li"><span class="mk">💾</span><span><b>제어·미디어 중계 X</b> — 카메라·DataChannel은 <span class="nb">P2P 직결</span></span></div>
+        <div class="split-li"><span class="mk">📌</span><span><b>상태 원본 보유 X</b> — SSOT는 <span class="nb">로봇(엣지).</span> NEXUS는 사본</span></div>
+        <div class="split-li"><span class="mk">🗃️</span><span><b>이력·시계열 DB X</b> — 기본은 in-memory dict. <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속만</span> <span class="nb">옵션 제공</span></span></div>
         <div class="split-li"><span class="mk">🌍</span><span><b>다중 사이트 X</b> — P1은 single-site 가정</span></div>
       </div>
     </div>
 
     <div class="prose mt-32">
-      <div class="note"><span class="s"><b>config는 정적이다.</b> <code class="inline">config.py</code>의 <code class="inline">SITES</code> dict를 시작 시 한 번 <code class="inline">SystemConfig</code>로 검증한다.</span><span class="s"><code class="inline">.env</code>·핫리로드 없음 — 값을 바꾸면 서버를 재시작한다.</span><span class="s">예: <code class="inline">{"itp": {"name":"인천테크노파크", "floors":{"1f":…, "2f":…}}}</code>.</span></div>
+      <div class="note"><span class="s"><b>config는 정적이다.</b> <code class="inline">config.py</code>의 <code class="inline">SITES</code> dict를 시작 시 한 번 <code class="inline">SystemConfig</code>로 검증한다.</span><span class="s"><code class="inline">.env</code>·핫리로드 없음 — <span class="nb">값을 바꾸면</span> <span class="nb">서버를 재시작한다.</span></span><span class="s">예: <code class="inline">{"itp": {"name":"인천테크노파크", "floors":{"1f":…, "2f":…}}}</code>.</span></div>
     </div>
   </div>
 </section>
 
-<!-- ════════ FleetMission (설계/P3 예정) ════════ -->
+<!-- ════════ FleetMission (구현됨 · Phase 3) ════════ -->
 <section class="section" id="fleet">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Roadmap · P3</span>
-      <h2 class="section-title">FleetMission — 설계 단계 (아직 미구현)</h2>
-      <p class="section-lead"><span class="s">다중 로봇 조율은 P3 백로그다.</span><span class="s">아래는 <strong>현재 코드에 없는</strong> 계획상의 설계이며, NEXUS의 현 책임은 status 캐시와 시그널링 릴레이까지다.</span></p>
+      <span class="eyebrow">Fleet Orchestration · 구현됨</span>
+      <h2 class="section-title">FleetMission — 다중 로봇 조율 (구현 완료)</h2>
+      <p class="section-lead"><span class="s"><span class="nb">다중 로봇</span> <span class="nb">조율이</span> <strong>구현됐다</strong>(Phase 3).</span><span class="s">NEXUS가 <code class="inline">FleetTask</code> DAG를 조율해 <span class="nb">로봇에 미션을</span> <span class="nb">던지고</span> <code class="inline">robot.status.mission_info</code>로 <span class="nb">진행을 추적한다</span> — 실행 주체는 여전히 <span class="nb">로봇(엣지)이다.</span></span></p>
     </div>
 
     <div class="prose">
-      <div class="note"><b>아직 빌드되지 않았습니다.</b> 본 절은 P3 백로그의 <b>설계 의도</b>를 정리한 것으로, v0.0.1 코드 경로에는 <code class="inline">FleetMissionRunner</code>·<code class="inline">FleetClient</code>가 존재하지 않습니다.</div>
-      <p class="mt-16">설계상 NEXUS는 <strong>스케줄링을 조율(orchestrate)</strong>한다. <code class="inline">FleetMissionRunner</code>가 <code class="inline">depends_on</code> 기반 DAG를 풀고, 로봇별 어댑터 <code class="inline">FleetClient</code>가 각 로봇과 통신한다. 단, 미션 <strong>실행 주체는 로봇(TOM)</strong>이며, 데이터 모델 자체는 <code class="inline">synapse</code>에 정의된다(NEXUS에 두지 않는다). NEXUS는 <code class="inline">robot.status.mission_info</code>를 통해 진행을 <em>모니터링</em>하고, <code class="inline">mission.trigger</code>로 미션을 던지는 역할에 머문다.</p>
-      <p>요약하면 — <strong>NEXUS는 던지고 지켜보고, 로봇이 실행한다.</strong> 점유·실패 복구 같은 실행 책임은 엣지에 남기는 것이 Edge-Authoritative 원칙과 일관된다.</p>
+      <div class="note"><b>구현됐습니다.</b> <code class="inline">nexus/fleet.py</code>의 <code class="inline">FleetMissionRunner</code>가 <code class="inline">FleetTask</code> DAG를 실행하고, <code class="inline">/api/fleet/*</code> REST API로 시작·조회·중단한다(단위 테스트 <code class="inline">tests/test_fleet.py</code> 포함).</div>
+      <p class="mt-16">NEXUS는 <strong>스케줄링을 조율(orchestrate)</strong>한다. <code class="inline">FleetMissionRunner</code>가 <code class="inline">depends_on</code> 기반 DAG를 풀어, <span class="nb">의존 task가</span> <span class="nb">모두 성공하면</span> <span class="nb">해당 로봇에</span> <code class="inline">mission.trigger</code>를 던진다. 완료 추적은 <code class="inline">robot.status.mission_info</code> 폴링 — <code class="inline">mission_state</code>가 TERMINAL(<code class="inline">SUCCEEDED/FAILED/ABORTED</code>)이 되면 <span class="nb">task 종료로</span> <span class="nb">본다</span>(Status가 SSOT). 미션 <strong>실행 주체는 로봇(TOM)</strong>이고, 데이터 모델 <code class="inline">FleetMission</code>은 <code class="inline">synapse</code>에 정의된다(NEXUS에 두지 않는다).</p>
+      <p>한 로봇은 <span class="nb">한 번에</span> <span class="nb">한 미션만</span> 수행하므로, <span class="nb">같은 로봇을</span> <span class="nb">대상으로 한</span> task는 <span class="nb">의존이 없어도</span> <strong>자동 직렬화</strong>된다. 실패 정책 <code class="inline">on_failure</code>(stop · continue · retry)와 <code class="inline">timeout</code>을 지원하고, 진행상황은 <span class="nb">대시보드로</span> broadcast된다. 요약하면 — <strong>NEXUS는 던지고 지켜보고, 로봇이 실행한다.</strong> <span class="nb">점유·실패 복구</span> 같은 <span class="nb">실행 책임을</span> <span class="nb">엣지에 남기는</span> 것이 Edge-Authoritative <span class="nb">원칙과</span> <span class="nb">일관된다.</span></p>
     </div>
 
     <div class="figure mt-32">
       <div class="tbl-wrap">
         <table class="tbl">
           <thead>
-            <tr><th style="width:210px;">계획 컴포넌트</th><th>설계상 책임 · P3 미구현</th></tr>
+            <tr><th style="width:210px;">컴포넌트</th><th>책임 · 구현됨</th></tr>
           </thead>
           <tbody>
-            <tr><td class="mono">FleetMissionRunner</td><td><code class="inline">depends_on</code> 기반 DAG를 풀어 다중 로봇 미션을 <b>조율(orchestrate)</b>. 예: 이동 → 제조 → 전달 → 배송 순서를 의존성으로 묶는다.</td></tr>
-            <tr><td class="mono">FleetClient</td><td>로봇별 <b>어댑터</b> — 각 로봇과 통신해 미션을 던지고 진행을 읽어온다.</td></tr>
-            <tr><td>FleetMission (데이터 모델)</td><td><code class="inline">synapse</code>에 정의 — NEXUS가 소유하지 않는다.</td></tr>
-            <tr><td>NEXUS의 역할</td><td><code class="inline">mission.trigger</code>로 미션을 던지고, <code class="inline">robot.status.mission_info</code>로 진행을 <b>모니터링</b>한다.</td></tr>
+            <tr><td class="mono">FleetMissionRunner</td><td><code class="inline">nexus/fleet.py</code>. <code class="inline">depends_on</code> 기반 DAG를 풀어 <span class="nb">다중 로봇</span> <span class="nb">미션을</span> <b>조율(orchestrate)</b>. 예: 이동 → 제조 → 전달 → 배송 <span class="nb">순서를</span> <span class="nb">의존성으로</span> <span class="nb">묶는다.</span> <code class="inline">validate_dag</code>가 <span class="nb">의존성 존재·사이클을</span> <span class="nb">사전 검증한다.</span></td></tr>
+            <tr><td class="mono">/api/fleet/*</td><td>REST — <code class="inline">GET templates</code> · <code class="inline">GET/POST missions</code>(인라인 <code class="inline">fleet_mission</code> 또는 <code class="inline">template</code>로 시작) · <code class="inline">GET missions/{id}</code> · <code class="inline">POST missions/{id}/abort</code>.</td></tr>
+            <tr><td>FleetMission (데이터 모델)</td><td><code class="inline">synapse.missions</code>에 정의 — NEXUS가 소유하지 않는다.</td></tr>
+            <tr><td>NEXUS의 역할</td><td><code class="inline">mission.trigger</code>로 <span class="nb">미션을 던지고,</span> <code class="inline">robot.status.mission_info</code> 폴링으로 <span class="nb">진행을</span> <b>모니터링</b>한다(콜백 <code class="inline">send</code>·<code class="inline">get_mission_info</code> 주입 구조).</td></tr>
             <tr><td>로봇 (TOM)의 역할</td><td>실제 Task <b>실행</b> · 점유 · 실패 복구 — 실행 책임은 엣지에 남는다.</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="figcaption"><b>Figure 10.</b> FleetMission 설계 — <b>P3 백로그(미구현)</b>. 현 NEXUS는 조율 엔진 없이 status 캐시·시그널링까지만 구현돼 있다.</p>
+      <p class="figcaption"><b>Figure 10.</b> FleetMission 조율 — <b>구현됨(Phase 3)</b>. NEXUS는 DAG를 풀어 <span class="nb">미션을 트리거하고</span> <code class="inline">mission_info</code>로 <span class="nb">완료를 추적하며,</span> 실제 실행은 <span class="nb">로봇(엣지)이 맡는다.</span></p>
     </div>
   </div>
 </section>

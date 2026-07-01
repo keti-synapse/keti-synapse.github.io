@@ -77,7 +77,7 @@
     <div class="proj-mark">🌐</div>
     <h1 class="proj-name">AND</h1>
     <p class="proj-full">Adaptive Network Daemon</p>
-    <p class="proj-lead"><span class="s"><code class="inline">tom_and_gerri</code> 레포의 <code class="inline">_and_/</code> 모듈이다.</span><span class="s">로봇 내부의 <strong>in-process 버스(pypubsub)</strong>와 <strong>외부 전송 백엔드</strong>를 잇는 얇은 어댑터 데몬으로, 제어 로직은 없고 <em>전달만</em> 한다.</span></p>
+    <p class="proj-lead"><span class="s"><code class="inline">tom_and_gerri</code> 레포의 <code class="inline">_and_/</code> 모듈이다.</span><span class="s">로봇 내부의 <strong class="nb">in-process 버스(pypubsub)</strong>와 <strong class="nb">외부 전송 백엔드</strong>를 잇는 얇은 어댑터 데몬으로, 제어 로직은 없고 <em>전달만</em> 한다.</span></p>
     <div class="proj-badges">
       <span class="badge badge-and">네트워크 데몬</span>
       <span class="badge badge-and">WebRTC</span>
@@ -93,12 +93,12 @@
     <div class="section-head">
       <span class="eyebrow">Definition &amp; Role</span>
       <h2 class="section-title">전달만 하는 어댑터 데몬</h2>
-      <p class="section-lead"><span class="s">AND는 “로봇이 바깥과 어떻게 통신하는가”를 한 곳에 가둔다.</span><span class="s">GERRI(제어 SW)는 전송 수단을 전혀 모른 채 표준 토픽으로만 말하고, AND가 그것을 실제 네트워크로 옮긴다.</span></p>
+      <p class="section-lead"><span class="s">AND는 “로봇이 바깥과 어떻게 통신하는가”를 한 곳에 가둔다.</span><span class="s">GERRI(제어 SW)는 <span class="nb">전송 수단을</span> <span class="nb">전혀 모른 채</span> <span class="nb">표준 토픽으로만</span> 말하고, AND가 그것을 <span class="nb">실제 네트워크로</span> 옮긴다.</span></p>
     </div>
     <div class="prose">
       <p class="lead-para"><strong>A</strong>daptive <strong>N</strong>etwork <strong>D</strong>aemon — synapse 내부 버스와 외부 transport 백엔드를 잇는 레이어다.</p>
-      <p>AND는 두 조각으로 나뉜다. <strong>브리지</strong>(<code class="inline">daemon.py</code>의 <code class="inline">AdaptiveNetworkDaemon</code>)는 synapse 토픽 <code class="inline">Topic.Network.SEND</code>/<code class="inline">Topic.Network.RECV</code>와 백엔드를 잇고, <strong>백엔드</strong>(<code class="inline">backend.py</code>의 <code class="inline">NetworkBackend</code> 인터페이스 + 구현)는 실제 전송 수단을 담당한다 — WebRTC(rtc2kng), 테스트용 loopback 등.</p>
-      <p>내부 버스는 <code class="inline">pypubsub</code>(in-process·동기 디스패치)이다. 브리지 자체에는 큐도 스레드도 상태도 없다(인스턴스 상태는 <code class="inline">self.backend</code> 하나뿐). 그저 한쪽 토픽에서 받은 것을 다른 쪽으로 넘긴다.</p>
+      <p>AND는 <span class="nb">두 조각으로</span> 나뉜다. <strong>브리지</strong>(<code class="inline">daemon.py</code>의 <code class="inline">AdaptiveNetworkDaemon</code>)는 <span class="nb">synapse 토픽</span> <code class="inline">Topic.Network.SEND</code>/<code class="inline">Topic.Network.RECV</code>와 <span class="nb">백엔드를 잇고,</span> <strong>백엔드</strong>(<code class="inline">backend.py</code>의 <code class="inline">NetworkBackend</code> 인터페이스 + 구현)는 <span class="nb">실제 전송 수단을 담당한다</span> — WebRTC(rtc2kng), 테스트용 loopback 등.</p>
+      <p>내부 버스는 <code class="inline">pypubsub</code>(in-process·동기 디스패치)이다. 브리지 자체에는 <span class="nb">큐도 스레드도</span> <span class="nb">상태도 없다</span>(인스턴스 상태는 <code class="inline">self.backend</code> 하나뿐). 그저 <span class="nb">한쪽 토픽에서</span> <span class="nb">받은 것을</span> <span class="nb">다른 쪽으로</span> 넘긴다.</p>
     </div>
   </div>
 </section>
@@ -109,7 +109,7 @@
     <div class="section-head">
       <span class="eyebrow">Bridge</span>
       <h2 class="section-title">내부 버스 ↔ 외부 전송</h2>
-      <p class="section-lead">Base(게이트웨이)가 <code class="inline">Topic.Network.SEND</code>로 내보낸 메시지는 <code class="inline">backend.send()</code>로 흘러 나가고, 백엔드가 외부에서 받은 메시지는 <code class="inline">Topic.Network.RECV</code>로 다시 올라온다.</p>
+      <p class="section-lead">Base(게이트웨이)가 <code class="inline">Topic.Network.SEND</code>로 내보낸 메시지는 <code class="inline">backend.send()</code>로 <span class="nb">흘러 나가고,</span> 백엔드가 외부에서 <span class="nb">받은 메시지는</span> <code class="inline">Topic.Network.RECV</code>로 <span class="nb">다시 올라온다.</span></p>
     </div>
     <div class="figure">
       <div class="figure-frame">
@@ -142,12 +142,12 @@
         <table class="tbl">
           <thead><tr><th>방향</th><th>흐름</th></tr></thead>
           <tbody>
-            <tr><td class="mono">송신</td><td>Base가 <code class="inline">Topic.Network.SEND</code>로 발행 → 브리지가 구독하고 있다가 <code class="inline">backend.send(message)</code> 호출 → 외부로 전송</td></tr>
-            <tr><td class="mono">수신</td><td>backend가 외부 메시지 수신 → 주입된 콜백이 <code class="inline">Topic.Network.RECV</code>로 재발행 → Base가 받아 처리</td></tr>
+            <tr><td class="mono">송신</td><td>Base가 <code class="inline">Topic.Network.SEND</code>로 발행 → 브리지가 <span class="nb">구독하고 있다가</span> <code class="inline">backend.send(message)</code> 호출 → <span class="nb">외부로 전송</span></td></tr>
+            <tr><td class="mono">수신</td><td>backend가 <span class="nb">외부 메시지</span> 수신 → <span class="nb">주입된 콜백이</span> <code class="inline">Topic.Network.RECV</code>로 재발행 → Base가 <span class="nb">받아 처리</span></td></tr>
           </tbody>
         </table>
       </div>
-      <div class="note mt-20"><b>상태 없는 pass-through.</b> 브리지는 메시지를 <strong>변환·검증 없이 그대로</strong> 넘긴다. 생성 즉시 SEND 구독이 활성화되고 외부 수신 콜백이 백엔드에 주입되며, <code class="inline">connect()</code>/<code class="inline">disconnect()</code>는 전송 계층의 수립·정리를 백엔드에 위임한다.</div>
+      <div class="note mt-20"><b>상태 없는 pass-through.</b> 브리지는 메시지를 <strong>변환·검증 없이 그대로</strong> 넘긴다. 생성 즉시 SEND <span class="nb">구독이 활성화되고</span> 외부 수신 콜백이 <span class="nb">백엔드에 주입되며,</span> <code class="inline">connect()</code>/<code class="inline">disconnect()</code>는 전송 계층의 수립·정리를 백엔드에 위임한다.</div>
     </div>
   </div>
 </section>
@@ -158,7 +158,7 @@
     <div class="section-head">
       <span class="eyebrow">Transport-Agnostic</span>
       <h2 class="section-title">전송은 갈아끼울 수 있다</h2>
-      <p class="section-lead"><span class="s">이것이 AND 존재 이유다.</span><span class="s">GERRI는 오직 <code class="inline">Topic.Network.SEND/RECV</code>하고만 대화하므로, 전송 백엔드를 WebRTC에서 다른 것으로 교체해도 <strong>GERRI 제어 로직은 한 줄도 바뀌지 않는다.</strong></span></p>
+      <p class="section-lead"><span class="s">이것이 AND 존재 이유다.</span><span class="s">GERRI는 오직 <code class="inline">Topic.Network.SEND/RECV</code>하고만 대화하므로, <span class="nb">전송 백엔드를</span> WebRTC에서 <span class="nb">다른 것으로</span> 교체해도 <strong>GERRI 제어 로직은 한 줄도 바뀌지 않는다.</strong></span></p>
     </div>
     <div class="figure">
       <div class="figure-frame">
@@ -171,10 +171,10 @@
         </div>
         <div style="text-align:center;margin-top:18px;font-size:15px;color:var(--text2);">모두 동일한 <code class="inline">NetworkBackend</code> 인터페이스(<code class="inline">connect</code>/<code class="inline">send</code>/<code class="inline">disconnect</code> + <code class="inline">_deliver</code>)를 따른다.</div>
       </div>
-      <p class="figcaption"><b>Figure 2.</b> 전송 독립. 백엔드만 갈아끼우면 된다(브리지·제어 코드는 불변 — 클린 아키텍처). <strong>현재 백엔드는 robot-first WebRTC(rtc2kng)</strong>이며, 단위 테스트는 실제 네트워크 없는 <code class="inline">LoopbackBackend</code>로 대체한다.</p>
+      <p class="figcaption"><b>Figure 2.</b> 전송 독립. <span class="nb">백엔드만</span> <span class="nb">갈아끼우면 된다</span>(브리지·제어 코드는 불변 — 클린 아키텍처). <strong>현재 백엔드는 robot-first WebRTC(rtc2kng)</strong>이며, 단위 테스트는 실제 네트워크 없는 <code class="inline">LoopbackBackend</code>로 대체한다.</p>
     </div>
     <div class="prose mt-40">
-      <p>인터페이스 계약은 단순하다. 구현체는 <code class="inline">connect()</code>·<code class="inline">send(message)</code>를 채우고, 외부에서 메시지를 받으면 부모가 제공하는 <code class="inline">self._deliver(message)</code>를 호출해 브리지로 올린다. <code class="inline">disconnect()</code>는 추상 강제가 아닌 선택(no-op 기본) — 연결·전송은 필수, 정리는 선택이라는 의도적 비대칭이다.</p>
+      <p><span class="nb">인터페이스 계약은</span> 단순하다. 구현체는 <code class="inline">connect()</code>·<code class="inline">send(message)</code>를 채우고, 외부에서 <span class="nb">메시지를 받으면</span> <span class="nb">부모가 제공하는</span> <code class="inline">self._deliver(message)</code>를 호출해 <span class="nb">브리지로 올린다.</span> <code class="inline">disconnect()</code>는 <span class="nb">추상 강제가 아닌</span> 선택(no-op 기본) — 연결·전송은 필수, <span class="nb">정리는 선택이라는</span> <span class="nb">의도적 비대칭이다.</span></p>
     </div>
   </div>
 </section>
@@ -185,24 +185,24 @@
     <div class="section-head">
       <span class="eyebrow">rtc2kng</span>
       <h2 class="section-title">WebRTC 백엔드 — robot-first P2P</h2>
-      <p class="section-lead"><span class="s">현재 전송 백엔드는 <code class="inline">_and_/rtc2kng/</code>의 WebRTC 구현이다.</span><span class="s">로봇이 부팅 시 시그널링에 합류하고, operator의 <code class="inline">ready</code>를 받으면 <strong>로봇이 offer를 주도</strong>한다.</span><span class="s">단일 asyncio 루프(데몬 스레드)에서 1:N operator 연결을 관리한다.</span></p>
+      <p class="section-lead"><span class="s">현재 전송 백엔드는 <code class="inline">_and_/rtc2kng/</code>의 WebRTC 구현이다.</span><span class="s">로봇이 부팅 시 <span class="nb">시그널링에 합류하고,</span> operator의 <code class="inline">ready</code>를 받으면 <strong>로봇이 offer를 주도</strong>한다.</span><span class="s">단일 asyncio 루프(데몬 스레드)에서 1:N operator <span class="nb">연결을 관리한다.</span></span></p>
     </div>
     <div class="file-grid">
       <div class="file-card">
         <div class="fn">signaling.py</div>
-        <div class="fd"><strong>SignalingClient</strong> — WebSocket 시그널링 클라이언트. SDP offer/answer·ICE candidate의 <strong>전송 계층만</strong> 담당. P2P가 열리면 데이터 경로에서 빠진다.</div>
+        <div class="fd"><strong>SignalingClient</strong> — WebSocket 시그널링 클라이언트. SDP offer/answer·ICE candidate의 <strong>전송 계층만</strong> 담당. P2P가 열리면 <span class="nb">데이터 경로에서</span> 빠진다.</div>
       </div>
       <div class="file-card">
         <div class="fn">peer_connection.py</div>
-        <div class="fd"><strong>RobotPeerConnection</strong> — operator 1명과의 aiortc 연결. ICE 협상 + DataChannel(<code class="inline">"synapse"</code>)로 표준 메시지(JSON) 교환.</div>
+        <div class="fd"><strong>RobotPeerConnection</strong> — <span class="nb">operator 1명과의</span> aiortc 연결. ICE 협상 + DataChannel(<code class="inline">"synapse"</code>)로 <span class="nb">표준 메시지(JSON)</span> 교환.</div>
       </div>
       <div class="file-card">
         <div class="fn">rtc2kng_backend.py</div>
-        <div class="fd"><strong>Rtc2kngBackend</strong> — <code class="inline">NetworkBackend</code> 구현. robot-first, 여러 operator와 동시 1:N. asyncio 루프 스레드에서 시그널링·peer 구동.</div>
+        <div class="fd"><strong>Rtc2kngBackend</strong> — <code class="inline">NetworkBackend</code> 구현. robot-first, 여러 operator와 동시 1:N. asyncio <span class="nb">루프 스레드에서</span> 시그널링·peer 구동.</div>
       </div>
       <div class="file-card">
         <div class="fn">camera_track.py</div>
-        <div class="fd"><strong>CameraSource → VideoStreamTrack</strong> 어댑터. 카메라를 WebRTC로 송출하기 위한 변환층(현재 attach 지점만 배선).</div>
+        <div class="fd"><strong>CameraSource → VideoStreamTrack</strong> 어댑터. 카메라를 WebRTC로 <span class="nb">송출하기 위한</span> 변환층(현재 attach <span class="nb">지점만 배선</span>).</div>
       </div>
     </div>
     <div class="figure mt-40">
@@ -215,7 +215,7 @@
           <span style="color:var(--acc-d);font-weight:800;">P2P 직결</span>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 4.</b> robot-first 핸드셰이크. 시그널링이 끝나면 미디어·제어는 P2P로 직결되고 서버는 데이터 흐름에서 빠진다. aiortc는 non-trickle이라 로봇 ICE 후보를 offer SDP에 한 번에 담는다.</p>
+      <p class="figcaption"><b>Figure 4.</b> robot-first 핸드셰이크. <span class="nb">시그널링이 끝나면</span> 미디어·제어는 <span class="nb">P2P로 직결되고</span> 서버는 <span class="nb">데이터 흐름에서</span> 빠진다. aiortc는 non-trickle이라 로봇 ICE 후보를 offer SDP에 한 번에 담는다.</p>
     </div>
   </div>
 </section>
@@ -226,11 +226,11 @@
     <div class="section-head">
       <span class="eyebrow">Gateway Rule</span>
       <h2 class="section-title">Sub는 네트워크를 직접 만지지 않는다</h2>
-      <p class="section-lead"><span class="s">AND/외부 토픽에 손댈 수 있는 것은 오직 Base(게이트웨이) 하나뿐이다.</span><span class="s">SubController는 외부 통신을 전혀 몰라야 한다.</span></p>
+      <p class="section-lead"><span class="s">AND/외부 토픽에 <span class="nb">손댈 수 있는 것은</span> 오직 Base(게이트웨이) 하나뿐이다.</span><span class="s">SubController는 <span class="nb">외부 통신을</span> <span class="nb">전혀 몰라야 한다.</span></span></p>
     </div>
     <div class="prose">
-      <div class="note"><span class="s"><b>규칙:</b> SubController는 <code class="inline">Topic.Network.SEND</code>/<code class="inline">RECV</code> 등 외부 토픽을 <strong>직접 사용하는 것이 금지</strong>된다.</span><span class="s">Sub는 자기 status를 내부 토픽으로만 발행하고, 외부와의 모든 송수신은 Base가 단일 창구로 중계한다.</span><span class="s">이렇게 해야 전송 교체가 Sub에 전혀 영향을 주지 않고, AND의 “전달만 하는 데몬” 경계가 유지된다.</span></div>
-      <p class="mt-24">즉 의존 방향은 <strong>Sub → (내부 토픽) → Base → (Network.SEND/RECV) → AND → backend → 네트워크</strong> 한 방향으로 흐른다. Sub가 이 규칙을 어기고 외부 토픽을 직접 건드리면 게이트웨이 정책이 깨지고, 백엔드 교체 시 Sub 코드까지 수정해야 하는 결합이 생긴다.</p>
+      <div class="note"><span class="s"><b>규칙:</b> SubController는 <code class="inline">Topic.Network.SEND</code>/<code class="inline">RECV</code> 등 외부 토픽을 <strong>직접 사용하는 것이 금지</strong>된다.</span><span class="s">Sub는 자기 status를 <span class="nb">내부 토픽으로만</span> 발행하고, 외부와의 모든 송수신은 Base가 <span class="nb">단일 창구로</span> 중계한다.</span><span class="s">이렇게 해야 <span class="nb">전송 교체가</span> Sub에 <span class="nb">전혀 영향을</span> 주지 않고, AND의 “전달만 하는 데몬” <span class="nb">경계가 유지된다.</span></span></div>
+      <p class="mt-24">즉 <span class="nb">의존 방향은</span> <strong>Sub → (내부 토픽) → Base → (Network.SEND/RECV) → AND → backend → 네트워크</strong> <span class="nb">한 방향으로</span> 흐른다. Sub가 <span class="nb">이 규칙을 어기고</span> <span class="nb">외부 토픽을</span> 직접 건드리면 <span class="nb">게이트웨이 정책이</span> 깨지고, <span class="nb">백엔드 교체 시</span> <span class="nb">Sub 코드까지</span> <span class="nb">수정해야 하는</span> 결합이 생긴다.</p>
     </div>
   </div>
 </section>

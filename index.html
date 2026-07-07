@@ -397,7 +397,7 @@
         <div class="arch-layer" style="margin-bottom:0;">
           <div class="arch-label">표준 · 중심 (안쪽) — 가장 안정적으로 관리</div>
           <div class="arch-nodes">
-            <a href="synapse.html" class="arch-node syn" style="white-space:normal;">🧠 synapse <span>Topics · Messages(6) · Enums(6) · 자료구조 · 미션 모델 · standardize()</span></a>
+            <a href="synapse.html" class="arch-node syn" style="white-space:normal;">🧠 synapse <span>Topics · Messages(6) · Enum 카탈로그 · 자료구조 · 미션 모델 · wire contract · standardize()</span></a>
           </div>
         </div>
       </div>
@@ -440,8 +440,8 @@
           <div class="comp-ic">🧠</div>
           <div class="comp-name" style="color:var(--syn);">synapse</div>
           <div class="comp-abbr">공통 표준 레이어 · pip 패키지</div>
-          <div class="comp-desc"><span class="nb">모든 컴포넌트가</span> <span class="nb">import하는</span> <span class="nb">중심 표준.</span> Topics, Messages 6종, Enums 6개, 자료구조, 미션 모델, <code class="inline">standardize()</code>를 <span class="nb">정의한다.</span> <span class="nb">정의만 하고</span> <span class="nb">실행 로직은 없다.</span></div>
-          <div class="comp-chips"><span class="chip">Topics</span><span class="chip">Messages·6</span><span class="chip">Enums·6</span><span class="chip">standardize()</span></div>
+          <div class="comp-desc"><span class="nb">모든 컴포넌트가</span> <span class="nb">import하는</span> <span class="nb">중심 표준.</span> Topics, Messages 6종, Enum 카탈로그, 자료구조, 미션 모델, <code class="inline">standardize()</code>를 <span class="nb">정의한다.</span> <span class="nb">정의만 하고</span> <span class="nb">실행 로직은 없다.</span></div>
+          <div class="comp-chips"><span class="chip">Topics</span><span class="chip">Messages·6</span><span class="chip">Enum 카탈로그</span><span class="chip">standardize()</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--syn);">자세히 보기</span><span class="ar">↗</span></div>
       </a>
@@ -671,30 +671,30 @@
 <section class="section" id="sprint">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Current Sprint</span>
-      <h2 class="section-title">목표: NEXUS UI 조작으로 모바일 로봇을 실제로 움직인다</h2>
-      <p class="section-lead"><span class="s">완료 기준 — status 수신 + command 반영 + 이동 + N:N→1:1 <span class="nb">전환까지</span> End-to-End.</span><span class="s"><span class="nb">가능한 항목은</span> <span class="nb">테스트를 먼저 짜는</span> TDD 기반.</span></p>
+      <span class="eyebrow">Roadmap</span>
+      <h2 class="section-title">기반 E2E는 완료, 지금은 조율·개입·트윈·SDK로 확장 중</h2>
+      <p class="section-lead"><span class="s">초기 목표였던 <span class="nb">"NEXUS UI로</span> 모바일 로봇을 실제로 움직인다"(status→command→이동→N:N↔1:1)는 <strong>달성됐다.</strong></span><span class="s">이후 <span class="nb">플릿 조율·인간 개입·디지털 트윈·크로스랭귀지 SDK로</span> 범위를 넓히고 있다.</span></p>
     </div>
     <div class="phase-grid">
       <div class="phase-item">
-        <div class="phase-label" style="color:var(--syn);">PHASE 0</div>
-        <div class="phase-title">synapse 단위 테스트</div>
-        <div class="phase-desc">normalize/standardize · build_message · mission 직렬화 · capability 매칭. <span class="nb">전체의 토대.</span></div>
+        <div class="phase-label" style="color:var(--syn);">기반 E2E ✓</div>
+        <div class="phase-title">단일 로봇 원격조작</div>
+        <div class="phase-desc">synapse 표준·로봇/서버 연결·실시간 재접속 + UI 명령→실제 이동 + N:N↔1:1 전환. <span class="nb">전체의 토대(완료).</span></div>
       </div>
       <div class="phase-item">
-        <div class="phase-label" style="color:var(--tom);">PHASE 1</div>
-        <div class="phase-title">로봇 연결</div>
-        <div class="phase-desc">base/sub 작성·구동 · 로컬 단독 command·mission 실행 확인.</div>
+        <div class="phase-label" style="color:var(--nexus);">플릿 · 영속 ✓</div>
+        <div class="phase-title">다중 로봇 조율</div>
+        <div class="phase-desc"><code class="inline">FleetMissionRunner</code> DAG 조율(<code class="inline">/api/fleet/*</code>) · SQLite 스냅샷 영속 · 표준맵 정렬 부착.</div>
       </div>
       <div class="phase-item">
-        <div class="phase-label" style="color:var(--nexus);">PHASE 2</div>
-        <div class="phase-title">서버 연결</div>
-        <div class="phase-desc">NEXUS 연결/끊김 · status · command · 재접속 확인.</div>
+        <div class="phase-label" style="color:var(--gerri);">개입 · 트윈</div>
+        <div class="phase-title">인간 개입 + 3D 디지털 트윈</div>
+        <div class="phase-desc">A4 통합 개입 엔진(NEED_HELP→TELEOP takeover) · URDF 3D 트윈 콕핏 · IoT(엘리베이터·자동문) 연동.</div>
       </div>
       <div class="phase-item goal">
-        <div class="phase-label" style="color:var(--acc-d);">PHASE 3 🎯</div>
-        <div class="phase-title">프론트 UI</div>
-        <div class="phase-desc">실시간·재연결 + UI 명령→로봇 실제 이동 + N:N→1:1 전환 E2E.</div>
+        <div class="phase-label" style="color:var(--acc-d);">SDK 🎯</div>
+        <div class="phase-title">크로스랭귀지 확장</div>
+        <div class="phase-desc">기계판독 wire contract(JSON Schema·픽스처·VP8/Opus)로 <span class="nb">Unity 등 제3 UI·타 언어 SDK</span>를 같은 계약으로 잇는다.</div>
       </div>
     </div>
   </div>

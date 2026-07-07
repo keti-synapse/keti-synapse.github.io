@@ -24,7 +24,10 @@
   letter-spacing:0.04em; padding:3px 9px; border-radius:6px; border:1px solid;
 }
 .method.get { background:var(--and-l); color:var(--and); border-color:var(--and-bd); }
+.method.post{ background:var(--gerri-l); color:#92520a; border-color:var(--gerri-bd); }
+.method.del { background:var(--nexus-l); color:var(--nexus); border-color:var(--nexus-bd); }
 .method.ws  { background:var(--nexus-l); color:var(--nexus); border-color:var(--nexus-bd); }
+.api-grp td { background:var(--bg); color:var(--text3); font-size:11.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
 .tbl td .path { font-family:var(--mono); font-size:14px; color:var(--ink); font-weight:600; }
 .tbl td .ret { font-family:var(--mono); font-size:12px; color:var(--text3); }
 
@@ -190,6 +193,8 @@
       <span class="file-chip">app.py</span>
       <span class="file-chip">relay.py</span>
       <span class="file-chip">registry.py</span>
+      <span class="file-chip">fleet.py</span>
+      <span class="file-chip">persistence.py</span>
       <span class="file-chip">gateway.py</span>
       <span class="file-chip">config.py</span>
       <span class="file-chip">v0.0.1</span>
@@ -212,7 +217,8 @@
     </div>
     <div class="prose">
       <p class="lead-para"><strong>NEXUS는 진실의 원본(SSOT)이 아니다.</strong> 각 로봇(TOM)이 <span class="nb">자기 상태의</span> <span class="nb">권위를 가지며,</span> NEXUS는 WebSocket으로 받은 상태를 <span class="nb">메모리에 캐시해</span> <span class="nb">대시보드에 비춰주는</span> <em>뷰</em>다.</p>
-      <p>그래서 NEXUS의 책임은 <span class="nb">둘로 좁다.</span> 첫째, <span class="nb">연결된 로봇들의</span> <strong>status를 모아 캐시</strong>하고 <span class="nb">REST로 노출한다</span>(<code class="inline">/api/robots</code>). 둘째, <span class="nb">운영자와 로봇이</span> <span class="nb">직접 만나도록</span> <strong>WebRTC 시그널링을 중계</strong>한다(<code class="inline">/ws/{room}</code>). 핸드셰이크가 끝나면 미디어·DataChannel은 <span class="nb">P2P로 직결되고</span> NEXUS는 <span class="nb">데이터 경로에서</span> <span class="nb">빠진다</span> — 작은 시그널링 <span class="nb">JSON만 오간다.</span></p>
+      <p>핵심 축은 <span class="nb">둘이다.</span> 첫째, <span class="nb">연결된 로봇들의</span> <strong>status를 모아 캐시</strong>하고 <span class="nb">REST로 노출한다</span>(<code class="inline">/api/robots</code>). 둘째, <span class="nb">운영자와 로봇이</span> <span class="nb">직접 만나도록</span> <strong>WebRTC 시그널링을 중계</strong>한다(<code class="inline">/ws/{room}</code>). 핸드셰이크가 끝나면 미디어·DataChannel은 <span class="nb">P2P로 직결되고</span> NEXUS는 <span class="nb">데이터 경로에서</span> <span class="nb">빠진다</span> — 작은 시그널링 <span class="nb">JSON만 오간다.</span></p>
+      <p>이 두 축 위에 <span class="nb">엣지 원칙을 지키는</span> 얇은 서비스가 얹힌다 — <strong>FleetMission 조율</strong>(<code class="inline">/api/fleet/*</code>), <strong>공간 메타</strong>(표준맵·로봇맵 정렬 부착 <code class="inline">/api/maps</code>·<code class="inline">/api/alignments</code>), <strong>3D 트윈용 로봇 description(URDF) 캐시·서빙</strong>(<code class="inline">/api/description</code>), <span class="nb">컨트롤플레인 명령 릴레이</span>(<code class="inline">/api/command</code>), IoT 알람 집계(<code class="inline">/api/alarms</code>). 어느 것도 <span class="nb">좌표 계산이나</span> <span class="nb">미션 실행을 대신하지 않는다</span> — 여전히 <span class="nb">부착·중계·모니터링만</span> 한다.</p>
       <p>의존성도 좁다. NEXUS가 import하는 것은 <span class="nb">공통 표준</span> <code class="inline">synapse</code> 하나뿐이며(메시지 토픽 <code class="inline">Topic</code> 사용), <code class="inline">tom_and_gerri</code>나 <code class="inline">tag_*</code> 같은 <span class="nb">로봇 코드는</span> 전혀 import하지 않는다 — <strong>코드 결합도 0</strong>, 오직 <span class="nb">네트워크 메시지</span> <span class="nb">표준으로만</span> <span class="nb">대화한다.</span></p>
       <div class="note mt-8"><span class="s"><b>Edge-Authoritative.</b> 연결 끊김(OFFLINE)조차 NEXUS가 <span class="nb">단정하지 않는다.</span></span><span class="s"><code class="inline">/api/robots</code>는 <code class="inline">server_time</code>을 함께 내려주고, 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 로 스스로 판단한다.</span></div>
     </div>
@@ -222,13 +228,13 @@
         <div class="kv-grid">
           <div class="kv"><div class="k">역할</div><div class="v"><span class="nb">단일 사이트</span> <span class="nb">플릿 관제</span> + WebRTC <span class="nb">시그널링 게이트웨이</span></div></div>
           <div class="kv"><div class="k">백엔드</div><div class="v">FastAPI + Uvicorn (ASGI) · pydantic ≥ 2.0 · <code>websockets</code></div></div>
-          <div class="kv"><div class="k">상태 저장</div><div class="v">in-memory dict <span class="nb">레지스트리가 기본</span> · <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> 옵션(<code class="inline">persistence.py</code>, stdlib sqlite3 최소 구현) — <code class="inline">NEXUS_DB_PATH</code>로 켬(<code class="inline">run.sh</code> 기본 ON). <span class="nb">이력·시계열 DB는</span> <span class="nb">확장 예정</span></div></div>
+          <div class="kv"><div class="k">상태 저장</div><div class="v">in-memory dict <span class="nb">레지스트리가 기본</span> · <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> 옵션(<code class="inline">persistence.py</code>, stdlib sqlite3 최소 구현) — <code class="inline">NEXUS_DB_PATH</code>로 켬(<code class="inline">run.sh</code> 기본 ON). <span class="nb">per-robot 이력(history) seam</span> 배선됨 — <code class="inline">NEXUS_HISTORY</code>로 opt-in(실 백엔드는 이관 영역)</div></div>
           <div class="kv"><div class="k">기동</div><div class="v"><code>python -m nexus</code> 단일 명령 · 빌드 없음</div></div>
           <div class="kv"><div class="k">의존</div><div class="v">오직 <code>synapse</code> import (tom_and_gerri·tag 미import → 결합도 0)</div></div>
-          <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.0.1 · 13 tests passing</div></div>
+          <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.0.1 · pytest 스위트 통과(15개 파일)</div></div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 1.</b> NEXUS 핵심 사실. <span class="nb">상태 원본은</span> <span class="nb">로봇이 소유하고</span> NEXUS는 뷰/캐시 — P1은 <span class="nb">메모리 레지스트리이며</span> <span class="nb">영속 DB는</span> <span class="nb">도입 전이다.</span></p>
+      <p class="figcaption"><b>Figure 1.</b> NEXUS 핵심 사실. <span class="nb">상태 원본은</span> <span class="nb">로봇이 소유하고</span> NEXUS는 뷰/캐시 — <span class="nb">메모리 레지스트리가 기본이고,</span> <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> <code class="inline">run.sh</code> 기본 ON이다.</p>
     </div>
   </div>
 </section>
@@ -243,7 +249,7 @@
     </div>
 
     <div class="prose">
-      <p>패키지는 <span class="nb">6개 모듈로</span> <span class="nb">단순하다.</span> <code class="inline">__main__.py</code>가 <code class="inline">uvicorn.run(create_app())</code>을 띄우고, <code class="inline">app.py</code>의 <code class="inline">create_app()</code> 팩토리가 <span class="nb">라우트와</span> <code class="inline">RelayHub</code>·<code class="inline">RobotRegistry</code>를 조립한다. <code class="inline">relay.py</code>는 <span class="nb">룸 기반</span> <span class="nb">시그널링 릴레이,</span> <code class="inline">registry.py</code>는 <code class="inline">(robot_id, sub_id)</code> <span class="nb">상태 캐시,</span> <code class="inline">gateway.py</code>는 <span class="nb">콕핏 정적 서빙</span> + config 주입, <code class="inline">config.py</code>는 <span class="nb">정적 Pydantic</span> <span class="nb">설정을 담당한다.</span> npm·webpack 같은 <span class="nb">빌드 단계는</span> <span class="nb">없다.</span></p>
+      <p>패키지는 <span class="nb">여전히 단순하다.</span> <code class="inline">__main__.py</code>가 <code class="inline">uvicorn.run(create_app())</code>을 띄우고, <code class="inline">app.py</code>의 <code class="inline">create_app()</code> 팩토리가 <span class="nb">라우트와</span> <code class="inline">RelayHub</code>·<code class="inline">RobotRegistry</code>를 조립한다. <code class="inline">relay.py</code>는 <span class="nb">룸 기반</span> <span class="nb">시그널링 릴레이,</span> <code class="inline">registry.py</code>는 <code class="inline">(robot_id, sub_id)</code> <span class="nb">상태 캐시,</span> <code class="inline">fleet.py</code>는 <span class="nb">FleetMission DAG 조율기,</span> <code class="inline">persistence.py</code>는 <span class="nb">SQLite 영속 seam,</span> <code class="inline">gateway.py</code>는 <span class="nb">콕핏 정적 서빙</span> + config 주입, <code class="inline">config.py</code>는 <span class="nb">정적 Pydantic</span> 설정을 담당한다(그 외 <code class="inline">ratelimit.py</code>·<code class="inline">logging_config.py</code>). npm·webpack 같은 <span class="nb">빌드 단계는</span> <span class="nb">없다.</span></p>
     </div>
 
     <div class="figure mt-32">
@@ -270,15 +276,18 @@
             <tr><td class="mono">__init__.py</td><td>공개 API — <code class="inline">RelayHub</code> · <code class="inline">RobotRegistry</code> · <code class="inline">load_config</code> · <code class="inline">SystemConfig</code>를 export.</td></tr>
             <tr><td class="mono">__main__.py</td><td><code class="inline">python -m nexus</code> 진입점 — <code class="inline">uvicorn.run(create_app())</code>으로 서버를 띄운다.</td></tr>
             <tr><td class="mono">app.py</td><td>FastAPI <code class="inline">create_app()</code> 팩토리 + 모든 라우트 조립.</td></tr>
-            <tr><td class="mono">relay.py</td><td><code class="inline">RelayHub</code> — 룸 기반(<code class="inline">room = robot_id</code>) 시그널링 릴레이.</td></tr>
+            <tr><td class="mono">relay.py</td><td><code class="inline">RelayHub</code>(룸 기반 <code class="inline">room = robot_id</code> 시그널링 릴레이) + <code class="inline">DashboardHub</code>(대시보드 push).</td></tr>
             <tr><td class="mono">registry.py</td><td><code class="inline">RobotRegistry</code> — <code class="inline">(robot_id, sub_id)</code> in-memory status 상태 캐시.</td></tr>
+            <tr><td class="mono">fleet.py</td><td><code class="inline">FleetMissionRunner</code> — <code class="inline">depends_on</code> DAG 검증·조율, run_view 발행.</td></tr>
+            <tr><td class="mono">persistence.py</td><td>영속 seam — <code class="inline">NullStore</code>(기본) / <code class="inline">SqliteStore</code>(stdlib sqlite3, 스냅샷 + 이력).</td></tr>
             <tr><td class="mono">config.py</td><td><code class="inline">SystemConfig</code> / <code class="inline">SiteConfig</code> / <code class="inline">FloorConfig</code> (pydantic, 정적).</td></tr>
             <tr><td class="mono">gateway.py</td><td>콕핏 정적 서빙 + <code class="inline">window.__COCKPIT__</code> 주입.</td></tr>
+            <tr><td class="mono">ratelimit.py · logging_config.py</td><td><code class="inline">/api/command</code> 릴레이 rate-limit · 로깅 설정.</td></tr>
             <tr><td class="mono">cockpit_default/</td><td><code class="inline">tag_{robot}/</code> 폴더가 없을 때의 폴백 콕핏.</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="figcaption"><b>Figure 3.</b> 패키지 레이아웃 — 6 모듈 + 폴백 콕핏. SQLite(sqlmodel)는 <code class="inline">[db]</code> optional extra로 예약돼 있으나 P1 코드 경로에는 없다.</p>
+      <p class="figcaption"><b>Figure 3.</b> 패키지 레이아웃 — 코어 모듈 + 폴백 콕핏. 영속은 <code class="inline">persistence.py</code>의 stdlib <code class="inline">sqlite3</code> 최소 구현으로, 별도 무거운 DB 의존성 없이 스냅샷/이력 seam을 제공한다.</p>
     </div>
   </div>
 </section>
@@ -289,7 +298,7 @@
     <div class="section-head">
       <span class="eyebrow">HTTP &amp; WebSocket API</span>
       <h2 class="section-title">엔드포인트 한눈에</h2>
-      <p class="section-lead"><span class="s"><code class="inline">app.py</code>가 노출하는 전부 — REST 2개 + 게이트웨이 2개 + 통합 WS 1개다.</span><span class="s">site/floor는 URL 네임스페이스일 뿐, <span class="nb">콕핏 폴더는</span> robot id로 <span class="nb">고른다.</span></span></p>
+      <p class="section-lead"><span class="s"><code class="inline">app.py</code>가 노출하는 표면 — <span class="nb">상태·description·맵/정렬·플릿·제어·IoT</span> REST + 콕핏 게이트웨이 + WS 2개(<code class="inline">/ws/dashboard</code>·<code class="inline">/ws/{room}</code>).</span><span class="s">site/building/floor는 URL 네임스페이스일 뿐, <span class="nb">콕핏 폴더는</span> robot id로 <span class="nb">고른다.</span></span></p>
     </div>
     <div class="figure">
       <div class="tbl-wrap">
@@ -298,6 +307,7 @@
             <tr><th style="width:60px;">메서드</th><th>경로</th><th>반환 · 동작</th></tr>
           </thead>
           <tbody>
+            <tr class="api-grp"><td colspan="3">상태 · 설정</td></tr>
             <tr>
               <td><span class="method get">GET</span></td>
               <td><span class="path">/api/robots</span></td>
@@ -306,22 +316,92 @@
             <tr>
               <td><span class="method get">GET</span></td>
               <td><span class="path">/api/sites</span></td>
-              <td><span class="ret">SystemConfig.model_dump()</span><br>사이트 → 층(floor) → 맵 트리. 정적 config를 그대로 직렬화.</td>
+              <td><span class="ret">SystemConfig.model_dump()</span><br>사이트 → 건물 → 층(floor) → 맵 트리. 정적 config를 그대로 직렬화.</td>
             </tr>
             <tr>
               <td><span class="method get">GET</span></td>
-              <td><span class="path">/{site}/{floor}/tag_{robot}/</span></td>
-              <td>콕핏 <b>index.html</b> 반환 + <span class="ret">window.__COCKPIT__ = {robotId, signalingUrl, mode}</span> 주입. tag 폴더 없으면 <b>cockpit_default</b> 폴백.</td>
+              <td><span class="path">/healthz</span></td>
+              <td>헬스체크 — uptime · 등록 로봇 수.</td>
+            </tr>
+
+            <tr class="api-grp"><td colspan="3">로봇 description (3D 디지털 트윈)</td></tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/api/description/{robot_type}</span></td>
+              <td>로봇 URDF 본문 서빙(디렉터리형 <code class="inline">model.urdf</code> → 플랫 폴백, 없으면 404).</td>
+            </tr>
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td><span class="path">/api/description/{robot_type}</span></td>
+              <td>로봇 → 서버 <b>URDF + 메시 zip 업로드/캐시</b>(3D 트윈용). 가드: basename·60MB·zip-slip·엔트리 상한·<code class="inline">model.urdf</code> 필수·원자적 교체.</td>
             </tr>
             <tr>
               <td><span class="method get">GET</span></td>
-              <td><span class="path">/{site}/{floor}/tag_{robot}/{filename}</span></td>
-              <td>콕핏 정적 자산을 <b>FileResponse</b>로 서빙 (mimetype 추론).</td>
+              <td><span class="path">/api/descriptions</span></td>
+              <td>캐시된 description 매니페스트(<code class="inline">index.json</code>).</td>
+            </tr>
+
+            <tr class="api-grp"><td colspan="3">공간 — 표준맵 · 정렬</td></tr>
+            <tr>
+              <td><span class="method get">GET</span> <span class="method post">POST</span> <span class="method del">DEL</span></td>
+              <td><span class="path">/api/maps</span> · <span class="path">/api/maps/{id}</span></td>
+              <td>표준맵 목록(+<code class="inline">image_url</code>) · 맵 에디터 업로드(JSON+base64 PNG) · 업로드 맵 삭제(config 맵은 불가).</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span> <span class="method post">POST</span> <span class="method del">DEL</span></td>
+              <td><span class="path">/api/alignments</span></td>
+              <td>로봇맵→표준맵 정렬(SE(2)) 조회·등록·삭제. status 수신 시 <code class="inline">standard_map_id</code>+<code class="inline">to_standard</code>를 <b>부착만</b> 한다(좌표 계산은 UI).</td>
+            </tr>
+
+            <tr class="api-grp"><td colspan="3">플릿 미션 (FleetMissionRunner)</td></tr>
+            <tr>
+              <td><span class="method get">GET</span> <span class="method post">POST</span></td>
+              <td><span class="path">/api/fleet/templates</span></td>
+              <td>저장된 FleetMission 템플릿 목록 · 빌더가 만든 미션을 <code class="inline">missions/*.json</code>으로 저장(DAG 검증).</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span> <span class="method post">POST</span></td>
+              <td><span class="path">/api/fleet/missions</span></td>
+              <td>진행/완료 런 목록 · 시작(<code class="inline">{fleet_mission}</code> 인라인 또는 <code class="inline">{template}</code>+args).</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span> <span class="method post">POST</span></td>
+              <td><span class="path">/api/fleet/missions/{run_id}</span> · <span class="path">…/abort</span></td>
+              <td>런 단건 조회(run_view) · 중단(진행 로봇에 stop 발송).</td>
+            </tr>
+
+            <tr class="api-grp"><td colspan="3">제어 · IoT</td></tr>
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td><span class="path">/api/command</span></td>
+              <td>컨트롤플레인 명령 릴레이 — 게이트키핑(봉투검증 400 → 미연결 404 → rate-limit 429 → 전달 200).</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/api/alarms</span> · <span class="path">/api/ice</span></td>
+              <td>활성 IoT 알람 집계(<code class="inline">io.is_alarm</code>) · WebRTC ICE(STUN/TURN) 설정.</td>
+            </tr>
+
+            <tr class="api-grp"><td colspan="3">콕핏 게이트웨이 · WebSocket · 정적</td></tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/{site}/{building}/{floor}/tag_{robot}/…</span></td>
+              <td>콕핏 <b>index.html</b> + <span class="ret">window.__COCKPIT__ = {robotId, signalingUrl, mode}</span> 주입 · 정적 자산 서빙(traversal 차단). tag 폴더 없으면 <b>cockpit_default</b> 폴백.</td>
+            </tr>
+            <tr>
+              <td><span class="method ws">WS</span></td>
+              <td><span class="path">/ws/dashboard</span></td>
+              <td>대시보드 실시간 push(<code class="inline">/ws/{room}</code>보다 먼저 정의 — 와일드카드 가로채기 방지).</td>
             </tr>
             <tr>
               <td><span class="method ws">WS</span></td>
               <td><span class="path">/ws/{room}</span></td>
-              <td><b>room = robot_id.</b> 통합 시그널링 릴레이 + 상태 캐시. 운영자·로봇 모두 같은 room에 합류해 메시지를 교환한다.</td>
+              <td><b>room = robot_id.</b> 통합 시그널링 릴레이 + 상태 캐시. 운영자·로봇이 같은 room에서 메시지 교환.</td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/console</span> · <span class="path">/maps</span> · <span class="path">/descriptions</span></td>
+              <td>정적 마운트 — nexus_ui 콘솔 · 표준맵 이미지 · URDF/메시(상대경로 해석).</td>
             </tr>
           </tbody>
         </table>
@@ -364,7 +444,7 @@
     </div>
 
     <div class="prose mt-32">
-      <div class="note"><span class="s"><b>한 줄 규칙.</b> 핸들러는 메시지의 <b>봉투</b>(<code class="inline">sender</code> / <code class="inline">receiver</code>)만 보고 JSON 원문을 그대로 중계한다 — SDP·ICE 페이로드는 들여다보지 않는다.</span><span class="s"><code class="inline">robot.status</code>만은 <span class="nb">라우팅 대상에서</span> <span class="nb">빠져</span> 레지스트리에 <span class="nb">캐시만 된다.</span></span></div>
+      <div class="note"><span class="s"><b>한 줄 규칙.</b> 핸들러는 메시지의 <b>봉투</b>(<code class="inline">sender</code> / <code class="inline">receiver</code>)만 보고 JSON 원문을 그대로 중계한다 — SDP·ICE 페이로드는 들여다보지 않는다.</span><span class="s"><code class="inline">robot.status</code>만은 <span class="nb">라우팅 대상에서</span> <span class="nb">빠져</span> 레지스트리에 <span class="nb">캐시만 된다.</span></span><span class="s">대시보드로의 실시간 push는 별도 <code class="inline">/ws/dashboard</code>가 담당한다(<code class="inline">DashboardHub</code>).</span></div>
     </div>
   </div>
 </section>
@@ -501,14 +581,17 @@
         <div class="split-li"><span class="mk">📊</span><span><b>status 수집·캐시</b> — (robot_id, sub_id) upsert, robot_id로 <span class="nb">그룹화 노출</span></span></div>
         <div class="split-li"><span class="mk">🔀</span><span><b>WebRTC 시그널링 릴레이</b> — ready 브로드캐스트, offer/answer/candidate 1:1</span></div>
         <div class="split-li"><span class="mk">🗂️</span><span><b>콕핏 게이트웨이</b> — <span class="nb">정적 서빙</span> + window.__COCKPIT__ 주입</span></div>
-        <div class="split-li"><span class="mk">🌐</span><span><b>사이트/맵 config 제공</b> — /api/sites로 트리 노출</span></div>
+        <div class="split-li"><span class="mk">🧭</span><span><b>플릿 미션 조율</b> — FleetMissionRunner가 DAG를 풀어 <span class="nb">미션 트리거·모니터링</span></span></div>
+        <div class="split-li"><span class="mk">🗺️</span><span><b>공간 메타 부착</b> — /api/sites·maps·alignments, status에 표준맵 정렬 부착(계산 X)</span></div>
+        <div class="split-li"><span class="mk">🧊</span><span><b>3D 트윈 description 캐시</b> — 로봇 URDF/메시 업로드·서빙(/api/description)</span></div>
       </div>
       <div class="split-box not">
         <h4>🚫 NEXUS가 하지 않는 것</h4>
         <div class="split-li"><span class="mk">💾</span><span><b>제어·미디어 중계 X</b> — 카메라·DataChannel은 <span class="nb">P2P 직결</span></span></div>
         <div class="split-li"><span class="mk">📌</span><span><b>상태 원본 보유 X</b> — SSOT는 <span class="nb">로봇(엣지).</span> NEXUS는 사본</span></div>
-        <div class="split-li"><span class="mk">🗃️</span><span><b>이력·시계열 DB X</b> — 기본은 in-memory dict. <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속만</span> <span class="nb">옵션 제공</span></span></div>
-        <div class="split-li"><span class="mk">🌍</span><span><b>다중 사이트 X</b> — P1은 single-site 가정</span></div>
+        <div class="split-li"><span class="mk">🗃️</span><span><b>본격 시계열 DB X</b> — SQLite 스냅샷 + per-robot 이력 seam(opt-in)까지만. <span class="nb">배치·보존정책·Timescale 등</span> 실 백엔드는 이관 영역</span></div>
+        <div class="split-li"><span class="mk">📐</span><span><b>좌표 계산·미션 실행 X</b> — 정렬은 <span class="nb">부착만,</span> Task 실행은 <span class="nb">로봇(엣지)</span></span></div>
+        <div class="split-li"><span class="mk">🌍</span><span><b>다중 사이트 X</b> — single-site 가정</span></div>
       </div>
     </div>
 
@@ -530,7 +613,7 @@
     <div class="prose">
       <div class="note"><b>구현됐습니다.</b> <code class="inline">nexus/fleet.py</code>의 <code class="inline">FleetMissionRunner</code>가 <code class="inline">FleetTask</code> DAG를 실행하고, <code class="inline">/api/fleet/*</code> REST API로 시작·조회·중단한다(단위 테스트 <code class="inline">tests/test_fleet.py</code> 포함).</div>
       <p class="mt-16">NEXUS는 <strong>스케줄링을 조율(orchestrate)</strong>한다. <code class="inline">FleetMissionRunner</code>가 <code class="inline">depends_on</code> 기반 DAG를 풀어, <span class="nb">의존 task가</span> <span class="nb">모두 성공하면</span> <span class="nb">해당 로봇에</span> <code class="inline">mission.trigger</code>를 던진다. 완료 추적은 <code class="inline">robot.status.mission_info</code> 폴링 — <code class="inline">mission_state</code>가 TERMINAL(<code class="inline">SUCCEEDED/FAILED/ABORTED</code>)이 되면 <span class="nb">task 종료로</span> <span class="nb">본다</span>(Status가 SSOT). 미션 <strong>실행 주체는 로봇(TOM)</strong>이고, 데이터 모델 <code class="inline">FleetMission</code>은 <code class="inline">synapse</code>에 정의된다(NEXUS에 두지 않는다).</p>
-      <p>한 로봇은 <span class="nb">한 번에</span> <span class="nb">한 미션만</span> 수행하므로, <span class="nb">같은 로봇을</span> <span class="nb">대상으로 한</span> task는 <span class="nb">의존이 없어도</span> <strong>자동 직렬화</strong>된다. 실패 정책 <code class="inline">on_failure</code>(stop · continue · retry)와 <code class="inline">timeout</code>을 지원하고, 진행상황은 <span class="nb">대시보드로</span> broadcast된다. 요약하면 — <strong>NEXUS는 던지고 지켜보고, 로봇이 실행한다.</strong> <span class="nb">점유·실패 복구</span> 같은 <span class="nb">실행 책임을</span> <span class="nb">엣지에 남기는</span> 것이 Edge-Authoritative <span class="nb">원칙과</span> <span class="nb">일관된다.</span></p>
+      <p>한 로봇은 <span class="nb">한 번에</span> <span class="nb">한 미션만</span> 수행하므로, <span class="nb">같은 로봇을</span> <span class="nb">대상으로 한</span> task는 <span class="nb">의존이 없어도</span> <strong>자동 직렬화</strong>된다. 실패 정책 <code class="inline">on_failure</code>(stop · continue · retry · help)와 <code class="inline">timeout</code>을 지원하고, 진행상황은 <code class="inline">run_view</code>로 <span class="nb">대시보드에</span> broadcast된다. 각 task의 skip/실패에는 <strong>기계판독 <code class="inline">reason</code> 코드</strong>(<code class="inline">FleetTaskReason</code> — <code class="inline">dep_failed</code>·<code class="inline">upstream_stop</code>·<code class="inline">trigger_undelivered</code>·<code class="inline">fleet_timeout</code> 등)와 사람용 <code class="inline">detail</code>이 분리돼 붙어, <span class="nb">제3 UI(Unity 등)도</span> <span class="nb">동일 계약으로</span> 분기·로컬라이즈할 수 있다. 요약하면 — <strong>NEXUS는 던지고 지켜보고, 로봇이 실행한다.</strong> <span class="nb">점유·실패 복구</span> 같은 <span class="nb">실행 책임을</span> <span class="nb">엣지에 남기는</span> 것이 Edge-Authoritative <span class="nb">원칙과</span> <span class="nb">일관된다.</span></p>
     </div>
 
     <div class="figure mt-32">
@@ -541,7 +624,7 @@
           </thead>
           <tbody>
             <tr><td class="mono">FleetMissionRunner</td><td><code class="inline">nexus/fleet.py</code>. <code class="inline">depends_on</code> 기반 DAG를 풀어 <span class="nb">다중 로봇</span> <span class="nb">미션을</span> <b>조율(orchestrate)</b>. 예: 이동 → 제조 → 전달 → 배송 <span class="nb">순서를</span> <span class="nb">의존성으로</span> <span class="nb">묶는다.</span> <code class="inline">validate_dag</code>가 <span class="nb">의존성 존재·사이클을</span> <span class="nb">사전 검증한다.</span></td></tr>
-            <tr><td class="mono">/api/fleet/*</td><td>REST — <code class="inline">GET templates</code> · <code class="inline">GET/POST missions</code>(인라인 <code class="inline">fleet_mission</code> 또는 <code class="inline">template</code>로 시작) · <code class="inline">GET missions/{id}</code> · <code class="inline">POST missions/{id}/abort</code>.</td></tr>
+            <tr><td class="mono">/api/fleet/*</td><td>REST — <code class="inline">GET/POST templates</code>(빌더 저장, DAG 검증) · <code class="inline">GET/POST missions</code>(인라인 <code class="inline">fleet_mission</code> 또는 <code class="inline">template</code>+args로 시작) · <code class="inline">GET missions/{id}</code> · <code class="inline">POST missions/{id}/abort</code>.</td></tr>
             <tr><td>FleetMission (데이터 모델)</td><td><code class="inline">synapse.missions</code>에 정의 — NEXUS가 소유하지 않는다.</td></tr>
             <tr><td>NEXUS의 역할</td><td><code class="inline">mission.trigger</code>로 <span class="nb">미션을 던지고,</span> <code class="inline">robot.status.mission_info</code> 폴링으로 <span class="nb">진행을</span> <b>모니터링</b>한다(콜백 <code class="inline">send</code>·<code class="inline">get_mission_info</code> 주입 구조).</td></tr>
             <tr><td>로봇 (TOM)의 역할</td><td>실제 Task <b>실행</b> · 점유 · 실패 복구 — 실행 책임은 엣지에 남는다.</td></tr>

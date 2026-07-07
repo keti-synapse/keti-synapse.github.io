@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>synapse — 공통 표준 레이어 | SYNAPSE</title>
-<meta name="description" content="synapse: 이기종 멀티로봇 플랫폼의 공통 표준 레이어. Topics, 표준 메시지 6종, Enum 6종, Pydantic v2 자료구조, standardize(), 미션 모델을 정의만 한다 — 실행 로직은 없다. KETI STAR TEAM.">
+<meta name="description" content="synapse: 이기종 멀티로봇 플랫폼의 공통 표준 레이어. Topics, 표준 메시지 6종, Enum 카탈로그, Pydantic v2 자료구조, standardize(), 미션 모델과 기계판독 wire contract를 정의만 한다 — 실행 로직은 없다. KETI STAR TEAM.">
 <link rel="stylesheet" href="style.css">
 <style>
 /* ── page-specific components (muted palette, matches style.css conventions) ── */
@@ -106,13 +106,13 @@
     <div class="proj-name" style="color:var(--acc);">synapse</div>
     <div class="proj-full">The single message standard every component imports — definitions only, no execution.</div>
     <p class="proj-lead">
-      <span class="s">이기종 멀티로봇 플랫폼의 <strong style="color:var(--ink);">가장 안쪽 표준 레이어</strong>로, Topics·표준 메시지 6종·Enum 6종·Pydantic v2 자료구조·미션 모델·<code class="inline">standardize()</code>를 한 곳에 모은다.</span>
+      <span class="s">이기종 멀티로봇 플랫폼의 <strong style="color:var(--ink);">가장 안쪽 표준 레이어</strong>로, Topics·표준 메시지 6종·Enum 카탈로그·Pydantic v2 자료구조·미션 모델·<code class="inline">standardize()</code>를 한 곳에 모은다.</span>
       <span class="s">철학은 단 하나, <strong style="color:var(--ink);">"정의만 한다"</strong>는 것이다.</span>
       <span class="s">실행 로직은 <span class="nb">바깥(tom_and_gerri·nexus)이</span> 가지며, 여기를 바꾸면 <span class="nb">전체가 흔들리므로</span> <span class="nb">가장 신중히</span> 관리한다.</span>
     </p>
     <div class="proj-badges">
       <span class="badge badge-syn">공통 표준 레이어</span>
-      <span class="badge badge-gray">pip 패키지 · v0.0.1</span>
+      <span class="badge badge-gray">pip 패키지 · v0.4.0</span>
       <span class="badge badge-gray">Python 3.10+</span>
       <span class="badge badge-gray">pydantic v2</span>
     </div>
@@ -275,8 +275,8 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Enum Catalog</span>
-      <h2 class="section-title">표준 Enum 6종</h2>
-      <p class="section-lead">모든 상태·이벤트·액션은 <span class="nb">문자열 직접</span> <span class="nb">사용 없이</span> 이 <span class="nb">6개 Enum 중</span> <span class="nb">하나로 표현한다.</span></p>
+      <h2 class="section-title">표준 Enum — 핵심 6종 + Fleet 3종</h2>
+      <p class="section-lead">모든 상태·이벤트·액션은 <span class="nb">문자열 직접</span> <span class="nb">사용 없이</span> <span class="nb">이 Enum 들 중</span> <span class="nb">하나로 표현한다</span> — <span class="nb">핵심 6종</span>(base/mission/이벤트/개입/capability)에 <span class="nb">플릿 상태 3종이</span> <span class="nb">더해진다.</span></p>
     </div>
 
     <div class="enum-grid">
@@ -295,14 +295,18 @@
         </div>
       </div>
       <div class="enum-card" style="grid-column:span 2;">
-        <div class="enum-name">MissionEvent <span style="color:var(--text3);font-weight:600;">(12)</span></div>
-        <div class="enum-sub">mission.event의 페이로드. <span class="nb">미션 레벨 4</span> · <span class="nb">태스크 3</span> · <span class="nb">개입 4</span> · <span class="nb">UI 1로</span> 구성.</div>
+        <div class="enum-name">MissionEvent <span style="color:var(--text3);font-weight:600;">(16)</span></div>
+        <div class="enum-sub">mission.event의 페이로드. <span class="nb">미션 레벨 4</span> · <span class="nb">태스크 3</span> · <span class="nb">인간 개입 4</span> · <span class="nb">개입 세션 3</span> · <span class="nb">무인 폴백 1</span> · <span class="nb">UI 1로</span> 구성.</div>
         <div class="ev-grp">미션 (4)</div>
         <div class="enum-values"><span class="ev">MISSION_STARTED</span><span class="ev">MISSION_SUCCEEDED</span><span class="ev">MISSION_FAILED</span><span class="ev">MISSION_ABORTED</span></div>
         <div class="ev-grp">태스크 (3)</div>
         <div class="enum-values"><span class="ev">TASK_STARTED</span><span class="ev">TASK_COMPLETED</span><span class="ev">TASK_FAILED</span></div>
-        <div class="ev-grp">개입 (4)</div>
+        <div class="ev-grp">인간 개입 (4)</div>
         <div class="enum-values"><span class="ev">NEED_HELP</span><span class="ev">HELP_RECEIVED</span><span class="ev">TELEOP_STARTED</span><span class="ev">TELEOP_ENDED</span></div>
+        <div class="ev-grp">개입 세션 · A4 takeover (3)</div>
+        <div class="enum-values"><span class="ev">TELEOP_TASK_STARTED</span><span class="ev">TELEOP_TASK_RESOLVED</span><span class="ev">TELEOP_MISSION_DONE</span></div>
+        <div class="ev-grp">무인 폴백 (1)</div>
+        <div class="enum-values"><span class="ev">HELP_TIMEOUT</span></div>
         <div class="ev-grp">UI (1)</div>
         <div class="enum-values"><span class="ev">WAIT_INPUT</span></div>
       </div>
@@ -314,10 +318,10 @@
         </div>
       </div>
       <div class="enum-card">
-        <div class="enum-name">TeleopExitAction <span style="color:var(--text3);font-weight:600;">(3)</span></div>
-        <div class="enum-sub"><span class="nb">원격조작 종료 방식.</span> <span class="nb">복귀 후</span> 재개/재시도 <span class="nb">또는 중단.</span></div>
+        <div class="enum-name">TeleopExitAction <span style="color:var(--text3);font-weight:600;">(5)</span></div>
+        <div class="enum-sub"><span class="nb">개입(TELEOP) 세션에서</span> <span class="nb">태스크별 해소 선택</span> — A4 takeover <span class="nb">순회에서</span> <span class="nb">태스크마다 사용.</span></div>
         <div class="enum-values">
-          <span class="ev">resume_done</span><span class="ev">resume_retry</span><span class="ev">abort</span>
+          <span class="ev">resume_done</span><span class="ev">skip</span><span class="ev">resume_retry</span><span class="ev">mission_done</span><span class="ev">abort</span>
         </div>
       </div>
       <div class="enum-card" style="grid-column:span 2;">
@@ -329,6 +333,16 @@
           <span class="ev">pan_tilt</span><span class="ev">pan_tilt_zoom</span><span class="ev">get_pose</span><span class="ev">get_battery</span><span class="ev">get_joints</span>
           <span class="ev ev-req">stop</span>
         </div>
+      </div>
+      <div class="enum-card" style="grid-column:span 2;">
+        <div class="enum-name">Fleet 상태 Enum <span style="color:var(--text3);font-weight:600;">(3종)</span></div>
+        <div class="enum-sub"><span class="nb">플릿 미션의</span> 런/태스크 상태·사유. <code class="inline">enums.py</code>에 <span class="nb">함께 정의되지만</span> <span class="nb">소유·발행은</span> NEXUS의 <code class="inline">FleetMissionRunner</code>(run_view)다. <span class="nb">사유 코드는</span> <span class="nb">제3 UI(Unity 등)까지</span> <span class="nb">기계판독 가능하게</span> <span class="nb">표준화한 것.</span></div>
+        <div class="ev-grp">FleetRunState — 런 전체 (4)</div>
+        <div class="enum-values"><span class="ev">running</span><span class="ev">succeeded</span><span class="ev">failed</span><span class="ev">aborted</span></div>
+        <div class="ev-grp">FleetTaskState — 개별 task (6)</div>
+        <div class="enum-values"><span class="ev">pending</span><span class="ev">running</span><span class="ev">retry_wait</span><span class="ev">succeeded</span><span class="ev">failed</span><span class="ev">skipped</span></div>
+        <div class="ev-grp">FleetTaskReason — skip/fail 사유 코드 (7)</div>
+        <div class="enum-values"><span class="ev">aborted</span><span class="ev">trigger_undelivered</span><span class="ev">retry_wait</span><span class="ev">upstream_stop</span><span class="ev">dep_failed</span><span class="ev">fleet_timeout</span><span class="ev">task_failed</span></div>
       </div>
     </div>
 
@@ -455,6 +469,7 @@
 
     <div class="prose mt-32">
       <p style="font-size:15px;color:var(--text2);line-height:1.8;"><strong style="color:var(--ink);">자료구조 요약.</strong> <code class="inline">models.py</code>는 <span class="nb">Pydantic v2이며</span> <span class="nb">모든 필드가</span> <span class="nb">optional이다.</span> <code class="inline">Pose3D</code>{x,y,z,qx,qy,qz,qw}가 <span class="nb">정규형(쿼터니언)이고</span> <code class="inline">from_2d</code>/<code class="inline">from_rpy</code>/<code class="inline">.yaw</code>/<code class="inline">.to_2d</code> <span class="nb">변환을 제공한다.</span> <code class="inline">Twist</code>{linear, angular}, <code class="inline">Joint</code>{positions(required)·names·velocities·efforts}, <code class="inline">NetworkState</code>는 <span class="nb">internet/server/operator</span> 각각 <code class="inline">Link</code>{is_connected, latency_ms, packet_loss}로 <span class="nb">구성된다.</span></p>
+      <div class="note mt-20"><b>기계판독 wire contract (<code class="inline">contract/</code>):</b> <span class="s">모델·enum·미션을 <code class="inline">export_schema.py</code>로 뽑은 <strong>JSON Schema</strong>(<code class="inline">synapse.schema.json</code>, draft 2020-12) + 토픽별 <strong>골든 픽스처</strong>(byte-stable, drift-guard) + <strong><code class="inline">interop.json</code></strong>(WebRTC 공통 코덱 베이스라인 <strong>VP8+Opus</strong> — SDK는 이를 협상해야 함)을 커밋해 둔다.</span> <span class="s">SDK 코드젠(Phase 6~8)이 git 해시로 이 아티팩트를 핀한다. 버전(<code class="inline">0.4.0</code>)은 semver 규칙(D-07)으로 올린다.</span></div>
     </div>
   </div>
 </section>
@@ -495,7 +510,7 @@
         <p style="font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:0.04em;color:var(--text3);margin-bottom:12px;">시간 동기화 · 미션 위임 구조</p>
         <div class="note"><b>TimeSync — NTP식 4-타임스탬프:</b> <span class="s"><code class="inline">TimeSyncMaster</code>(NEXUS) / <code class="inline">TimeSyncSlave</code>(TAG)가 <span class="nb">4개의 타임스탬프로</span> offset과 RTT를 <span class="nb">NTP식으로</span> <span class="nb">동기화한다.</span></span></div>
         <div class="note mt-20"><b>미션 위임 구조:</b> <span class="s"><code class="inline">FleetMission</code>(다중 로봇 DAG, <code class="inline">depends_on</code>) → <code class="inline">RobotMission</code>(단일 로봇 Task 시퀀스) → <code class="inline">Task</code>(5종).</span> <span class="s">헬퍼 <code class="inline">cap</code>·<code class="inline">wait_input</code>·<code class="inline">wait_teleop</code>·<code class="inline">notify</code>·<code class="inline">func</code>·<code class="inline">call</code>로 <span class="nb">간결하게 정의한다.</span></span></div>
-        <div class="note mt-20"><b>Fleet 자료구조:</b> <span class="s"><code class="inline">FleetMission{tasks: dict[str, FleetTask]}</code>, <code class="inline">FleetTask{robot, mission, depends_on, policy}</code>, <code class="inline">ExecutionPolicy.on_failure</code> = stop · continue · retry.</span></div>
+        <div class="note mt-20"><b>Fleet 자료구조:</b> <span class="s"><code class="inline">FleetMission{tasks: dict[str, FleetTask]}</code>, <code class="inline">FleetTask{robot, mission, depends_on, policy}</code>, <code class="inline">ExecutionPolicy.on_failure</code> = stop · continue · retry · <strong>help</strong>(사람 개입 요청 → NEED_HELP/TELEOP, 무응답 timeout 시 FAILED 폴백).</span></div>
       </div>
     </div>
   </div>

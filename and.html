@@ -163,15 +163,16 @@
     <div class="figure">
       <div class="figure-frame">
         <div class="swap-row">
-          <span class="swap-pill cur">Rtc2kngBackend · WebRTC</span>
-          <span style="color:var(--text3);font-weight:700;">↔ 교체 가능 ↔</span>
+          <span class="swap-pill cur">Rtc2kngBackend · WebRTC(aiortc)</span>
+          <span class="swap-pill cur">NexusWsBackend · nexus 직결 WS</span>
+          <span class="swap-pill cur">Rubberneck · ketirtc 미디어</span>
+          <span style="color:var(--text3);font-weight:700;">↔</span>
           <span class="swap-pill">LoopbackBackend · 테스트</span>
           <span class="swap-pill ghost">MQTT?</span>
-          <span class="swap-pill ghost">gRPC?</span>
         </div>
-        <div style="text-align:center;margin-top:18px;font-size:15px;color:var(--text2);">모두 동일한 <code class="inline">NetworkBackend</code> 인터페이스(<code class="inline">connect</code>/<code class="inline">send</code>/<code class="inline">disconnect</code> + <code class="inline">_deliver</code>)를 따른다.</div>
+        <div style="text-align:center;margin-top:18px;font-size:15px;color:var(--text2);">모두 동일한 <code class="inline">NetworkBackend</code> 인터페이스(<code class="inline">connect</code>/<code class="inline">send</code>/<code class="inline">disconnect</code> + <code class="inline">_deliver</code>)를 따른다 — <span class="nb">이미 세 개의</span> <span class="nb">실 백엔드가</span> <span class="nb">공존한다</span>(1:1 P2P·N:N 제어채널·미디어).</div>
       </div>
-      <p class="figcaption"><b>Figure 2.</b> 전송 독립. <span class="nb">백엔드만</span> <span class="nb">갈아끼우면 된다</span>(브리지·제어 코드는 불변 — 클린 아키텍처). <strong>현재 백엔드는 robot-first WebRTC(rtc2kng)</strong>이며, 단위 테스트는 실제 네트워크 없는 <code class="inline">LoopbackBackend</code>로 대체한다.</p>
+      <p class="figcaption"><b>Figure 2.</b> 전송 독립. <span class="nb">백엔드만</span> <span class="nb">갈아끼우면 된다</span>(브리지·제어 코드는 불변 — 클린 아키텍처). <strong>대표 백엔드는 robot-first WebRTC(rtc2kng)</strong>이고, 제어 채널용 <code class="inline">NexusWsBackend</code>(nexus 직결 WS)·미디어용 rubberneck(ketirtc)이 함께 있으며, 단위 테스트는 실제 네트워크 없는 <code class="inline">LoopbackBackend</code>로 대체한다.</p>
     </div>
     <div class="prose mt-40">
       <p><span class="nb">인터페이스 계약은</span> 단순하다. 구현체는 <code class="inline">connect()</code>·<code class="inline">send(message)</code>를 채우고, 외부에서 <span class="nb">메시지를 받으면</span> <span class="nb">부모가 제공하는</span> <code class="inline">self._deliver(message)</code>를 호출해 <span class="nb">브리지로 올린다.</span> <code class="inline">disconnect()</code>는 <span class="nb">추상 강제가 아닌</span> 선택(no-op 기본) — 연결·전송은 필수, <span class="nb">정리는 선택이라는</span> <span class="nb">의도적 비대칭이다.</span></p>
@@ -202,7 +203,7 @@
       </div>
       <div class="file-card">
         <div class="fn">camera_track.py</div>
-        <div class="fd"><strong>CameraSource → VideoStreamTrack</strong> 어댑터. 카메라를 WebRTC로 <span class="nb">송출하기 위한</span> 변환층(현재 attach <span class="nb">지점만 배선</span>).</div>
+        <div class="fd"><strong>CameraSource → VideoStreamTrack</strong> 어댑터. <code class="inline">get_frame()</code>의 BGR ndarray를 <code class="inline">av.VideoFrame</code>(bgr24)으로 감싸 aiortc 트랙에 <code class="inline">addTrack</code>한다 — 실제 영상 송출 배선 완료.</div>
       </div>
     </div>
     <div class="figure mt-40">
@@ -220,8 +221,40 @@
   </div>
 </section>
 
+<!-- ════════ 3-링크 지연 실측 ════════ -->
+<section class="section" id="latency">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Latency Reporting</span>
+      <h2 class="section-title">3-링크 지연 실측 — status에 자동 주입</h2>
+      <p class="section-lead"><span class="s">AND는 <span class="nb">전달만 하는 데</span> 그치지 않고, <span class="nb">각 통신 링크의</span> 왕복 지연(RTT)을 <span class="nb">실측해</span> <code class="inline">robot.status.network</code>에 <strong>자동으로 채운다.</strong></span> <span class="s">로봇별 코드 없이 synapse의 <code class="inline">NetworkState</code> 계약이 충족된다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="file-grid">
+        <div class="file-card">
+          <div class="fn">server 링크</div>
+          <div class="fd"><strong>NexusWsBackend ping/pong</strong> — 주기 ping(<code class="inline">TimeSyncSlave</code> 4-타임스탬프)으로 서버 RTT + 시간 offset 측정. keepalive 겸용.</div>
+        </div>
+        <div class="file-card">
+          <div class="fn">internet 링크</div>
+          <div class="fd"><strong>InternetProbe</strong> — 기본 <code class="inline">1.1.1.1:53</code>에 TCP 핸드셰이크 RTT(ICMP·권한 불필요). 프로세스 공용 싱글턴으로 주기 갱신.</div>
+        </div>
+        <div class="file-card">
+          <div class="fn">operator 링크</div>
+          <div class="fd"><strong>P2P DataChannel ping</strong> — Rtc2kngBackend가 콕핏(operator)과 DataChannel ping/pong으로 P2P RTT 측정. 콕핏이 pong 응답.</div>
+        </div>
+        <div class="file-card">
+          <div class="fn">net_links.enrich_status()</div>
+          <div class="fd">모든 status 발행 백엔드가 <span class="nb">같은 값을</span> 주입 — <span class="nb">어느 경로</span>(N:N 콘솔·1:1 P2P)로 나가든 <span class="nb">동일한 지연이</span> 노출된다.</div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 5.</b> 3-링크 지연 실측. <code class="inline">NetworkState</code>의 <code class="inline">internet</code>·<code class="inline">server</code>·<code class="inline">operator</code> 각 <code class="inline">Link{is_connected, latency_ms, packet_loss}</code>를 AND가 채운다 — 관제 UI는 <span class="nb">로봇마다 신호 막대로</span> 이 값을 표시한다.</p>
+    </div>
+  </div>
+</section>
+
 <!-- ════════ Sub 직접 통신 금지 규칙 ════════ -->
-<section class="section" id="rule">
+<section class="section alt" id="rule">
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Gateway Rule</span>

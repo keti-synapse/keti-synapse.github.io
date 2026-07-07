@@ -165,7 +165,7 @@
           </div>
         </div>
         <div class="prose" style="margin-top:22px;">
-          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.1</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(aiortc·av·opencv·websockets), <code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[camera]</code>(opencv), <code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
+          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.1</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(rtc2kng WebRTC: aiortc·av·opencv·websockets)·<code class="inline">[and-nexus]</code>(nexus 직결 WS)·<code class="inline">[and-rubberneck]</code>(ketirtc 미디어), <code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[camera]</code>·<code class="inline">[ik]</code>(pinocchio)·<code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
         </div>
       </div>
       <p class="figcaption"><b>Figure 1.</b> TAG 묶음. <span class="nb">로봇 하나는</span> TOM·AND·GERRI <span class="nb">셋의 합으로</span> 정의된다. GERRI는 <code class="inline">synapse</code>만 의존하고, 전송 방식(AND)·로봇 SDK는 바깥의 <span class="nb">교체 가능한</span> 세부사항이다.</p>
@@ -391,7 +391,7 @@
           <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--syn-l);border-color:var(--syn-bd);color:var(--syn);">wait_teleop</span><span style="font-size:15.5px;color:var(--text2);">사람 원격조작 호출 — NEED_HELP → TELEOP → TeleopExitAction</span></div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 4.</b> Task 5타입. <code class="inline">task.policy.on_failure</code>는 stop(미션 FAILED) / continue(다음 task) / retry(retry_count만큼 재시도)를 <span class="nb">결정한다.</span> 실패는 <span class="nb">정상으로</span> <span class="nb">취급된다.</span></p>
+      <p class="figcaption"><b>Figure 4.</b> Task 5타입. <code class="inline">task.policy.on_failure</code>는 stop(미션 FAILED) / continue(다음 task) / retry(retry_count만큼 재시도) / help(사람 개입 요청 → NEED_HELP·TELEOP, 무응답 timeout 시 FAILED 폴백)를 <span class="nb">결정한다.</span> 실패는 <span class="nb">정상으로</span> <span class="nb">취급된다.</span></p>
     </div>
 
     <!-- state machine -->
@@ -418,9 +418,8 @@
         </div>
         <div class="prose" style="margin-top:18px;">
           <p style="font-size:15px;">
-            <strong>wait_teleop 흐름:</strong> RUNNING → NEED_HELP → TELEOP → (teleop_provider가 <code class="inline">TeleopExitAction</code> 반환) → TELEOP_ENDED → RUNNING.
-            <code class="inline">resume_done</code>/<code class="inline">resume_retry</code>면 <span class="nb">다음으로 진행,</span> <code class="inline">abort</code>면 <span class="nb">미션 ABORTED.</span>
-            추가로 오퍼레이터는 <span class="nb">언제든</span> <span class="nb">자발적</span> takeover(<code class="inline">HelpAction.TAKEOVER</code>)로 <span class="nb">개입할 수 있다.</span>
+            <strong>개입 진입 두 경로(A4):</strong> ① <span class="nb">task 실패</span>(<code class="inline">on_failure=help</code>)나 <code class="inline">wait_teleop</code> 호출 → RUNNING → NEED_HELP → TELEOP, ② 오퍼레이터 <span class="nb">자발 takeover</span>(<code class="inline">HelpAction.TAKEOVER</code>) → 다음 task 경계에서 TELEOP 인수. 두 경로 모두 <span class="nb">개입 세션으로</span> 합류한다.
+            세션에서는 <span class="nb">태스크마다</span> <code class="inline">TeleopExitAction</code> 5종으로 해소한다 — <code class="inline">resume_done</code>·<code class="inline">skip</code>=다음 task, <code class="inline">resume_retry</code>=로봇에 재위임, <code class="inline">mission_done</code>=남은 전부 완료→SUCCEEDED, <code class="inline">abort</code>=미션 ABORTED. 무응답 timeout은 정책 폴백(FAILED).
           </p>
         </div>
       </div>
@@ -599,7 +598,7 @@
         <div class="card" style="padding:24px;border-color:var(--cockpit-bd);background:var(--cockpit-l);">
           <span class="badge badge-cockpit" style="margin-bottom:12px;">MODE B · 약 99%</span>
           <div style="font-size:17px;font-weight:800;color:var(--ink);margin-bottom:8px;">NEXUS-context</div>
-          <p style="font-size:15.5px;color:var(--text2);line-height:1.7;">NEXUS 게이트웨이가 <code class="inline">/{site}/{floor}/tag_{robot}/</code>에서 <span class="nb">콕핏을</span> 서빙하고, NEXUS <code class="inline">/ws/{room}</code>가 <span class="nb">시그널링을</span> <span class="nb">중계한다.</span> 대시보드에서 <span class="nb">클릭</span> <span class="nb">한 번으로</span> 진입.</p>
+          <p style="font-size:15.5px;color:var(--text2);line-height:1.7;">NEXUS 게이트웨이가 <code class="inline">/{site}/{building}/{floor}/tag_{robot}/</code>에서 <span class="nb">콕핏을</span> 서빙하고, NEXUS <code class="inline">/ws/{room}</code>가 <span class="nb">시그널링을</span> <span class="nb">중계한다.</span> 대시보드에서 <span class="nb">클릭</span> <span class="nb">한 번으로</span> 진입.</p>
         </div>
       </div>
       <p class="figcaption"><b>Figure 8.</b> <span class="nb">두 가지</span> <span class="nb">호스팅 모드.</span> 어느 쪽이든 <strong>제어·미디어는 P2P</strong>로 흐르고 서버는 <span class="nb">시그널링만</span> <span class="nb">중계한다.</span></p>

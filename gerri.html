@@ -13,11 +13,11 @@
 .layer-box + .layer-arrow + .layer-box { }
 .layer-head { padding: 14px 20px; display: flex; align-items: center; gap: 13px; }
 .layer-head .lic { font-size: 22px; flex-shrink: 0; }
-.layer-head .lnm { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+.layer-head .lnm { font-size: 18.5px; font-weight: 800; letter-spacing: -0.02em; }
 .layer-head .lcls { font-family: var(--mono); font-size: 11.5px; color: var(--text3); margin-top: 1px; }
 .layer-body { padding: 4px 20px 18px; }
 .layer-body ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
-.layer-body li { font-size: 15px; color: var(--text2); line-height: 1.6; }
+.layer-body li { font-size: 16.5px; color: var(--text2); line-height: 1.6; }
 .layer-body li strong { color: var(--ink); }
 .layer-arrow {
   text-align: center; font-size: 12px; color: var(--text3);
@@ -30,8 +30,8 @@
 .cap-card.common { background: var(--acc-l); border-color: var(--acc-bd); }
 .cap-card .ck { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 11px; }
 .cap-card.common .ck { color: var(--acc-d); }
-.cap-card .ctitle { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.02em; }
-.cap-card .cdesc { font-size: 15px; color: var(--text2); line-height: 1.65; margin-bottom: 14px; }
+.cap-card .ctitle { font-size: 17.5px; font-weight: 800; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.02em; }
+.cap-card .cdesc { font-size: 16.5px; color: var(--text2); line-height: 1.65; margin-bottom: 14px; }
 .cap-names { display: flex; flex-wrap: wrap; gap: 6px; }
 .cap-name { font-family: var(--mono); font-size: 12.5px; font-weight: 500; padding: 4px 10px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--text2); }
 .cap-card.common .cap-name { background: #fff; border-color: var(--acc-bd); color: var(--acc-d); }
@@ -41,7 +41,7 @@
 .flow-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
 .flow-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; }
 .flow-box.hl { background: var(--acc-l); border-color: var(--acc-bd); }
-.flow-box .ti { font-size: 15.5px; font-weight: 800; color: var(--ink); margin-bottom: 5px; }
+.flow-box .ti { font-size: 17px; font-weight: 800; color: var(--ink); margin-bottom: 5px; }
 .flow-box .su { font-size: 12.5px; color: var(--text3); line-height: 1.5; }
 .flow-box code { font-family: var(--mono); font-size: 11.5px; color: var(--acc-d); }
 
@@ -58,8 +58,8 @@
 .step { display: flex; gap: 18px; align-items: flex-start; padding: 20px 0; border-bottom: 1px solid var(--border); }
 .step:last-child { border-bottom: none; }
 .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--acc); color: #fff; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
-.step-title { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.02em; }
-.step-desc { font-size: 15.5px; color: var(--text2); line-height: 1.7; }
+.step-title { font-size: 17.5px; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.02em; }
+.step-desc { font-size: 17px; color: var(--text2); line-height: 1.7; }
 .step-desc code { font-family: var(--mono); font-size: 0.86em; background: var(--bg2); padding: 1px 6px; border-radius: 4px; color: var(--acc-d); border: 1px solid var(--border); }
 
 /* ── enum chip groups ── */
@@ -165,7 +165,7 @@
           </div>
         </div>
         <div class="prose" style="margin-top:22px;">
-          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.1</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(rtc2kng WebRTC: aiortc·av·opencv·websockets)·<code class="inline">[and-nexus]</code>(nexus 직결 WS)·<code class="inline">[and-rubberneck]</code>(ketirtc 미디어), <code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[camera]</code>·<code class="inline">[ik]</code>(pinocchio)·<code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
+          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.6</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(rtc2kng WebRTC: aiortc·av·opencv·websockets·requests)·<code class="inline">[and-nexus]</code>(nexus 직결 WS)·<code class="inline">[and-rubberneck]</code>(ketirtc 미디어), <code class="inline">[rmi]</code>(fastapi·uvicorn)·<code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[vision]</code>(anthropic)·<code class="inline">[camera]</code>·<code class="inline">[ik]</code>(pinocchio)·<code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
         </div>
       </div>
       <p class="figcaption"><b>Figure 1.</b> TAG 묶음. <span class="nb">로봇 하나는</span> TOM·AND·GERRI <span class="nb">셋의 합으로</span> 정의된다. GERRI는 <code class="inline">synapse</code>만 의존하고, 전송 방식(AND)·로봇 SDK는 바깥의 <span class="nb">교체 가능한</span> 세부사항이다.</p>
@@ -266,6 +266,8 @@
           <tr><td class="mono">teleop_handler</td><td>선택 — <code class="inline">command.teleop</code>를 <span class="nb">해석하는</span> <span class="nb">핸들러.</span></td></tr>
           <tr><td class="mono">@property capability</td><td>self + 모든 sub의 <code class="inline">{"common":[…], "custom":[…]}</code>를 <span class="nb">종합해</span> <span class="nb">status에</span> <span class="nb">노출한다.</span></td></tr>
           <tr><td class="mono">dispatch_capability</td><td><code class="inline">(capability, params=None, target=None)</code> — <span class="nb">capability</span> <span class="nb">이름으로</span> 메서드를 <code class="inline">getattr</code> <span class="nb">조회·호출해</span> <code class="inline">Result</code> 반환. <code class="inline">target</code>(sub_id) <span class="nb">지정 시</span> <span class="nb">그 sub로</span>(예: 양팔 left/right), 미지정이면 <span class="nb">base 자신</span> → <span class="nb">첫 매칭</span> sub 순.</td></tr>
+          <tr><td class="mono">software_update</td><td><span class="nb">전 로봇</span> <span class="nb">공통 유지보수 동작</span>(base가 광고). 워크스페이스 <span class="nb">형제 레포를</span> <code class="inline">git pull</code>(<code class="inline">synapse.update</code>) 후 재시작한다 — pull은 <strong>워커 스레드</strong>에서 돌려 status/ping 동결을 막고, <span class="nb">재진입 락</span>으로 <span class="nb">이중 실행</span>(동시 pull)을 <span class="nb">차단한다.</span> BUSY/TELEOP·미션 중엔 거부, 변경 없으면 재시작 안 함. 매 status의 <code class="inline">robot_info.version</code>에 <span class="nb">배포 semver가</span> <span class="nb">자동 주입되고,</span> 재시작은 systemd(<code class="inline">SYNAPSE_SYSTEMD_UNIT</code>)나 <code class="inline">os.execv</code> 자기재실행.</td></tr>
+          <tr><td class="mono">command_device</td><td>로봇이 <span class="nb">다른 노드</span>(엘리베이터·자동문 등 IoT, 타 로봇)에 <span class="nb">표준 capability</span> 명령을 보낸다 — 이미 연결된 <code class="inline">Network.SEND</code>(→AND→NEXUS)로 <span class="nb">표준 봉투를</span> 실으면 서버가 <span class="nb">대상 WS로</span> 중계한다(별도 HTTP 불필요). 피드백은 응답 토픽이 아니라 <span class="nb">대상의 다음</span> <code class="inline">robot.status</code> 관측이 SSOT다(BUSY→IDLE=스텝 완료).</td></tr>
         </tbody>
       </table>
     </div>
@@ -347,19 +349,29 @@
           <span class="cap-name">gripper_ctrl</span>
           <span class="cap-name">dock</span>
           <span class="cap-name">undock</span>
+          <span class="cap-name">relocate</span>
+          <span class="cap-name">software_update</span>
           <span class="cap-name req">stop ← 필수</span>
         </div>
       </div>
       <div class="cap-card">
         <div class="ck">Custom — 자유 형식</div>
         <div class="ctitle">로봇별 고유 동작</div>
-        <div class="cdesc"><code class="inline">self.custom_capability</code>(메서드 이름 문자열 list)로 선언. 시그니처가 자유로워 <span class="nb">로봇</span> <span class="nb">특수 기능을</span> 노출한다.</div>
+        <div class="cdesc"><code class="inline">self.custom_capability</code>(메서드 이름 문자열 list)로 선언. 시그니처가 자유로워 <span class="nb">로봇</span> <span class="nb">특수 기능을</span> 노출한다. <span class="nb">일부는</span> Sub 공통으로 <span class="nb">자동 제공된다</span>(아래 파란 칩).</div>
         <div class="cap-names">
           <span class="cap-name">home_position</span>
           <span class="cap-name">make_americano</span>
           <span class="cap-name">fold_panel</span>
           <span class="cap-name">set_led</span>
+          <span class="cap-name" style="background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">set_status_rate</span>
+          <span class="cap-name" style="background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">set_footprint</span>
+          <span class="cap-name" style="background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">set_pose</span>
         </div>
+      </div>
+    </div>
+    <div class="prose mt-24">
+      <div class="note">
+        <span class="s"><b>자동 제공 capability.</b></span> <span class="s"><code class="inline">relocate</code>는 <span class="nb">표준 pose 보정</span> — 로봇 pose 추정치를 자기 map 프레임에서 <code class="inline">(x,y,theta)</code>로 <span class="nb">보정하되,</span> 맵 정렬 <code class="inline">T</code>(서버 소유)는 <span class="nb">건드리지 않는다.</span> pose를 <span class="nb">리포트하는 sub만</span> <span class="nb">자동 광고하고,</span> 정적(고정) sub는 그 보정을 <code class="inline">robot.config.json</code>에 <span class="nb">영속한다.</span></span> <span class="s"><code class="inline">software_update</code>는 base가 <span class="nb">전 로봇 공통으로</span> <span class="nb">광고하는</span> <span class="nb">유지보수 동작이다.</span></span> <span class="s">custom 쪽 <code class="inline">set_status_rate</code>(적응형 status 주기)·<code class="inline">set_footprint</code>(실측 크기)·<code class="inline">set_pose</code>(표시 pose 배치)는 <code class="inline">SubControllerCommon</code>이 <span class="nb">공통 제공한다.</span></span>
       </div>
     </div>
     <div class="prose mt-32">
@@ -384,11 +396,11 @@
       <div class="figure-frame">
         <div style="font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);margin-bottom:16px;">_execute(task) — 5가지 Task 타입</div>
         <div style="display:flex;flex-direction:column;gap:11px;">
-          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">capability</span><span style="font-size:15.5px;color:var(--text2);"><code class="inline">dispatch(task.capability, task.params)</code> → Result</span></div>
-          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">func</span><span style="font-size:15.5px;color:var(--text2);"><code class="inline">task.func()</code> 실행 — 테스트·빠른 개발</span></div>
-          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">notify</span><span style="font-size:15.5px;color:var(--text2);">알림 로그만, 흐름은 계속</span></div>
-          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--syn-l);border-color:var(--syn-bd);color:var(--syn);">wait_input</span><span style="font-size:15.5px;color:var(--text2);">계획된 입력 대기 — RUNNING 유지, provider로 값 수신</span></div>
-          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--syn-l);border-color:var(--syn-bd);color:var(--syn);">wait_teleop</span><span style="font-size:15.5px;color:var(--text2);">사람 원격조작 호출 — NEED_HELP → TELEOP → TeleopExitAction</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">capability</span><span style="font-size:17px;color:var(--text2);"><code class="inline">dispatch(task.capability, task.params)</code> → Result</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">func</span><span style="font-size:17px;color:var(--text2);"><code class="inline">task.func()</code> 실행 — 테스트·빠른 개발</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--acc-l);border-color:var(--acc-bd);color:var(--acc-d);">notify</span><span style="font-size:17px;color:var(--text2);">알림 로그만, 흐름은 계속</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--syn-l);border-color:var(--syn-bd);color:var(--syn);">wait_input</span><span style="font-size:17px;color:var(--text2);"><span class="nb">계획된 입력 대기</span> — RUNNING 유지, provider로 값 수신</span></div>
+          <div style="display:flex;gap:14px;align-items:baseline;"><span class="cap-name" style="flex-shrink:0;width:120px;text-align:center;background:var(--syn-l);border-color:var(--syn-bd);color:var(--syn);">wait_teleop</span><span style="font-size:17px;color:var(--text2);"><span class="nb">사람 원격조작 호출</span> — NEED_HELP → TELEOP → TeleopExitAction</span></div>
         </div>
       </div>
       <p class="figcaption"><b>Figure 4.</b> Task 5타입. <code class="inline">task.policy.on_failure</code>는 stop(미션 FAILED) / continue(다음 task) / retry(retry_count만큼 재시도) / help(사람 개입 요청 → NEED_HELP·TELEOP, 무응답 timeout 시 FAILED 폴백)를 <span class="nb">결정한다.</span> 실패는 <span class="nb">정상으로</span> <span class="nb">취급된다.</span></p>
@@ -417,7 +429,7 @@
           <span class="sm-pill">WAIT_INPUT</span>
         </div>
         <div class="prose" style="margin-top:18px;">
-          <p style="font-size:15px;">
+          <p style="font-size:16.5px;">
             <strong>개입 진입 두 경로(A4):</strong> ① <span class="nb">task 실패</span>(<code class="inline">on_failure=help</code>)나 <code class="inline">wait_teleop</code> 호출 → RUNNING → NEED_HELP → TELEOP, ② 오퍼레이터 <span class="nb">자발 takeover</span>(<code class="inline">HelpAction.TAKEOVER</code>) → 다음 task 경계에서 TELEOP 인수. 두 경로 모두 <span class="nb">개입 세션으로</span> 합류한다.
             세션에서는 <span class="nb">태스크마다</span> <code class="inline">TeleopExitAction</code> 5종으로 해소한다 — <code class="inline">resume_done</code>·<code class="inline">skip</code>=다음 task, <code class="inline">resume_retry</code>=로봇에 재위임, <code class="inline">mission_done</code>=남은 전부 완료→SUCCEEDED, <code class="inline">abort</code>=미션 ABORTED. 무응답 timeout은 정책 폴백(FAILED).
           </p>
@@ -456,20 +468,23 @@
     </div>
     <div class="g2" style="gap:20px;align-items:start;">
       <div class="card" style="padding:24px;">
-        <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:10px;">🎮 joy.py — 게임패드</div>
-        <div style="font-size:15.5px;color:var(--text2);line-height:1.7;">
+        <div style="font-size:17.5px;font-weight:800;color:var(--ink);margin-bottom:10px;">🎮 joy.py — 게임패드</div>
+        <div style="font-size:17px;color:var(--text2);line-height:1.7;">
           <strong>MobileJoyHandler</strong> — 왼쪽 스틱=주행(전후/회전) → <code class="inline">velocity_ctrl</code>, B=STOP.<br><br>
           <strong>ManipulatorJoyHandler</strong> — A=<code class="inline">home_position</code>, B=STOP, 트리거(L2/R2)=<code class="inline">gripper_ctrl(0~100%)</code>.<br><br>
           <code class="inline">synapse.teleop_mapping</code>의 <code class="inline">JoyAxis</code>·<code class="inline">JoyButton</code> <span class="nb">인덱스를</span> <span class="nb">읽는다.</span> 입력은 <span class="nb">sparse해도</span> <span class="nb">되며</span> <span class="nb">없는</span> <span class="nb">인덱스는</span> 0으로 친다.
         </div>
       </div>
       <div class="card" style="padding:24px;">
-        <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:10px;">🥽 vr.py — VR 컨트롤러</div>
-        <div style="font-size:15.5px;color:var(--text2);line-height:1.7;">
+        <div style="font-size:17.5px;font-weight:800;color:var(--ink);margin-bottom:10px;">🥽 vr.py — VR 컨트롤러</div>
+        <div style="font-size:17px;color:var(--text2);line-height:1.7;">
           <strong>SingleArmVRHandler</strong> — <code class="inline">poses[PoseChannel.LEFT/RIGHT_HAND]</code>(6DOF) → <code class="inline">cartesian_ctrl</code>, 아날로그 그립(axes) → <code class="inline">gripper_ctrl(0~100%)</code>.<br><br>
           양팔(dual-arm)은 <span class="nb">arm별</span> <span class="nb">sub 둘.</span> 손→팔 라우팅은 메시지의 <code class="inline">target</code>(receiver)으로 결정 — 별도 dual-arm <span class="nb">핸들러가</span> <span class="nb">필요 없다.</span>
         </div>
       </div>
+    </div>
+    <div class="note mt-24">
+      <span class="s"><b><code class="inline">mobile_manipulator.py</code> — 합성/단독 팔 텔레옵.</b></span> <span class="s"><strong>MobileManipulatorTeleopHandler</strong>는 <span class="nb">한 <code class="inline">command.teleop</code></span> 번들의 축을 <span class="nb">두 sub로</span> 분배한다 — WASD/좌스틱은 base <code class="inline">velocity_ctrl</code>로, 마우스(팬/틸트/휠)는 arm 관절 증분으로 흘려 <span class="nb">모바일 매니퓰레이터를</span> <span class="nb">동시에 몬다</span>(B=STOP 양쪽).</span> <span class="s"><strong>ManipulatorTeleopHandler</strong>는 이를 상속해 <code class="inline">velocity_ctrl</code> 분배만 빼고 <span class="nb">단독 팔</span>(고정 매니퓰레이터)만 <span class="nb">제어한다.</span></span>
     </div>
   </div>
 </section>
@@ -563,8 +578,12 @@
             <tr><td class="mono">base_controller.py</td><td>Base — 게이트웨이</td></tr>
             <tr><td class="mono">sub_controller.py</td><td>Sub — capability 구현</td></tr>
             <tr><td class="mono">mission/runner.py</td><td>MissionRunner</td></tr>
-            <tr><td class="mono">handlers/</td><td>joy.py · vr.py (텔레옵)</td></tr>
+            <tr><td class="mono">handlers/</td><td>joy.py · vr.py · mobile_manipulator.py (합성/단독 팔 텔레옵)</td></tr>
+            <tr><td class="mono">vision/</td><td>VisionPicker + 교체형 VLMBackend — 프레임→VLM→피킹 값(픽셀)</td></tr>
+            <tr><td class="mono">interface/</td><td>cockpit(1:1 WebRTC) + rmi(로컬 관리 웹 UI)</td></tr>
             <tr><td class="mono">utils/camera/</td><td>CameraSource 레지스트리 → WebRTC 비디오 트랙</td></tr>
+            <tr><td class="mono">config_loader.py</td><td>robot.config.json override 로더(설치 마법사·영속 pose/footprint)</td></tr>
+            <tr><td class="mono">setup_wizard.py / .html</td><td>설치 마법사(config 생성 UI)</td></tr>
             <tr><td class="mono">tag_template/</td><td>scaffold (복사 출발점)</td></tr>
             <tr><td class="mono">tag_piper/</td><td>로봇별 별도 레포 (clone, submodule 아님)</td></tr>
             <tr><td class="mono">tag_rby1/</td><td>로봇별 별도 레포 (clone)</td></tr>
@@ -592,13 +611,13 @@
       <div class="g2" style="gap:18px;">
         <div class="card" style="padding:24px;">
           <span class="badge badge-gray" style="margin-bottom:12px;">MODE A</span>
-          <div style="font-size:17px;font-weight:800;color:var(--ink);margin-bottom:8px;">Standalone (LAN · NEXUS 없이)</div>
-          <p style="font-size:15.5px;color:var(--text2);line-height:1.7;">TOM의 <code class="inline">standalone_server</code>가 직접 <span class="nb">정적 파일을</span> 서빙하고, 로컬 <code class="inline">/ws/{room}</code> 릴레이로 시그널링한다. <span class="nb">서버 없이</span> 현장에서 바로 <span class="nb">로봇에 붙어</span> 조작.</p>
+          <div style="font-size:18.5px;font-weight:800;color:var(--ink);margin-bottom:8px;">Standalone (LAN · NEXUS 없이)</div>
+          <p style="font-size:17px;color:var(--text2);line-height:1.7;">TOM의 <code class="inline">standalone_server</code>가 직접 <span class="nb">정적 파일을</span> 서빙하고, 로컬 <code class="inline">/ws/{room}</code> 릴레이로 시그널링한다. <span class="nb">서버 없이</span> <span class="nb">현장에서 바로</span> <span class="nb">로봇에 붙어</span> 조작.</p>
         </div>
         <div class="card" style="padding:24px;border-color:var(--cockpit-bd);background:var(--cockpit-l);">
           <span class="badge badge-cockpit" style="margin-bottom:12px;">MODE B · 약 99%</span>
-          <div style="font-size:17px;font-weight:800;color:var(--ink);margin-bottom:8px;">NEXUS-context</div>
-          <p style="font-size:15.5px;color:var(--text2);line-height:1.7;">NEXUS 게이트웨이가 <code class="inline">/{site}/{building}/{floor}/tag_{robot}/</code>에서 <span class="nb">콕핏을</span> 서빙하고, NEXUS <code class="inline">/ws/{room}</code>가 <span class="nb">시그널링을</span> <span class="nb">중계한다.</span> 대시보드에서 <span class="nb">클릭</span> <span class="nb">한 번으로</span> 진입.</p>
+          <div style="font-size:18.5px;font-weight:800;color:var(--ink);margin-bottom:8px;">NEXUS-context</div>
+          <p style="font-size:17px;color:var(--text2);line-height:1.7;">NEXUS 게이트웨이가 <code class="inline">/{site}/{building}/{floor}/tag_{robot}/</code>에서 <span class="nb">콕핏을</span> 서빙하고, NEXUS <code class="inline">/ws/{room}</code>가 <span class="nb">시그널링을</span> <span class="nb">중계한다.</span> 대시보드에서 <span class="nb">클릭</span> <span class="nb">한 번으로</span> 진입.</p>
         </div>
       </div>
       <p class="figcaption"><b>Figure 8.</b> <span class="nb">두 가지</span> <span class="nb">호스팅 모드.</span> 어느 쪽이든 <strong>제어·미디어는 P2P</strong>로 흐르고 서버는 <span class="nb">시그널링만</span> <span class="nb">중계한다.</span></p>
@@ -613,12 +632,84 @@
 
     <div class="g2 mt-40" style="align-items:start;gap:18px;">
       <div class="card" style="padding:24px;">
-        <div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:10px;">RelayHub — 순수 라우팅</div>
-        <p style="font-size:15.5px;color:var(--text2);line-height:1.75;"><code class="inline">targets(room, peer, message)</code>는 <span class="nb">전송 계층과</span> 무관한 <span class="nb">순수 함수다.</span> <span class="nb">메시지에</span> <code class="inline">receiver</code>가 있으면 <span class="nb">그 peer에게만</span> <strong>1:1</strong> <span class="nb">전달하고,</span> 없으면(예: <code class="inline">"ready"</code>) <span class="nb">같은 room의</span> <strong>나머지 전부에게 broadcast</strong>한다. 내용은 <span class="nb">해석하지 않고</span> JSON을 <span class="nb">그대로</span> <span class="nb">중계한다.</span></p>
+        <div style="font-size:17.5px;font-weight:800;color:var(--ink);margin-bottom:10px;">RelayHub — 순수 라우팅</div>
+        <p style="font-size:17px;color:var(--text2);line-height:1.75;"><code class="inline">targets(room, peer, message)</code>는 <span class="nb">전송 계층과</span> 무관한 <span class="nb">순수 함수다.</span> <span class="nb">메시지에</span> <code class="inline">receiver</code>가 있으면 <span class="nb">그 peer에게만</span> <strong>1:1</strong> <span class="nb">전달하고,</span> 없으면(예: <code class="inline">"ready"</code>) <span class="nb">같은 room의</span> <strong>나머지 전부에게 broadcast</strong>한다. 내용은 <span class="nb">해석하지 않고</span> JSON을 <span class="nb">그대로</span> <span class="nb">중계한다.</span></p>
       </div>
       <div class="prose" style="margin:0;">
         <div class="note"><span class="s"><b>디커플링.</b> NEXUS는 <code class="inline">tom_and_gerri</code>/<code class="inline">tag</code> 코드를 <strong>import하지 않는다</strong>.</span> <span class="s">콕핏 프론트는 <span class="nb">데이터</span>(정적 파일)일 뿐 — <code class="inline">tag_{robot}/</code> 폴더가 있으면 <span class="nb">그걸</span> <span class="nb">서빙하고,</span> 없으면 <span class="nb">기본 콕핏으로</span> <span class="nb">폴백한다.</span></span> <span class="s">로봇별로 <span class="nb">자기 콕핏을</span> <span class="nb">자유롭게</span> 커스터마이즈할 수 있다.</span></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ RMI (gerri/interface/rmi/) ════════ -->
+<section class="section" id="rmi">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">RMI · Robot Management Interface</span>
+      <h2 class="section-title">🛠️ RMI — 로봇 로컬 관리 웹 UI (오프라인)</h2>
+      <p class="section-lead"><span class="s">로봇 자체에서 도는 <strong>로컬 관리 웹 UI</strong>다 — 코드는 <code class="inline">gerri/interface/rmi/</code>에 있고, <span class="nb">외부 의존 0으로</span> <span class="nb">오프라인에서</span> <span class="nb">그대로 동작한다.</span></span> <span class="s">핵심은 <span class="nb">이것이</span> <code class="inline">NetworkBackend</code> <span class="nb">구현이라는 점이다</span> — <code class="inline">AdaptiveNetworkDaemon</code>으로 <span class="nb">감싸면</span> nexus와 <span class="nb">동급의</span> "관제망 하나"로 <span class="nb">합류한다</span>(base·sub·synapse <strong>코드 수정 0</strong>).</span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="flow-grid">
+          <div class="flow-box">
+            <div class="ti"><code>/</code> 대시보드</div>
+            <div class="su">status·미션 카탈로그<br>모니터링·명령</div>
+          </div>
+          <div class="flow-box hl">
+            <div class="ti"><code>/ux</code> 현장 운영자</div>
+            <div class="su">현장 조작용<br>단순화 화면</div>
+          </div>
+          <div class="flow-box">
+            <div class="ti"><code>/models/&lt;name&gt;</code></div>
+            <div class="su">glTF 3D 서빙<br>경로 탈출 방지</div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 9.</b> RMI 라우트. <code class="inline">connect()</code>가 <strong>uvicorn을 데몬 스레드</strong>로 띄우고, WebSocket으로 <code class="inline">status</code>·<code class="inline">mission_event</code>를 화면에 push하며 <code class="inline">teleop</code>·<code class="inline">capability</code>·<code class="inline">mission</code>·<code class="inline">help</code>를 <span class="nb">수신해</span> base 게이트웨이로 <span class="nb">주입한다.</span></p>
+    </div>
+    <div class="prose mt-40" style="max-width:none;">
+      <p>로봇 → 화면은 <code class="inline">Network.SEND</code>의 <code class="inline">robot.status</code>·<code class="inline">mission.event</code>를 그대로 push하고, 화면 → 로봇은 <span class="nb">표준 봉투</span>(<code class="inline">command.teleop</code>·<code class="inline">command.capability</code>·<code class="inline">mission.trigger</code>·<code class="inline">help.action</code>)를 <code class="inline">_deliver</code>로 <span class="nb">주입해</span> — nexus 명령과 <strong>동일 경로</strong>로 처리된다. 즉 <span class="nb">멀티 데몬 팬아웃/병합에</span> <span class="nb">그대로 편입되어,</span> 로컬 웹 UI가 <span class="nb">nexus·rubberneck과</span> <span class="nb">나란히</span> <span class="nb">또 하나의 관제망이</span> 된다. 설치는 extras <code class="inline">[rmi]</code>(fastapi·uvicorn).</p>
+    </div>
+    <div class="note mt-24">
+      <span class="s"><b>의도적 제외.</b></span> <span class="s"><strong>카메라 프레임 pubsub</strong> — 카메라 소유권 규약(러너 1-owner, 프레임 pubsub 금지)과 충돌하므로 <span class="nb">v1에서 제외한다.</span> 영상은 cockpit/rubberneck <span class="nb">경로가 소유한다.</span></span> <span class="s"><strong>settings 페이지</strong> — <code class="inline">robot.config.json</code> override(설치 마법사) 체계와 충돌하므로 제외한다.</span> <span class="s">템플릿은 <span class="nb">자체 완결</span> <span class="nb">단일 파일이라</span> <span class="nb">오프라인 100%.</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ VISION (gerri/vision/) ════════ -->
+<section class="section alt" id="vision">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">gerri.vision · Frame → VLM → Pick</span>
+      <h2 class="section-title">👁️ gerri.vision — 비전 피킹 공통 라이브러리</h2>
+      <p class="section-lead"><span class="s"><span class="nb">카메라 프레임을</span> <strong>VLM</strong>에 넣어 <strong>피킹 값</strong>(어느 픽셀·중심·집는 각도)을 <span class="nb">내는</span> <span class="nb">공통 라이브러리다</span> — 어떤 로봇이든 <span class="nb">가져다 쓴다.</span></span> <span class="s">반환 좌표는 전부 <strong>픽셀 공간</strong>이고, 3D 변환·hand-eye는 <span class="nb">로봇 몫으로</span> <span class="nb">남긴다</span>(프로바이더·카메라 중립).</span> <span class="s">코드는 <code class="inline">gerri/vision/</code>, 설치는 extras <code class="inline">[vision]</code>(anthropic).</span></p>
+    </div>
+    <div class="figure">
+      <div class="cap-cards">
+        <div class="cap-card">
+          <div class="ck">VisionPicker · picker.py</div>
+          <div class="ctitle">프레임 → 피킹 값</div>
+          <div class="cdesc"><code class="inline">analyze_frame(bgr)</code> — 다운스케일 후 <span class="nb">원본 좌표 복원.</span> <code class="inline">PickObject</code>(center·grasp_angle_deg·bbox)와 추천 <code class="inline">best</code>를 <span class="nb">반환한다.</span> 교체형 <code class="inline">VLMBackend</code>를 <span class="nb">주입받는</span> <span class="nb">'모델 교체 시임(seam)'.</span></div>
+        </div>
+        <div class="cap-card">
+          <div class="ck">유틸</div>
+          <div class="ctitle">pixel_to_point · draw_result</div>
+          <div class="cdesc"><code class="inline">pixel_to_point</code>는 depth·intrinsics로 <span class="nb">3D 점을</span> 내는 <span class="nb">선택 유틸,</span> <code class="inline">draw_result</code>는 <span class="nb">피킹 결과를</span> 프레임 위에 <span class="nb">bbox·중심·닫힘선으로</span> <span class="nb">오버레이한다</span>(데모·디버그).</div>
+        </div>
+        <div class="cap-card common">
+          <div class="ck">Backend A</div>
+          <div class="ctitle">ClaudeBackend (anthropic SDK)</div>
+          <div class="cdesc"><strong>2단 운용</strong> — 연속 추적은 <code class="inline">haiku</code>(빠름·저가), <span class="nb">집기 직전 확정은</span> <code class="inline">opus</code> 1회. 구조화 출력으로 <span class="nb">스키마 준수 JSON을</span> <span class="nb">보장한다.</span> API 키는 <code class="inline">ANTHROPIC_API_KEY</code>.</div>
+        </div>
+        <div class="cap-card common">
+          <div class="ck">Backend B</div>
+          <div class="ctitle">ClaudeCodeBackend (claude CLI)</div>
+          <div class="cdesc"><code class="inline">claude</code> CLI(헤드리스)를 호출하는 <strong>구독 인증</strong> 백엔드 — <span class="nb">anthropic SDK도,</span> <strong>API 키도 불필요</strong>(로봇 PC에 CLI 설치·로그인 전제). 데모·개발용.</div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 10.</b> 비전 피킹 구조. <code class="inline">VisionPicker</code>(계약)는 <span class="nb">백엔드를 모르고,</span> <code class="inline">VLMBackend</code> 인터페이스만 본다 — Claude(SDK)·Claude Code(CLI 구독)를 <span class="nb">같은 계약으로</span> <span class="nb">갈아끼우고,</span> Gemini/GPT도 <span class="nb">같은 방식으로</span> <span class="nb">추가한다</span>(로봇 코드 무변경).</p>
     </div>
   </div>
 </section>

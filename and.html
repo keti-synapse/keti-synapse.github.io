@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AND — Adaptive Network Daemon (전송 독립 네트워크 브리지) | SYNAPSE</title>
-<meta name="description" content="AND: 내부 in-process 버스(pypubsub)와 외부 전송 백엔드를 잇는 어댑터 데몬. Topic.Network.SEND/RECV ↔ backend. 전송 교체 가능 — 현재 백엔드는 robot-first WebRTC(rtc2kng).">
+<meta name="description" content="AND: 내부 in-process 버스(pypubsub)와 외부 전송 백엔드를 잇는 어댑터 데몬. Topic.Network.SEND/RECV ↔ backend. 전송 교체 가능 + 다중 관제망 동시 접속(nexus·rubberneck·rmi). 제어는 nexus 직결 WS, 미디어는 rubberneck/WebRTC.">
 <link rel="stylesheet" href="style.css">
 <style>
 /* bridge diagram */
@@ -12,7 +12,7 @@
 .bridge-box { flex: 1; min-width: 160px; text-align: center; padding: 22px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }
 .bridge-box.mid { background: var(--acc-l); border-color: var(--acc-bd); }
 .bridge-box .ic { font-size: 26px; margin-bottom: 9px; }
-.bridge-box .ti { font-size: 15.5px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+.bridge-box .ti { font-size: 17px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
 .bridge-box.mid .ti { color: var(--acc-d); }
 .bridge-box .su { font-size: 12.5px; color: var(--text3); line-height: 1.55; }
 .bridge-box .su code { font-family: var(--mono); font-size: 11.5px; color: var(--text2); }
@@ -22,15 +22,15 @@
 
 /* swap row */
 .swap-row { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
-.swap-pill { font-family: var(--mono); font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border2); background: #fff; color: var(--text2); }
+.swap-pill { font-family: var(--mono); font-size: 15.5px; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border2); background: #fff; color: var(--text2); }
 .swap-pill.cur { background: var(--acc-l); border-color: var(--acc-bd); color: var(--acc-d); font-weight: 700; }
 .swap-pill.ghost { border-style: dashed; color: var(--text3); }
 
 /* file list */
 .file-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
 .file-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px 22px; }
-.file-card .fn { font-family: var(--mono); font-size: 14.5px; font-weight: 700; color: var(--acc-d); margin-bottom: 7px; }
-.file-card .fd { font-size: 15px; color: var(--text2); line-height: 1.65; }
+.file-card .fn { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--acc-d); margin-bottom: 7px; }
+.file-card .fd { font-size: 16.5px; color: var(--text2); line-height: 1.65; }
 .file-card .fd strong { color: var(--ink); }
 
 @media (max-width: 900px) {
@@ -163,19 +163,66 @@
     <div class="figure">
       <div class="figure-frame">
         <div class="swap-row">
-          <span class="swap-pill cur">Rtc2kngBackend · WebRTC(aiortc)</span>
-          <span class="swap-pill cur">NexusWsBackend · nexus 직결 WS</span>
-          <span class="swap-pill cur">Rubberneck · ketirtc 미디어</span>
+          <span class="swap-pill cur">NexusWsBackend · nexus 직결 WS <span style="font-weight:400;">(제어 기본)</span></span>
+          <span class="swap-pill cur">Rubberneck · ketirtc 미디어 <span style="font-weight:400;">(영상)</span></span>
+          <span class="swap-pill cur">RobotManagementInterface · 로컬 웹 UI <span style="font-weight:400;">(관제망)</span></span>
+          <span class="swap-pill">Rtc2kngBackend · WebRTC 옵션</span>
           <span style="color:var(--text3);font-weight:700;">↔</span>
           <span class="swap-pill">LoopbackBackend · 테스트</span>
           <span class="swap-pill ghost">MQTT?</span>
         </div>
-        <div style="text-align:center;margin-top:18px;font-size:15px;color:var(--text2);">모두 동일한 <code class="inline">NetworkBackend</code> 인터페이스(<code class="inline">connect</code>/<code class="inline">send</code>/<code class="inline">disconnect</code> + <code class="inline">_deliver</code>)를 따른다 — <span class="nb">이미 세 개의</span> <span class="nb">실 백엔드가</span> <span class="nb">공존한다</span>(1:1 P2P·N:N 제어채널·미디어).</div>
+        <div style="text-align:center;margin-top:18px;font-size:16.5px;color:var(--text2);">모두 동일한 <code class="inline">NetworkBackend</code> 인터페이스(<code class="inline">connect</code>/<code class="inline">send</code>/<code class="inline">disconnect</code> + <code class="inline">_deliver</code>)를 따른다 — <span class="nb">이미 여러</span> <span class="nb">실 백엔드가</span> <span class="nb">공존한다</span>(제어 WS·미디어·로컬 웹 UI, WebRTC는 옵션). config-driven <code class="inline">networks.py</code>의 <code class="inline">kind</code>는 <code class="inline">nexus</code>·<code class="inline">rubberneck</code>·<code class="inline">rmi</code>.</div>
       </div>
-      <p class="figcaption"><b>Figure 2.</b> 전송 독립. <span class="nb">백엔드만</span> <span class="nb">갈아끼우면 된다</span>(브리지·제어 코드는 불변 — 클린 아키텍처). <strong>대표 백엔드는 robot-first WebRTC(rtc2kng)</strong>이고, 제어 채널용 <code class="inline">NexusWsBackend</code>(nexus 직결 WS)·미디어용 rubberneck(ketirtc)이 함께 있으며, 단위 테스트는 실제 네트워크 없는 <code class="inline">LoopbackBackend</code>로 대체한다.</p>
+      <p class="figcaption"><b>Figure 2.</b> 전송 독립. <span class="nb">백엔드만</span> <span class="nb">갈아끼우면 된다</span>(브리지·제어 코드는 불변 — 클린 아키텍처). <strong>제어(컨트롤플레인)는 <code class="inline">NexusWsBackend</code>(nexus 직결 WS)가 기본</strong>이고, 미디어(영상)는 rubberneck(ketirtc)/WebRTC가 맡는다. robot-first WebRTC(<code class="inline">rtc2kng</code>)는 <span class="nb">WebRTC 옵션 백엔드로</span> 두고, 로컬 웹 UI(<code class="inline">RMI</code>)도 하나의 관제망이 된다. 단위 테스트는 실제 네트워크 없는 <code class="inline">LoopbackBackend</code>로 대체한다.</p>
     </div>
     <div class="prose mt-40">
       <p><span class="nb">인터페이스 계약은</span> 단순하다. 구현체는 <code class="inline">connect()</code>·<code class="inline">send(message)</code>를 채우고, 외부에서 <span class="nb">메시지를 받으면</span> <span class="nb">부모가 제공하는</span> <code class="inline">self._deliver(message)</code>를 호출해 <span class="nb">브리지로 올린다.</span> <code class="inline">disconnect()</code>는 <span class="nb">추상 강제가 아닌</span> 선택(no-op 기본) — 연결·전송은 필수, <span class="nb">정리는 선택이라는</span> <span class="nb">의도적 비대칭이다.</span></p>
+    </div>
+
+    <!-- ── 멀티 네트워크(동시 다중 접속) 서브섹션 ── -->
+    <div class="section-head mt-40" style="text-align:left;">
+      <span class="eyebrow">Multi-Network</span>
+      <h3 class="section-title" style="font-size:26px;">교체만이 아니다 — 여러 관제망 <span class="nb">동시 접속</span></h3>
+      <p class="section-lead"><span class="s">백엔드는 <span class="nb">'갈아끼우는'</span> 것에 <span class="nb">그치지 않는다.</span></span> <span class="s">신규 <code class="inline">_and_/networks.py</code>는 <span class="nb">한 로봇이</span> <strong>여러 관제망에 동시에</strong> 접속하게 한다 — 데몬을 <span class="nb">망마다 하나씩</span> 세우면, <span class="nb">브리지가</span> pypubsub로 <code class="inline">Network.SEND</code>를 <span class="nb">구독하는 성질</span> 그대로 <strong>송신은 전 망으로 팬아웃, 수신은 어느 망에서 오든 <code class="inline">Network.RECV</code>로 병합</strong>된다.</span></p>
+    </div>
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="bridge-row">
+          <div class="bridge-box mid">
+            <div class="ic">🌐</div>
+            <div class="ti">daemon × N</div>
+            <div class="su">망마다 하나<br><code>AdaptiveNetworkDaemon</code></div>
+          </div>
+          <div class="bridge-conn"><div class="bridge-arrow">⇉</div><div class="bridge-lbl">SEND 팬아웃 / RECV 병합</div></div>
+          <div class="bridge-box">
+            <div class="ic">🛰️</div>
+            <div class="ti">nexus</div>
+            <div class="su">제어 WS<br><code>kind: "nexus"</code></div>
+          </div>
+          <div class="bridge-box">
+            <div class="ic">📹</div>
+            <div class="ti">rubberneck</div>
+            <div class="su">미디어<br><code>kind: "rubberneck"</code></div>
+          </div>
+          <div class="bridge-box">
+            <div class="ic">🛠️</div>
+            <div class="ti">rmi</div>
+            <div class="su">로컬 웹 UI<br><code>kind: "rmi"</code></div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 3.</b> 동시 다중 접속. config의 <code class="inline">"networks"</code> 리스트가 데몬 N개를 만들고(<code class="inline">kind</code> = <code class="inline">nexus</code>·<code class="inline">rubberneck</code>·<code class="inline">rmi</code>), 각 데몬이 <span class="nb">같은 내부 버스에</span> <span class="nb">붙어</span> 자동으로 <span class="nb">팬아웃·병합한다.</span> (<code class="inline">rtc2kng</code>는 이 config 경로에 없다 — 별도 WebRTC 옵션.)</p>
+    </div>
+    <div class="prose">
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">robot config — "networks"</span></div>
+<pre><code><span class="str">"networks"</span>: [
+    {<span class="str">"kind"</span>: <span class="str">"nexus"</span>,      <span class="str">"server"</span>: <span class="str">"43.202.61.88:8000"</span>},
+    {<span class="str">"kind"</span>: <span class="str">"rubberneck"</span>, <span class="str">"url"</span>: <span class="str">"https://rubberneck.kr"</span>},
+    {<span class="str">"kind"</span>: <span class="str">"rmi"</span>,        <span class="str">"port"</span>: <span class="num">7712</span>}
+]</code></pre>
+      </div>
+      <div class="note mt-24"><span class="s"><b>항목별 격리 · 교차오염 방지.</b></span> <span class="s">한 망의 <span class="nb">장애·재연결은</span> 독립이고, <span class="nb">백엔드 생성 예외</span>(예: 카메라 busy, ketirtc 미설치)도 <strong>그 항목만</strong> 경고 후 생략한다 — 다른 망 기동은 <span class="nb">무산되지 않는다.</span></span> <span class="s">데몬은 <span class="nb">각 항목을</span> <strong>deep-copy</strong>해 쥐므로, <span class="nb">한 망의</span> 메시지 변형이 <span class="nb">다른 망으로</span> <span class="nb">새지 않는다.</span></span></div>
     </div>
   </div>
 </section>
@@ -186,12 +233,12 @@
     <div class="section-head">
       <span class="eyebrow">rtc2kng</span>
       <h2 class="section-title">WebRTC 백엔드 — robot-first P2P</h2>
-      <p class="section-lead"><span class="s">현재 전송 백엔드는 <code class="inline">_and_/rtc2kng/</code>의 WebRTC 구현이다.</span><span class="s">로봇이 부팅 시 <span class="nb">시그널링에 합류하고,</span> operator의 <code class="inline">ready</code>를 받으면 <strong>로봇이 offer를 주도</strong>한다.</span><span class="s">단일 asyncio 루프(데몬 스레드)에서 1:N operator <span class="nb">연결을 관리한다.</span></span></p>
+      <p class="section-lead"><span class="s"><code class="inline">_and_/rtc2kng/</code>는 <strong>WebRTC 옵션 백엔드</strong>다 — <span class="nb">제어 기본값은</span> nexus 직결 WS(<code class="inline">NexusWsBackend</code>)이고, 이쪽은 <span class="nb">P2P 저지연</span> <span class="nb">경로가</span> <span class="nb">필요할 때</span> 고른다.</span><span class="s"><span class="nb">로봇이 부팅 시</span> <span class="nb">시그널링에 합류하고,</span> operator의 <code class="inline">ready</code>를 받으면 <strong>로봇이 offer를 주도</strong>한다.</span><span class="s">단일 asyncio 루프(데몬 스레드)에서 1:N operator <span class="nb">연결을 관리한다.</span></span></p>
     </div>
     <div class="file-grid">
       <div class="file-card">
         <div class="fn">signaling.py</div>
-        <div class="fd"><strong>SignalingClient</strong> — WebSocket 시그널링 클라이언트. SDP offer/answer·ICE candidate의 <strong>전송 계층만</strong> 담당. P2P가 열리면 <span class="nb">데이터 경로에서</span> 빠진다.</div>
+        <div class="fd"><strong>SignalingClient</strong> — WebSocket 시그널링 클라이언트. SDP offer/answer·ICE candidate의 <strong>전송 계층만</strong> 담당. <span class="nb">P2P가 열리면</span> <span class="nb">데이터 경로에서</span> 빠진다.</div>
       </div>
       <div class="file-card">
         <div class="fn">peer_connection.py</div>
@@ -206,9 +253,12 @@
         <div class="fd"><strong>CameraSource → VideoStreamTrack</strong> 어댑터. <code class="inline">get_frame()</code>의 BGR ndarray를 <code class="inline">av.VideoFrame</code>(bgr24)으로 감싸 aiortc 트랙에 <code class="inline">addTrack</code>한다 — 실제 영상 송출 배선 완료.</div>
       </div>
     </div>
+    <div class="note mt-24">
+      <span class="s"><b>공유 카메라 허브.</b></span> <span class="s">컨벤션은 <strong>물리 카메라 1대 = <code class="inline">CameraSource</code> 1개</strong> — 한 장치를 <span class="nb">딱 한 번 열고</span>(캡처 1회), rtc2kng·rubberneck 등 <span class="nb">여러 전송 소비자가</span> 같은 인스턴스를 <span class="nb">받아 구독한다</span>(같은 장치 이중 open=device busy 방지, 소유권은 <span class="nb">여는 쪽=러너</span>).</span> <span class="s"><b>제어 버스에 고빈도 프레임을 싣지 않는다</b> — 영상은 <span class="nb">미디어 경로</span>(WebRTC 트랙)로 흐르고, <code class="inline">Network.SEND/RECV</code> 제어 채널에는 <span class="nb">status·명령 같은</span> <span class="nb">저빈도 JSON만</span> 오간다.</span>
+    </div>
     <div class="figure mt-40">
       <div class="figure-frame">
-        <div style="font-family:var(--mono);font-size:14px;line-height:2;color:var(--text2);text-align:center;">
+        <div style="font-family:var(--mono);font-size:15.5px;line-height:2;color:var(--text2);text-align:center;">
           operator <span style="color:var(--and);font-weight:700;">ready</span> →
           robot <span style="color:var(--and);font-weight:700;">offer</span> →
           operator <span style="color:var(--and);font-weight:700;">answer</span> →

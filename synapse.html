@@ -13,17 +13,17 @@
 .msg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .msg-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px; display: flex; flex-direction: column; transition: border-color 0.18s, transform 0.18s; }
 .msg-card:hover { border-color: var(--acc-bd); transform: translateY(-2px); }
-.msg-topic { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--acc-d); margin-bottom: 4px; }
+.msg-topic { font-family: var(--mono); font-size: 16.5px; font-weight: 700; color: var(--acc-d); margin-bottom: 4px; }
 .msg-const { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-bottom: 12px; }
-.msg-body { font-size: 15px; color: var(--text2); line-height: 1.7; }
+.msg-body { font-size: 16.5px; color: var(--text2); line-height: 1.7; }
 .msg-body strong { color: var(--ink); font-weight: 700; }
 .msg-foot { font-size: 12.5px; color: var(--text3); margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); line-height: 1.6; }
 
 /* enum grid */
 .enum-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .enum-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px; }
-.enum-name { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 5px; }
-.enum-sub { font-size: 14px; color: var(--text3); line-height: 1.6; margin-bottom: 13px; }
+.enum-name { font-size: 17.5px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 5px; }
+.enum-sub { font-size: 15.5px; color: var(--text3); line-height: 1.6; margin-bottom: 13px; }
 .enum-values { display: flex; flex-wrap: wrap; gap: 6px; }
 .ev { font-family: var(--mono); font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 5px; background: var(--acc-l); color: var(--acc-d); border: 1px solid var(--acc-bd); }
 .ev-req { background: var(--nexus-l); color: var(--nexus); border-color: var(--nexus-bd); }
@@ -44,14 +44,14 @@
 .dim-stack { display: flex; flex-direction: column; gap: 12px; }
 .dim-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
 .dim-card.hl { background: var(--acc-l); border-color: var(--acc-bd); }
-.dim-k { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
+.dim-k { font-family: var(--mono); font-size: 15.5px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
 .dim-card.hl .dim-k { color: var(--acc-d); }
-.dim-v { font-size: 14.5px; color: var(--text2); line-height: 1.65; }
+.dim-v { font-size: 16px; color: var(--text2); line-height: 1.65; }
 
 /* teleop channel mapping */
 .chan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .chan-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
-.chan-name { font-family: var(--mono); font-size: 14.5px; font-weight: 700; color: var(--acc-d); margin-bottom: 4px; }
+.chan-name { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--acc-d); margin-bottom: 4px; }
 .chan-sub { font-size: 12.5px; color: var(--text3); margin-bottom: 12px; }
 .chan-list { display: flex; flex-wrap: wrap; gap: 5px; }
 .chan-list .ev { font-size: 11px; padding: 2px 7px; }
@@ -61,7 +61,7 @@
 .kv-pill { font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); }
 .kv-pill b { color: var(--ink); font-weight: 800; }
 
-.prin-note { font-size: 14.5px; color: var(--text2); line-height: 1.7; }
+.prin-note { font-size: 16px; color: var(--text2); line-height: 1.7; }
 .prin-note strong { color: var(--ink); }
 
 @media (max-width: 900px) {
@@ -106,13 +106,13 @@
     <div class="proj-name" style="color:var(--acc);">synapse</div>
     <div class="proj-full">The single message standard every component imports — definitions only, no execution.</div>
     <p class="proj-lead">
-      <span class="s">이기종 멀티로봇 플랫폼의 <strong style="color:var(--ink);">가장 안쪽 표준 레이어</strong>로, Topics·표준 메시지 6종·Enum 카탈로그·Pydantic v2 자료구조·미션 모델·<code class="inline">standardize()</code>를 한 곳에 모은다.</span>
+      <span class="s">이기종 멀티로봇 플랫폼의 <strong style="color:var(--ink);">가장 안쪽 표준 레이어</strong>로, Topics·표준 메시지 6종·Enum 카탈로그·Pydantic v2 자료구조·미션 모델·<code class="inline">standardize()</code>를 <span class="nb">한 곳에 모은다.</span></span>
       <span class="s">철학은 단 하나, <strong style="color:var(--ink);">"정의만 한다"</strong>는 것이다.</span>
       <span class="s">실행 로직은 <span class="nb">바깥(tom_and_gerri·nexus)이</span> 가지며, 여기를 바꾸면 <span class="nb">전체가 흔들리므로</span> <span class="nb">가장 신중히</span> 관리한다.</span>
     </p>
     <div class="proj-badges">
       <span class="badge badge-syn">공통 표준 레이어</span>
-      <span class="badge badge-gray">pip 패키지 · v0.4.0</span>
+      <span class="badge badge-gray">pip 패키지 · v0.4.4</span>
       <span class="badge badge-gray">Python 3.10+</span>
       <span class="badge badge-gray">pydantic v2</span>
     </div>
@@ -157,14 +157,14 @@
       <div class="msg-card">
         <div class="msg-topic">robot.status</div>
         <div class="msg-const">Topic.Robot.STATUS</div>
-        <div class="msg-body">로봇 <span class="nb">전체 상태.</span> <strong>RobotInfo</strong>(id·sub_id·type·shape·capability) + <strong>RobotState</strong>(base_state·pose·battery…) + <strong>MissionInfo</strong> <span class="nb">세 묶음.</span> <span class="nb">주기적 "전체 상태"</span> 스냅샷이자 <span class="nb">단일 진실 원천(SSOT).</span></div>
+        <div class="msg-body">로봇 <span class="nb">전체 상태.</span> <strong>RobotInfo</strong>(id·sub_id·type·shape·capability·version) + <strong>RobotState</strong>(base_state·pose·battery…) + <strong>MissionInfo</strong> <span class="nb">세 묶음.</span> <span class="nb">주기적 "전체 상태"</span> 스냅샷이자 <span class="nb">단일 진실 원천(SSOT).</span></div>
         <div class="msg-foot">⚠️ raw_status(SDK 원본) ≠ base_state(시스템 종합)를 <span class="nb">합치지 않는다.</span> <code class="inline">(robot_id, sub_id)</code>로 upsert — <span class="nb">1:N 로봇 대응.</span></div>
       </div>
       <div class="msg-card">
         <div class="msg-topic">mission.event</div>
         <div class="msg-const">Topic.Mission.EVENT</div>
-        <div class="msg-body">미션 진행 중 <span class="nb">"방금 일어난 일".</span> <strong>MissionEvent 12종</strong>으로 표현. <span class="nb">Event를 놓쳐도</span> Status가 SSOT이므로 복구된다.</div>
-        <div class="msg-foot">Status = 주기적 전체 상태 · Event = 실시간 알림.</div>
+        <div class="msg-body">미션 진행 중 <span class="nb">"방금 일어난 일".</span> <strong>MissionEvent 16종</strong>으로 표현. <span class="nb">Event를 놓쳐도</span> Status가 SSOT이므로 복구된다.</div>
+        <div class="msg-foot">Status = <span class="nb">주기적 전체 상태</span> · Event = <span class="nb">실시간 알림.</span></div>
       </div>
       <div class="msg-card">
         <div class="msg-topic">mission.trigger</div>
@@ -176,13 +176,13 @@
         <div class="msg-topic">command.capability</div>
         <div class="msg-const">Topic.Command.CAPABILITY</div>
         <div class="msg-body">Capability 호출. <code class="inline">value.name</code> = <span class="nb">capability 이름,</span> <code class="inline">value.params</code> = 인자. base가 <code class="inline">getattr(sub, name)(**params)</code>로 디스패치한다.</div>
-        <div class="msg-foot">✓ 단일 토픽 — <code class="inline">command.{capability}</code> 동적 토픽은 만들지 않는다(무한 폭발 방지).</div>
+        <div class="msg-foot">✓ 단일 토픽 — <code class="inline">command.{capability}</code> <span class="nb">동적 토픽은</span> <span class="nb">만들지 않는다</span>(무한 폭발 방지).</div>
       </div>
       <div class="msg-card">
         <div class="msg-topic">command.teleop</div>
         <div class="msg-const">Topic.Command.TELEOP</div>
         <div class="msg-body"><span class="nb">원격조작 입력을</span> <span class="nb">단일 토픽으로</span> 통일. <code class="inline">axes</code> · <code class="inline">buttons</code> · <code class="inline">poses</code> <span class="nb">세 채널을</span> <span class="nb">함께 담는다.</span> 조이패드와 VR을 <span class="nb">하나의 표준으로</span> 흡수.</div>
-        <div class="msg-foot"><code class="inline">build_joy()</code> / <code class="inline">build_vr()</code>는 이 위에 얹힌 편의 빌더일 뿐, 별도 토픽이 아니다.</div>
+        <div class="msg-foot"><code class="inline">build_joy()</code> / <code class="inline">build_vr()</code>는 이 위에 얹힌 <span class="nb">편의 빌더일 뿐</span>, <span class="nb">별도 토픽이 아니다.</span></div>
       </div>
       <div class="msg-card">
         <div class="msg-topic">help.action</div>
@@ -221,6 +221,7 @@
                   <tr><td class="mono">robot_type</td><td>str (mobile·manipulator…)</td></tr>
                   <tr><td class="mono">robot_shape</td><td>dict</td></tr>
                   <tr><td class="mono">capability</td><td>{common[], custom[]}</td></tr>
+                  <tr><td class="mono">version</td><td>dict | None — {repo_name: semver} 배포 버전 보고</td></tr>
                   <tr><td class="mono" colspan="2" style="background:var(--bg);color:var(--text3);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;">robot_state — 동적 상태</td></tr>
                   <tr><td class="mono">base_state</td><td>BaseState — 시스템 종합(파생)</td></tr>
                   <tr><td class="mono">pose</td><td>Pose | Pose3D</td></tr>
@@ -312,7 +313,7 @@
       </div>
       <div class="enum-card">
         <div class="enum-name">HelpAction <span style="color:var(--text3);font-weight:600;">(4)</span></div>
-        <div class="enum-sub">help.action에 실리는 인간 개입 액션.</div>
+        <div class="enum-sub">help.action에 실리는 <span class="nb">인간 개입 액션.</span></div>
         <div class="enum-values">
           <span class="ev">retry</span><span class="ev">skip</span><span class="ev">abort</span><span class="ev">takeover</span>
         </div>
@@ -325,13 +326,13 @@
         </div>
       </div>
       <div class="enum-card" style="grid-column:span 2;">
-        <div class="enum-name">Capability <span style="color:var(--text3);font-weight:600;">(16)</span></div>
+        <div class="enum-name">Capability <span style="color:var(--text3);font-weight:600;">(18)</span></div>
         <div class="enum-sub">표준 capability 카탈로그. <strong style="color:var(--ink);">enum value == 메서드 이름</strong>. 자세한 분류는 아래 Capability 카탈로그 참조.</div>
         <div class="enum-values">
           <span class="ev">navigate_to_pose</span><span class="ev">navigate_to_waypoint</span><span class="ev">velocity_ctrl</span><span class="ev">dock</span><span class="ev">undock</span>
           <span class="ev">joint_ctrl</span><span class="ev">cartesian_ctrl</span><span class="ev">gripper_ctrl</span><span class="ev">home_position</span><span class="ev">joint_preset</span>
-          <span class="ev">pan_tilt</span><span class="ev">pan_tilt_zoom</span><span class="ev">get_pose</span><span class="ev">get_battery</span><span class="ev">get_joints</span>
-          <span class="ev ev-req">stop</span>
+          <span class="ev">pan_tilt</span><span class="ev">pan_tilt_zoom</span><span class="ev">relocate</span><span class="ev">get_pose</span><span class="ev">get_battery</span><span class="ev">get_joints</span>
+          <span class="ev">software_update</span><span class="ev ev-req">stop</span>
         </div>
       </div>
       <div class="enum-card" style="grid-column:span 2;">
@@ -387,7 +388,7 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Capability Catalog</span>
-      <h2 class="section-title">표준 Capability 16종</h2>
+      <h2 class="section-title">표준 Capability 18종</h2>
       <p class="section-lead">모든 로봇이 <span class="nb">같은 이름·같은</span> <span class="nb">시그니처를 쓰며,</span> <strong>enum value가 곧 메서드 이름</strong>이고 base는 <code class="inline">getattr(sub, name)(**params)</code>로 디스패치한다.</p>
     </div>
 
@@ -412,9 +413,21 @@
           </div>
         </div>
         <div class="cap-group">
+          <div class="cap-label">pose 보정 (1)</div>
+          <div class="cap-row">
+            <span class="cap-item">relocate</span>
+          </div>
+        </div>
+        <div class="cap-group">
           <div class="cap-label">조회 (3)</div>
           <div class="cap-row">
             <span class="cap-item">get_pose</span><span class="cap-item">get_battery</span><span class="cap-item">get_joints</span>
+          </div>
+        </div>
+        <div class="cap-group">
+          <div class="cap-label">유지보수 (1)</div>
+          <div class="cap-row">
+            <span class="cap-item">software_update</span>
           </div>
         </div>
         <div class="cap-group">
@@ -425,11 +438,15 @@
           </div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 4.</b> Capability 16종 + 필수 1 + <span class="nb">자유 확장.</span> <code class="inline">REQUIRED_CAPABILITIES = {stop}</code> — <span class="nb">모든 로봇이</span> <code class="inline">stop()</code>을 <span class="nb">구현해야 한다.</span> <span class="nb">로봇별 비표준</span> 동작은 free-form <code class="inline">custom_capability</code>로 추가한다.</p>
+      <p class="figcaption"><b>Figure 4.</b> Capability 18종 + <span class="nb">자유 확장.</span> <code class="inline">REQUIRED_CAPABILITIES = {stop}</code> — <span class="nb">모든 로봇이</span> <code class="inline">stop()</code>을 <span class="nb">구현해야 한다.</span> <span class="nb">로봇별 비표준</span> 동작은 free-form <code class="inline">custom_capability</code>로 추가한다.</p>
     </div>
 
     <div class="prose mt-32">
       <div class="note"><b>디스패치 규칙:</b> <span class="s"><code class="inline">command.capability</code>의 <code class="inline">value.name</code>에 <span class="nb">capability 이름이</span> 담기고, base가 <code class="inline">getattr(sub, name)(**params)</code>로 호출한다.</span> <span class="s"><code class="inline">command.{capability}</code> 같은 <span class="nb">동적 토픽은</span> <span class="nb">만들지 않는다</span> — <span class="nb">토픽 폭발을</span> 막는다.</span></div>
+
+      <div class="note mt-20"><b><code class="inline">relocate</code> — pose 보정:</b> <span class="s">로봇 <span class="nb">pose 추정치를</span> <span class="nb">자기 map 프레임에서</span> <code class="inline">(x, y, theta)</code>로 <span class="nb">보정한다.</span></span> <span class="s"><span class="nb">서버 소유의</span> <span class="nb">맵 정렬 T</span>·<code class="inline">set_pose</code>와는 <span class="nb">엄격히 구분되며</span> — <span class="nb">pose만 바꾼다.</span></span> <span class="s"><span class="nb">pose를 리포트하는</span> <span class="nb">로봇만 광고한다.</span></span></div>
+
+      <div class="note mt-20"><b><code class="inline">software_update</code> — 유지보수:</b> <span class="s"><span class="nb">NEXUS 릴레이로</span> <span class="nb">로봇이 스스로</span> <code class="inline">git pull</code> 후 <span class="nb">재시작한다</span>(edge-authoritative).</span> <span class="s"><code class="inline">BUSY</code>·<code class="inline">TELEOP</code>·<code class="inline">NEED_HELP</code>·<code class="inline">ERROR</code>면 <span class="nb">거부한다</span> — <span class="nb">자가 재시작</span> <span class="nb">위험 가드.</span></span> <span class="s"><span class="nb">N-디바이스 게이트웨이는</span> <span class="nb">프로세스 1개만</span> 갱신하고, <span class="nb">대행 디바이스 중</span> <span class="nb">하나라도</span> <code class="inline">BUSY</code>·<code class="inline">ERROR</code>면 <span class="nb">거부한다.</span></span></div>
     </div>
   </div>
 </section>
@@ -440,7 +457,7 @@
     <div class="section-head">
       <span class="eyebrow">Core Building Blocks</span>
       <h2 class="section-title">핵심 자료구조 · 빌더</h2>
-      <p class="section-lead">개발자가 실제로 import해서 쓰는 골격 — <code class="inline">Result</code>, <code class="inline">StatusBuilder</code>, <code class="inline">standardize()</code>, <code class="inline">Topic</code>.</p>
+      <p class="section-lead"><span class="nb">개발자가 실제로</span> import해서 쓰는 골격 — <code class="inline">Result</code>, <code class="inline">StatusBuilder</code>, <code class="inline">standardize()</code>, <code class="inline">Topic</code>.</p>
     </div>
 
     <div class="prose">
@@ -450,7 +467,7 @@
 
       <div class="note mt-20"><b>standardize() — Postel's Law(받을 땐 관대, 보낼 땐 표준):</b> <span class="s"><code class="inline">normalize(data)</code>는 dict·Pydantic·dataclass·None 등 <span class="nb">무엇이든 dict로</span> 바꾼다(never raise).</span> <span class="s"><code class="inline">standardize(data, model_class)</code>는 <span class="nb">normalize 후</span> <code class="inline">model_validate</code>를 시도하고, 실패하면 <span class="nb">문제 필드만 떼어</span> 재검증해 <code class="inline">(dict, warnings)</code>를 반환한다 — <span class="nb">절대 예외를</span> <span class="nb">던지지 않는다.</span></span></div>
 
-      <div class="note mt-20"><b>Topic — raw 문자열 금지:</b> <span class="s">토픽은 항상 <code class="inline">Topic.*</code> 상수로 접근한다(예: <code class="inline">Topic.Command.CAPABILITY</code> = <code class="inline">"command.capability"</code>).</span></div>
+      <div class="note mt-20"><b>Topic — raw 문자열 금지:</b> <span class="s"><span class="nb">토픽은 항상</span> <code class="inline">Topic.*</code> <span class="nb">상수로 접근한다</span>(예: <code class="inline">Topic.Command.CAPABILITY</code> = <code class="inline">"command.capability"</code>).</span></div>
     </div>
 
     <div class="tbl-wrap mt-24" style="max-width:var(--measure);margin-left:auto;margin-right:auto;">
@@ -468,8 +485,8 @@
     </div>
 
     <div class="prose mt-32">
-      <p style="font-size:15px;color:var(--text2);line-height:1.8;"><strong style="color:var(--ink);">자료구조 요약.</strong> <code class="inline">models.py</code>는 <span class="nb">Pydantic v2이며</span> <span class="nb">모든 필드가</span> <span class="nb">optional이다.</span> <code class="inline">Pose3D</code>{x,y,z,qx,qy,qz,qw}가 <span class="nb">정규형(쿼터니언)이고</span> <code class="inline">from_2d</code>/<code class="inline">from_rpy</code>/<code class="inline">.yaw</code>/<code class="inline">.to_2d</code> <span class="nb">변환을 제공한다.</span> <code class="inline">Twist</code>{linear, angular}, <code class="inline">Joint</code>{positions(required)·names·velocities·efforts}, <code class="inline">NetworkState</code>는 <span class="nb">internet/server/operator</span> 각각 <code class="inline">Link</code>{is_connected, latency_ms, packet_loss}로 <span class="nb">구성된다.</span></p>
-      <div class="note mt-20"><b>기계판독 wire contract (<code class="inline">contract/</code>):</b> <span class="s">모델·enum·미션을 <code class="inline">export_schema.py</code>로 뽑은 <strong>JSON Schema</strong>(<code class="inline">synapse.schema.json</code>, draft 2020-12) + 토픽별 <strong>골든 픽스처</strong>(byte-stable, drift-guard) + <strong><code class="inline">interop.json</code></strong>(WebRTC 공통 코덱 베이스라인 <strong>VP8+Opus</strong> — SDK는 이를 협상해야 함)을 커밋해 둔다.</span> <span class="s">SDK 코드젠(Phase 6~8)이 git 해시로 이 아티팩트를 핀한다. 버전(<code class="inline">0.4.0</code>)은 semver 규칙(D-07)으로 올린다.</span></div>
+      <p style="font-size:16.5px;color:var(--text2);line-height:1.8;"><strong style="color:var(--ink);">자료구조 요약.</strong> <code class="inline">models.py</code>는 <span class="nb">Pydantic v2이며</span> <span class="nb">모든 필드가</span> <span class="nb">optional이다.</span> <code class="inline">Pose3D</code>{x,y,z,qx,qy,qz,qw}가 <span class="nb">정규형(쿼터니언)이고</span> <code class="inline">from_2d</code>/<code class="inline">from_rpy</code>/<code class="inline">.yaw</code>/<code class="inline">.to_2d</code> <span class="nb">변환을 제공한다.</span> <code class="inline">Twist</code>{linear, angular}, <code class="inline">Joint</code>{positions(required)·names·velocities·efforts}, <code class="inline">NetworkState</code>는 <span class="nb">internet/server/operator</span> 각각 <code class="inline">Link</code>{is_connected, latency_ms, packet_loss}로 <span class="nb">구성된다.</span></p>
+      <div class="note mt-20"><b>기계판독 wire contract (<code class="inline">contract/</code>):</b> <span class="s">모델·enum·미션을 <code class="inline">export_schema.py</code>로 뽑은 <strong>JSON Schema</strong>(<code class="inline">synapse.schema.json</code>, draft 2020-12) + 토픽별 <strong>골든 픽스처</strong>(byte-stable, drift-guard) + <strong><code class="inline">interop.json</code></strong>(WebRTC 공통 코덱 베이스라인 <strong>VP8+Opus</strong> — SDK는 이를 협상해야 함)을 커밋해 둔다.</span> <span class="s">SDK 코드젠(Phase 6~8)이 git 해시로 <span class="nb">이 아티팩트를 핀한다.</span> 버전(<code class="inline">0.4.4</code>)은 semver 규칙(D-07)으로 올린다.</span></div>
     </div>
   </div>
 </section>
@@ -480,7 +497,7 @@
     <div class="section-head">
       <span class="eyebrow">Mission Model &amp; Sync</span>
       <h2 class="section-title">미션 모델 · 시간 동기화</h2>
-      <p class="section-lead"><code class="inline">missions.py</code>는 미션 자료구조와 간결 헬퍼를, <code class="inline">time_sync.py</code>는 NTP식 오프셋 동기화를 정의한다.</p>
+      <p class="section-lead"><code class="inline">missions.py</code>는 <span class="nb">미션 자료구조와</span> 간결 헬퍼를, <code class="inline">time_sync.py</code>는 NTP식 오프셋 <span class="nb">동기화를 정의한다.</span></p>
     </div>
 
     <div class="g2" style="align-items:start;">

@@ -11,8 +11,8 @@
 .edge-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
 .edge-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 26px; }
 .edge-card .ic { font-size: 26px; margin-bottom: 12px; }
-.edge-card .ti { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 9px; }
-.edge-card .ds { font-size: 15.5px; color: var(--text2); line-height: 1.7; }
+.edge-card .ti { font-size: 18.5px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 9px; }
+.edge-card .ds { font-size: 17px; color: var(--text2); line-height: 1.7; }
 .edge-card .ds strong { color: var(--ink); }
 
 /* authority diagram */
@@ -20,9 +20,9 @@
 .auth-box { flex: 1; min-width: 200px; text-align: center; padding: 24px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); }
 .auth-box.src { background: var(--acc-l); border-color: var(--acc-bd); }
 .auth-box .ic { font-size: 30px; margin-bottom: 10px; }
-.auth-box .ti { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+.auth-box .ti { font-size: 17.5px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
 .auth-box.src .ti { color: var(--acc-d); }
-.auth-box .su { font-size: 14px; color: var(--text3); line-height: 1.55; }
+.auth-box .su { font-size: 15.5px; color: var(--text3); line-height: 1.55; }
 .auth-conn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 0 14px; flex-shrink: 0; }
 .auth-line { width: 44px; height: 2px; background: repeating-linear-gradient(90deg, var(--border2) 0, var(--border2) 6px, transparent 6px, transparent 12px); }
 .auth-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
@@ -34,13 +34,13 @@
 .tag-row { display: flex; align-items: stretch; justify-content: center; gap: 0; flex-wrap: wrap; }
 .tag-node { flex: 1; min-width: 150px; text-align: center; padding: 22px 16px; border: 1px solid; border-radius: 14px; background: #fff; }
 .tag-node .ic { font-size: 28px; margin-bottom: 8px; }
-.tag-node .nm { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.tag-node .nm { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
 .tag-node .rl { font-size: 12.5px; color: var(--text3); margin-top: 3px; }
 .tag-node.tom_n   { border-color: var(--tom-bd);   color: var(--tom); background: var(--tom-l); }
 .tag-node.and_n   { border-color: var(--and-bd);   color: var(--and); }
 .tag-node.gerri_n { border-color: var(--gerri-bd); color: var(--gerri); }
 .tag-plus { display: flex; align-items: center; justify-content: center; padding: 0 14px; font-size: 22px; font-weight: 800; color: var(--text3); flex-shrink: 0; }
-.tag-eq { margin-top: 18px; text-align: center; font-size: 15px; color: var(--text2); }
+.tag-eq { margin-top: 18px; text-align: center; font-size: 16.5px; color: var(--text2); }
 .tag-eq strong { color: var(--ink); }
 
 @media (max-width: 900px) {
@@ -125,12 +125,12 @@
       <div class="edge-card">
         <div class="ic">⚡</div>
         <div class="ti">엣지 컴퓨팅</div>
-        <div class="ds">제어 루프·센서 처리·미션 실행을 <strong>로봇 현장에서</strong> <span class="nb">직접 수행한다.</span> <span class="nb">클라우드 왕복 없이</span> 저지연으로 동작하며, 네트워크가 불안정해도 <span class="nb">로봇은 멈추지 않는다.</span></div>
+        <div class="ds">제어 루프·센서 처리·미션 실행을 <strong>로봇 현장에서</strong> <span class="nb">직접 수행한다.</span> <span class="nb">클라우드 왕복 없이</span> 저지연으로 동작하며, <span class="nb">네트워크가 불안정해도</span> <span class="nb">로봇은 멈추지 않는다.</span></div>
       </div>
       <div class="edge-card">
         <div class="ic">🗄️</div>
         <div class="ti">상태 원본 소유</div>
-        <div class="ds">로봇의 <strong>status·미션 진행 상태의 원본</strong>이 <span class="nb">TOM 안에 있다.</span> NEXUS가 보는 것은 그 원본을 <span class="nb">푸시받아 캐시한</span> <em>사본(뷰)</em>일 뿐이다.</div>
+        <div class="ds">로봇의 <strong>status·미션 진행 상태의 원본</strong>이 <span class="nb">TOM 안에 있다.</span> <span class="nb">NEXUS가 보는 것은</span> 그 원본을 <span class="nb">푸시받아 캐시한</span> <em>사본(뷰)</em>일 뿐이다.</div>
       </div>
       <div class="edge-card">
         <div class="ic">🧩</div>

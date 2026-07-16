@@ -55,7 +55,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   line-height: 1.7;
-  font-size: 18.5px;
+  font-size: 20.5px;
   /* 한국어 어절 단위 줄바꿈 — "세부사항"이 "세/부사항"으로 끊기지 않게 */
   word-break: keep-all;
   overflow-wrap: break-word;
@@ -187,7 +187,7 @@ a { color: var(--acc); text-decoration: none; }
 /* authors / contributors row */
 .authors {
   margin: 32px auto 6px; max-width: 800px;
-  font-size: 19px; color: var(--text2); line-height: 1.95;
+  font-size: 21px; color: var(--text2); line-height: 1.95;
 }
 .authors b { color: var(--ink); font-weight: 600; }
 .authors sup { color: var(--acc); font-weight: 700; font-size: 0.72em; }
@@ -236,15 +236,15 @@ a { color: var(--acc); text-decoration: none; }
   letter-spacing: -0.03em; line-height: 1.18; color: var(--ink);
 }
 .section-lead, .sec-desc {
-  font-size: 19.5px; line-height: 1.8; color: var(--text2);
+  font-size: 21.5px; line-height: 1.8; color: var(--text2);
   margin: 18px auto 0; max-width: 720px;
 }
 
 /* prose / reading column */
 .prose { max-width: var(--measure); margin: 0 auto; }
-.prose p { font-size: 19px; line-height: 1.9; color: var(--text2); margin-bottom: 19px; }
+.prose p { font-size: 21px; line-height: 1.9; color: var(--text2); margin-bottom: 19px; }
 .prose p strong, .prose strong { color: var(--ink); font-weight: 700; }
-.prose .lead-para { font-size: 20.5px; line-height: 1.85; color: var(--text); }
+.prose .lead-para { font-size: 22.5px; line-height: 1.85; color: var(--text); }
 
 /* ── FIGURE (centered, captioned) ────────────────────── */
 .figure { margin: 0 auto; max-width: 920px; }
@@ -253,7 +253,7 @@ a { color: var(--acc); text-decoration: none; }
   padding: 32px; box-shadow: 0 1px 2px rgba(21,24,30,0.03);
 }
 .figcaption {
-  font-family: var(--serif); font-size: 16.5px; color: var(--text3);
+  font-family: var(--serif); font-size: 18px; color: var(--text3);
   text-align: center; margin-top: 16px; line-height: 1.65; max-width: 780px;
   margin-left: auto; margin-right: auto;
 }
@@ -337,16 +337,16 @@ code.inline {
 }
 .tbl td {
   padding: 15px 20px; border-bottom: 1px solid var(--border);
-  font-size: 16.5px; color: var(--text2); vertical-align: top; line-height: 1.7;
+  font-size: 18px; color: var(--text2); vertical-align: top; line-height: 1.7;
 }
-.tbl td.mono { font-family: var(--mono); font-size: 14.5px; color: var(--ink); font-weight: 600; }
+.tbl td.mono { font-family: var(--mono); font-size: 16px; color: var(--ink); font-weight: 600; }
 .tbl tbody tr:last-child td { border-bottom: none; }
 .tbl tbody tr:hover td { background: var(--bg); }
 
 /* ── NOTE / CALLOUT ──────────────────────────────────── */
 .note {
   border-left: 3px solid var(--acc); background: var(--acc-l);
-  padding: 17px 22px; border-radius: 0 10px 10px 0; font-size: 16px; line-height: 1.75; color: var(--text2);
+  padding: 17px 22px; border-radius: 0 10px 10px 0; font-size: 17.5px; line-height: 1.75; color: var(--text2);
 }
 .note b { color: var(--acc-d); }
 
@@ -391,8 +391,8 @@ code.inline {
 .proj-hero { padding: 30px 0 44px; text-align: center; border-bottom: 1px solid var(--border); }
 .proj-mark { font-size: 40px; margin-bottom: 8px; }
 .proj-name { font-size: clamp(42px, 6.2vw, 72px); font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--ink); }
-.proj-full { font-family: var(--serif); font-style: italic; font-size: 19.5px; color: var(--text3); margin-top: 12px; }
-.proj-lead { font-size: 19.5px; line-height: 1.85; color: var(--text2); max-width: 700px; margin: 22px auto 0; }
+.proj-full { font-family: var(--serif); font-style: italic; font-size: 21.5px; color: var(--text3); margin-top: 12px; }
+.proj-lead { font-size: 21.5px; line-height: 1.85; color: var(--text2); max-width: 700px; margin: 22px auto 0; }
 .proj-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 20px; }
 
 /* ── UTILITIES ───────────────────────────────────────── */

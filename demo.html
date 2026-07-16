@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>체험해보기 — NEXUS 관제 콘솔 | SYNAPSE</title>
+<title>NEXUS 관제 — 사이트 대시보드 · 맵 관제 · 콕핏 | SYNAPSE</title>
 <!--
   체험해보기 — nexus_ui 통합 관제 콘솔을 백엔드 없이 그대로 재현한 시뮬레이션(단일 파일).
   실제 nexus_ui(index.html + app.js + cockpit.js …)의 디자인(KETI 톤)과 기능을 거의 1:1로 옮겼다:
     · 좌측 사이드바 네비(대시보드 / 플릿 미션 / 맵 에디터 / 서버 설정) + 다크·라이트 테마
-    · 사이트 전체(L0) 오버뷰 — 표준맵 카드 + 로봇 dots/요약/리스트 → 맵 진입(L1)
+    · 사이트 대시보드(L0) 오버뷰 — 표준맵 카드 + 로봇 dots/요약/리스트 → 맵 관제(L1) 진입
     · 플릿(RTS, L1) — 표준맵 배경 + 90° 회전 + 휠줌/팬, 드래그 박스 다중선택, 방향 화살표,
       roster(신호·배터리·base_state 배지), 미니맵, 3×3 스킬그리드(폴더 드릴다운), capability 파라미터 자동폼
     · 헤더 — 상태요약 칩 + 필터, 알람 🔔(IoT is_alarm + 파생: OFFLINE·저배터리), 비프/TTS
-    · 1:1 직접관제 콕핏 — 키보드/마우스 프리셋 탭, 카메라(시뮬), 미니맵, 입력 HUD, 지연(RTT) 그래프, D-pad
+    · 콕핏(1:1) — 키보드/마우스 프리셋 탭, 카메라(시뮬), 미니맵, 입력 HUD, 지연(RTT) 그래프, D-pad
     · 플릿 미션 — 템플릿 시작 → DAG 태스크 진행, 서버 설정(연결/테마/ICE/사이트) 패널
   모든 조작은 synapse 표준 command.capability / command.teleop 메시지로 생성되어 콘솔에 찍힌다(개발자도구 확인).
   실제 콘솔과 달리 서버(/api/*)·WebRTC 는 없고, 데이터는 내장 mock + 시뮬레이션 틱으로 돈다.
@@ -89,6 +89,34 @@
   .alm .at{ font-size:12px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .alm .as{ font-size:10px; color:var(--dim); margin-top:1px; }
   .alm-none{ color:var(--dim); font-size:12px; padding:8px; text-align:center; }
+  /* 설비(IoT) 버튼 + 드로어 — 알람벨과 동일 톤 */
+  #iotwrap{ position:relative; }
+  #iotbtn{ background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:2px 7px; font-size:13px; line-height:1; cursor:pointer; }
+  #iotbtn:hover{ border-color:var(--accent); }
+  #iotbtn #iotcount{ font:10px/1 ui-monospace,monospace; margin-left:3px; color:var(--dim); }
+  #iotbtn.has{ animation:almpulse 1.1s ease-in-out infinite; }
+  #iotbtn.has #iotcount{ color:var(--on-accent); background:var(--err); border-radius:8px; padding:1px 5px; }
+  #iotpanel{ position:absolute; top:28px; right:0; z-index:30; width:342px; max-height:66vh; overflow:auto;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 8px 24px color-mix(in srgb,#000 45%,transparent); padding:8px; }
+  #iotpanel[hidden]{ display:none; }
+  .iot-sub{ font-size:10px; color:var(--dim); margin-left:auto; }
+  .iot-empty{ color:var(--dim); font-size:12px; padding:8px; text-align:center; }
+  .iot-cat{ font-size:11px; color:var(--ink2); font-weight:700; margin:9px 0 4px; letter-spacing:.3px; }
+  .iot-cat:first-child{ margin-top:2px; }
+  .iot-dev{ border:1px solid var(--line); border-radius:6px; padding:6px 8px; margin-bottom:6px; background:var(--card); }
+  .iot-dev.alarm{ border-color:var(--err); }
+  .iot-head{ display:flex; align-items:center; gap:6px; }
+  .iot-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .iot-name{ flex:1; font-size:12px; color:var(--ink); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .iot-name:hover{ color:var(--accent); }
+  .iot-maps{ font-size:10px; color:var(--accent2); flex:none; }
+  .iot-place{ background:var(--card2); border:1px solid var(--line); color:var(--ink2); border-radius:5px; padding:2px 6px; font-size:10px; cursor:pointer; flex:none; }
+  .iot-place:hover{ border-color:var(--accent); color:var(--accent); }
+  .iot-io{ font-size:11px; color:var(--accent2); margin:5px 0 3px; }
+  .iot-acts{ display:flex; flex-wrap:wrap; gap:4px; }
+  .iot-acts button{ background:var(--card2); border:1px solid var(--line); color:var(--ink); border-radius:5px; padding:3px 7px; font-size:11px; cursor:pointer; }
+  .iot-acts button:hover{ border-color:var(--accent); }
+  .iot-acts button.stop{ color:var(--err); border-color:var(--err-line); }
   /* 좌측 사이드바 네비 */
   #body{ flex:1; display:flex; min-height:0; }
   #sidebar{ width:172px; flex:none; border-right:1px solid var(--line); background:var(--panel);
@@ -140,6 +168,19 @@
   #maprotbtn{ position:absolute; top:8px; right:8px; z-index:4; background:color-mix(in srgb, var(--bg) 85%, transparent);
     color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:3px 8px; font-size:11px; cursor:pointer; }
   #maprotbtn:hover{ border-color:var(--accent); }
+  /* 3D 맵 관제 뷰(뷰 전용) — three.js 벽 압출 + 로봇 마커 */
+  #map3dbtn{ position:absolute; top:8px; right:74px; z-index:4; background:color-mix(in srgb, var(--bg) 85%, transparent);
+    color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:3px 8px; font-size:11px; cursor:pointer; }
+  #map3dbtn:hover{ border-color:var(--accent); }
+  #map3dbtn.on{ background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+  #map3dview{ position:absolute; inset:0; z-index:2; background:var(--card2); border-radius:6px; overflow:hidden; }
+  #map3dview[hidden]{ display:none; }
+  #map3dview canvas{ display:block; width:100%; height:100%; }
+  #map3dviews{ position:absolute; left:50%; bottom:8px; transform:translateX(-50%); z-index:5; display:inline-flex;
+    border:1px solid var(--line); border-radius:6px; overflow:hidden; background:color-mix(in srgb, var(--bg) 85%, transparent); }
+  #map3dviews button{ background:transparent; border:none; border-right:1px solid var(--line); color:var(--ink2); padding:4px 10px; font-size:11px; cursor:pointer; }
+  #map3dviews button:last-child{ border-right:none; }
+  #map3dviews button.on{ background:var(--accent); color:var(--on-accent); }
   #mapsel{ position:absolute; top:8px; left:86px; z-index:4; max-width:230px;
     background:color-mix(in srgb, var(--bg) 85%, transparent); color:var(--ink); border:1px solid var(--line);
     border-radius:5px; padding:3px 6px; font:11px/1.3 ui-sans-serif,system-ui; }
@@ -214,6 +255,13 @@
     background:color-mix(in srgb, var(--bg) 80%, transparent); border:1px solid var(--line); border-radius:4px; padding:2px 7px; pointer-events:none; display:none; }
   /* 어택땅 미리보기 화살표 */
   #movearrow{ position:absolute; inset:0; width:100%; height:100%; z-index:8; pointer-events:none; display:none; }
+  /* path_plan 경로 폴리라인(전류 흐름) — global=악센트, local=라이트블루 */
+  svg.pathlayer{ overflow:visible; }
+  svg.pathlayer .pglow{ fill:none; stroke:var(--accent); stroke-width:7; opacity:.13; stroke-linecap:round; stroke-linejoin:round; }
+  svg.pathlayer .pglow.loc{ stroke:var(--accent2); }
+  svg.pathlayer .pglobal{ fill:none; stroke:var(--accent); stroke-width:2.4; opacity:.6; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:11 8; animation:pathflow 1s linear infinite; }
+  svg.pathlayer .plocal{ fill:none; stroke:var(--accent2); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:5 6; animation:pathflow .5s linear infinite; }
+  @keyframes pathflow{ to{ stroke-dashoffset:-19; } }
   /* 정렬 마법사 */
   #selactions{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:7px; }
   .alignbadge{ font-size:10px; padding:2px 7px; border-radius:10px; border:1px solid var(--line); color:var(--ink2); }
@@ -302,6 +350,9 @@
 
   /* 파라미터 자동폼 모달 */
   #paramback{ position:fixed; inset:0; background:#000a; z-index:80; display:none; align-items:center; justify-content:center; }
+  /* 미리보기 모드(관절 프리셋/제어) — 배경 디밍 없이 콕핏 3D 트윈 고스트를 보면서 조정 */
+  #paramback.preview{ background:transparent; pointer-events:none; justify-content:flex-end; align-items:flex-start; padding:64px 16px 0 0; }
+  #paramback.preview #paramform{ pointer-events:auto; box-shadow:0 10px 40px color-mix(in srgb,#000 55%,transparent); }
   #paramform{ background:var(--card); border:1px solid var(--accent); border-radius:10px; padding:16px; width:380px; max-width:92vw; max-height:86vh; overflow:auto; }
   #paramform h3{ margin:0 0 4px; font-size:15px; color:var(--accent); }
   #paramform .sub{ font-size:11px; color:var(--dim); margin-bottom:10px; }
@@ -318,7 +369,7 @@
   .param-grid7 .param-row{ margin:2px 0; }
   .param-grid7 .param-row label{ width:26px; }
 
-  /* 1:1 직접관제 오버레이 */
+  /* 콕핏(1:1) 오버레이 */
   #cockpit{ position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; flex-direction:column; }
   #cockpit[hidden]{ display:none; }
   .cockpit-bar{ display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
@@ -441,17 +492,23 @@
 <script type="importmap">
 { "imports": {
   "three": "https://esm.sh/three@0.160.0",
+  "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
   "urdf-loader": "https://esm.sh/urdf-loader@0.12.6"
 } }
 </script>
 <script type="module">
-  /* 3D 디지털 트윈 — three.js(+urdf-loader) 를 esm.sh importmap 으로 로드.
-     CDN 미도달/오프라인이면 window.__twin3d__.ok = false → 콘솔 스크립트가 2D SVG 폴백으로 대체. */
+  /* 3D — three.js(+addons)를 esm.sh importmap 으로 로드. 두 소비처:
+       ① 콕핏 디지털 트윈(window.__twin3d__): 프리미티브 팔 + 고스트 프리뷰 + 디텍 3D 마커.
+       ② 맵 관제 3D 뷰(window.DemoMap3D): 점유격자 벽 압출 + 로봇 마커 + 경로 + 뷰 프리셋.
+     CDN 미도달/오프라인이면 ok=false → 트윈은 2D SVG 폴백, 3D 맵 토글은 토스트 후 미노출. */
   window.__twin3d__ = { ok: false };
   (async () => {
     try {
       const THREE = await import("three");
+      const { OrbitControls } = await import("three/addons/controls/OrbitControls.js");
       window.__twin3d__.THREE = THREE;
+
+      // ── ① 콕핏 트윈 ──────────────────────────────────────────────────────────
       window.__twin3d__.mount = function (container) {
         const W = container.clientWidth || 300, H = container.clientHeight || 150;
         const scene = new THREE.Scene();
@@ -464,22 +521,218 @@
         scene.add(new THREE.AmbientLight(0xffffff, 0.75));
         const dl = new THREE.DirectionalLight(0x9fd0ff, 0.85); dl.position.set(3, 5, 2); scene.add(dl);
         const mat = (c) => new THREE.MeshStandardMaterial({ color: c, metalness: 0.3, roughness: 0.55 });
-        // 간단한 다관절 팔 프리미티브(URDF 실모델 없음 → 흉내)
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 0.2, 24), mat(0x2e9be0)); scene.add(base);
-        const j1 = new THREE.Group(); j1.position.y = 0.1; base.add(j1);
-        j1.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.9, 0.18), mat(0x6cc4e8)).translateY(0.45));
-        const j2 = new THREE.Group(); j2.position.y = 0.9; j1.add(j2);
-        j2.add(new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.75, 0.15), mat(0x9fd0ff)).translateY(0.375));
-        const j3 = new THREE.Group(); j3.position.y = 0.75; j2.add(j3);
-        j3.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.12), mat(0xd6e6f5)).translateY(0.225));
-        j3.add(new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.13), mat(0xe3b96f)).translateY(0.46));
+        // 간단한 다관절 팔 프리미티브(URDF 실모델 없음 → 흉내). buildArm(true)=고스트(투명).
+        function buildArm(ghost) {
+          const M = ghost ? (() => new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.22, depthWrite: false })) : mat;
+          const g = new THREE.Group();
+          const base = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 0.2, 24), M(0x2e9be0)); g.add(base);
+          const j1 = new THREE.Group(); j1.position.y = 0.1; base.add(j1);
+          j1.add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.9, 0.18), M(0x6cc4e8)).translateY(0.45));
+          const j2 = new THREE.Group(); j2.position.y = 0.9; j1.add(j2);
+          j2.add(new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.75, 0.15), M(0x9fd0ff)).translateY(0.375));
+          const j3 = new THREE.Group(); j3.position.y = 0.75; j2.add(j3);
+          j3.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.12), M(0xd6e6f5)).translateY(0.225));
+          j3.add(new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.13), M(0xe3b96f)).translateY(0.46));
+          if (ghost) g.traverse((o) => { if (o.isMesh) o.renderOrder = 2; });
+          return { g, j1, j2, j3 };
+        }
+        const arm = buildArm(false); scene.add(arm.g);
+        const ghost = buildArm(true); ghost.g.visible = false; scene.add(ghost.g);
+        const setArm = (t, a) => { if (!a) return; if (a[0] != null) t.j1.rotation.y = a[0]; if (a[1] != null) t.j2.rotation.z = a[1]; if (a[2] != null) t.j3.rotation.z = a[2]; };
+        // 디텍 후보 3D 마커(EE 앞 공간에 구+링) — best=청록, 그 외=노랑
+        let markerGroup = null;
+        function setMarkers(list) {
+          if (markerGroup) { scene.remove(markerGroup); markerGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); markerGroup = null; }
+          if (!list || !list.length) return;
+          markerGroup = new THREE.Group();
+          list.forEach((m) => {
+            const col = m.best ? 0x00e5ff : 0xffd200;
+            const s = new THREE.Mesh(new THREE.SphereGeometry(m.best ? 0.09 : 0.06, 14, 14),
+              new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.92 }));
+            s.position.set(m.x || 0, m.y || 0, m.z || 0); markerGroup.add(s);
+          });
+          scene.add(markerGroup);
+        }
         let raf = 0; const loop = () => { raf = requestAnimationFrame(loop); renderer.render(scene, camera); }; loop();
         return {
-          setJoints(a) { if (!a) return; if (a[0] != null) j1.rotation.y = a[0]; if (a[1] != null) j2.rotation.z = a[1]; if (a[2] != null) j3.rotation.z = a[2]; },
-          resize() { const w = container.clientWidth || 300, h = container.clientHeight || 150; camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); },
-          dispose() { cancelAnimationFrame(raf); try { renderer.dispose(); } catch (_) {} container.innerHTML = ""; },
+          setJoints(a) { setArm(arm, a); },
+          setGhost(a) { if (!a) { ghost.g.visible = false; return; } ghost.g.visible = true; setArm(ghost, a); },
+          setMarkers,
+          resize() { const w = container.clientWidth || 300, h = container.clientHeight || 150; if (!w || !h) return; camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); },
+          dispose() { cancelAnimationFrame(raf); setMarkers(null); try { renderer.dispose(); } catch (_) {} container.innerHTML = ""; },
         };
       };
+
+      // ── ② 맵 관제 3D 뷰(벽 압출 + 마커 + 경로 + 프리셋) — map3d.js 이식(트림) ──────────
+      const WORLD_W = 10, WALL_H = 0.5, DARK = 90;
+      window.DemoMap3D = { create(container, opts) {
+        opts = opts || {};
+        const canvas = document.createElement("canvas");
+        canvas.style.cssText = "display:block;width:100%;height:100%";
+        container.appendChild(canvas);
+        for (const t of ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick", "wheel", "contextmenu"])
+          canvas.addEventListener(t, (e) => e.stopPropagation());
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.08;
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(4, 8, 3); scene.add(sun);
+        const cssVar = (n, fb) => (getComputedStyle(document.documentElement).getPropertyValue(n).trim() || fb);
+        const theme = {
+          bg: new THREE.Color(cssVar("--bg", "#0a0e16")), card: new THREE.Color(cssVar("--card2", "#0b121b")),
+          accent: new THREE.Color(cssVar("--accent", "#2e9be0")), ok: new THREE.Color(cssVar("--accent2", "#6cc4e8")),
+          line: new THREE.Color(cssVar("--line", "#1f3a5c")),
+        };
+        scene.background = theme.bg.clone();
+        scene.fog = new THREE.Fog(theme.bg.clone(), WORLD_W * 1.6, WORLD_W * 5);
+        const ground = new THREE.Mesh(new THREE.CircleGeometry(WORLD_W * 4, 64), new THREE.MeshBasicMaterial({ color: theme.card }));
+        ground.rotation.x = -Math.PI / 2; ground.position.y = -0.03; scene.add(ground);
+        const grid = new THREE.GridHelper(WORLD_W * 8, 80, theme.accent.clone().multiplyScalar(0.55), theme.line);
+        grid.position.y = -0.02; grid.material.transparent = true; grid.material.opacity = 0.5; scene.add(grid);
+        let alive = true, mapUrl = null, mapGroup = null, viewMode = "iso", worldH = WORLD_W;
+        function resize() { const w = container.clientWidth, h = container.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+        const ro = new ResizeObserver(resize); ro.observe(container); resize();
+        function disposeObj(o) { o.traverse((c) => { if (c.geometry) c.geometry.dispose(); if (c.material) (Array.isArray(c.material) ? c.material : [c.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); }); }
+        function buildMap(url) {
+          const img = new Image(); img.crossOrigin = "anonymous";
+          img.onload = () => {
+            if (!alive) return;
+            const W = img.naturalWidth, H = img.naturalHeight; if (!W || !H) return;
+            worldH = WORLD_W * H / W; if (pathLast) setPaths(pathLast);
+            if (mapGroup) { scene.remove(mapGroup); disposeObj(mapGroup); }
+            mapGroup = new THREE.Group();
+            const step = Math.max(1, Math.floor(Math.max(W, H) / 220));
+            const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+            const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0);
+            const imgData = cx.getImageData(0, 0, W, H), data = imgData.data;
+            const cols = Math.ceil(W / step), rowsN = Math.ceil(H / step);
+            const g2 = new Uint8Array(cols * rowsN);
+            for (let py = 0; py < H; py++) { const gy = (py / step) | 0, rowOff = py * W;
+              for (let px = 0; px < W; px++) { const i = (rowOff + px) * 4; if (data[i + 3] > 10 && (data[i] + data[i + 1] + data[i + 2]) / 3 < DARK) g2[gy * cols + ((px / step) | 0)] = 1; } }
+            const rects = []; let prevOpen = new Map();
+            for (let gy = 0; gy < rowsN; gy++) { const curOpen = new Map(); let runStart = -1;
+              for (let gx = 0; gx <= cols; gx++) { const on = gx < cols && g2[gy * cols + gx] === 1;
+                if (on && runStart < 0) runStart = gx;
+                if (!on && runStart >= 0) { const len = gx - runStart, key = runStart + ":" + len, open = prevOpen.get(key);
+                  if (open) { open.rows++; curOpen.set(key, open); } else { const r = { gx: runStart, gy, len, rows: 1 }; rects.push(r); curOpen.set(key, r); } runStart = -1; } }
+              prevOpen = curOpen; }
+            for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 10 && (data[i] + data[i + 1] + data[i + 2]) / 3 < DARK) { data[i] = 245; data[i + 1] = 246; data[i + 2] = 248; }
+            cx.putImageData(imgData, 0, 0); cx.fillStyle = "rgb(245,246,248)";
+            for (const r of rects) cx.fillRect(r.gx * step, r.gy * step, r.len * step, r.rows * step);
+            const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_W, worldH),
+              new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 0.88, fog: false }));
+            floor.rotation.x = -Math.PI / 2; mapGroup.add(floor);
+            const cellW = WORLD_W / cols, cellH = worldH / rowsN;
+            const wallMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(0x8a97a8), transparent: true, opacity: 0.5, depthWrite: false, fog: false });
+            for (const r of rects) { const wall = new THREE.Mesh(new THREE.BoxGeometry(r.len * cellW, WALL_H, r.rows * cellH), wallMat);
+              wall.position.set(-WORLD_W / 2 + (r.gx + r.len / 2) * cellW, WALL_H / 2, -worldH / 2 + (r.gy + r.rows / 2) * cellH); mapGroup.add(wall); }
+            scene.add(mapGroup); setView(viewMode);
+          };
+          img.src = url;
+        }
+        function update(r) {
+          if (!alive || !r || !r.imageUrl) return;
+          if (r.imageUrl !== mapUrl) { mapUrl = r.imageUrl; buildMap(r.imageUrl); }
+        }
+        // 로봇 마커
+        let robotGroup = null, robotMarks = {}, followId = null;
+        function makeLabel(text) {
+          const c = document.createElement("canvas"); c.width = 256; c.height = 64; const g = c.getContext("2d");
+          g.font = "28px sans-serif"; g.textAlign = "center"; g.fillStyle = "rgba(0,0,0,0.55)";
+          const w = g.measureText(text).width + 20; g.fillRect(128 - w / 2, 8, w, 40);
+          g.fillStyle = "#eaf4ff"; g.fillText(text, 128, 37);
+          const t = new THREE.CanvasTexture(c);
+          const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+          s.scale.set(1.6, 0.4, 1); s.position.y = 0.6; return s;
+        }
+        function setRobots(list) {
+          if (!robotGroup) { robotGroup = new THREE.Group(); scene.add(robotGroup); }
+          const seen = new Set(); followId = null;
+          for (const r of list || []) {
+            if (r.xPct == null || r.yPct == null) continue; seen.add(r.id);
+            if (r.selected && !followId) followId = r.id;
+            let m = robotMarks[r.id];
+            if (!m) {
+              m = new THREE.Group();
+              const body = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.22, 18), new THREE.MeshLambertMaterial({ color: r.color || 0x2e9be0 })); body.position.y = 0.11; m.add(body);
+              const nose = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.28, 14), new THREE.MeshLambertMaterial({ color: theme.ok })); nose.rotation.x = -Math.PI / 2; nose.position.set(0, 0.11, -0.28); m.add(nose);
+              if (r.label) m.add(makeLabel(r.label));
+              robotMarks[r.id] = m; robotGroup.add(m);
+            }
+            m.position.set(-WORLD_W / 2 + (r.xPct / 100) * WORLD_W, 0, -worldH / 2 + (r.yPct / 100) * worldH);
+            m.rotation.y = -(r.yawDeg || 0) * Math.PI / 180;
+            m.children[0].material.color.set(r.color || 0x2e9be0);
+            m.scale.setScalar(r.selected ? 1.4 : 1.0);
+          }
+          for (const id of Object.keys(robotMarks)) if (!seen.has(id)) { robotGroup.remove(robotMarks[id]); disposeObj(robotMarks[id]); delete robotMarks[id]; }
+          if (!followId) followId = Object.keys(robotMarks)[0] || null;
+          if (viewMode === "follow") frameFollow();
+        }
+        // 경로(전류 흐름 튜브)
+        let pathGroup = null, pathMarks = {}, flowAnims = [], pathLast = null;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        function makeFlowTex(color) {
+          const c = document.createElement("canvas"); c.width = 128; c.height = 16; const g = c.getContext("2d");
+          const col = "#" + color.getHexString(); const grad = g.createLinearGradient(10, 0, 94, 0);
+          grad.addColorStop(0, "rgba(255,255,255,0)"); grad.addColorStop(0.7, col); grad.addColorStop(1, "#ffffff");
+          g.strokeStyle = grad; g.lineWidth = 8; g.lineCap = "round"; g.beginPath(); g.moveTo(10, 8); g.lineTo(94, 8); g.stroke();
+          const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return t;
+        }
+        function buildPath(p) {
+          const pts = (p.pts || []).map((q) => new THREE.Vector3(-WORLD_W / 2 + (q.xPct / 100) * WORLD_W, 0.05, -worldH / 2 + (q.yPct / 100) * worldH));
+          if (pts.length < 2) return null;
+          const grp = new THREE.Group(); const col = p.kind === "global" ? theme.accent : theme.ok;
+          const curve = new THREE.CatmullRomCurve3(pts), len = curve.getLength(), seg = Math.min(400, Math.max(32, Math.round(len * 24)));
+          grp.add(new THREE.Mesh(new THREE.TubeGeometry(curve, seg, 0.10, 8, false), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.12, depthWrite: false })));
+          grp.add(new THREE.Mesh(new THREE.TubeGeometry(curve, seg, 0.06, 8, false), new THREE.MeshBasicMaterial({ color: 0x0d2036, transparent: true, opacity: 0.5, depthWrite: false })));
+          const tex = makeFlowTex(col); tex.repeat.x = Math.max(2, len / 0.5);
+          grp.add(new THREE.Mesh(new THREE.TubeGeometry(curve, seg, 0.045, 8, false), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 1.0, depthWrite: false })));
+          const n = Math.max(1, Math.floor(len / 0.9)), coneGeo = new THREE.ConeGeometry(0.085, 0.22, 10);
+          const coneMat = new THREE.MeshBasicMaterial({ color: col.clone().lerp(new THREE.Color(0xffffff), 0.2), transparent: true, opacity: 0.9, depthWrite: false });
+          const up = new THREE.Vector3(0, 1, 0);
+          for (let i = 1; i <= n; i++) { const t = (i - 0.5) / n, cone = new THREE.Mesh(coneGeo, coneMat); cone.position.copy(curve.getPointAt(t)); cone.quaternion.setFromUnitVectors(up, curve.getTangentAt(t).normalize()); grp.add(cone); }
+          grp.traverse((o) => { o.renderOrder = 2; });
+          return { grp, anim: { tex, speed: p.kind === "global" ? 0.5 : 0.9 } };
+        }
+        function setPaths(list) {
+          pathLast = list; if (!pathGroup) { pathGroup = new THREE.Group(); scene.add(pathGroup); }
+          const dropMark = (id) => { const mk = pathMarks[id]; if (!mk) return; pathGroup.remove(mk.grp); disposeObj(mk.grp); flowAnims = flowAnims.filter((a) => a !== mk.anim); delete pathMarks[id]; };
+          const seen = new Set();
+          for (const p of list || []) {
+            if (!p || !Array.isArray(p.pts) || p.pts.length < 2) continue; seen.add(p.id);
+            const sig = worldH.toFixed(3) + "|" + p.kind + "|" + p.pts.map((q) => (q.xPct * 100 | 0) + "," + (q.yPct * 100 | 0)).join(";");
+            const mk = pathMarks[p.id]; if (mk && mk.sig === sig) continue;
+            dropMark(p.id); const built = buildPath(p); if (!built) continue;
+            pathMarks[p.id] = { sig, grp: built.grp, anim: built.anim }; flowAnims.push(built.anim); pathGroup.add(built.grp);
+          }
+          for (const id of Object.keys(pathMarks)) if (!seen.has(id)) dropMark(id);
+        }
+        function frameFollow() {
+          const m = followId && robotMarks[followId]; if (!m) { setView("iso"); return; }
+          const p = m.position; camera.position.set(p.x + 1.8, 2.2, p.z + 1.8); controls.target.copy(p).setY(0.2); controls.update();
+        }
+        function setView(name) {
+          viewMode = name || "iso";
+          if (viewMode === "top") { camera.position.set(0, Math.max(WORLD_W, worldH) * 1.15, 0.001); controls.target.set(0, 0, 0); }
+          else if (viewMode === "follow") { frameFollow(); return; }
+          else { camera.position.set(WORLD_W * 0.55, Math.max(WORLD_W, worldH) * 0.7, worldH * 0.85); controls.target.set(0, 0, 0); }
+          controls.update();
+        }
+        setView("iso");
+        const clock = new THREE.Clock();
+        (function animate() { if (!alive) return; requestAnimationFrame(animate); const dt = clock.getDelta();
+          if (!reduceMotion.matches) for (const f of flowAnims) f.tex.offset.x = (f.tex.offset.x - dt * f.speed) % 1;
+          controls.update(); renderer.render(scene, camera); })();
+        function dispose() { alive = false; try { ro.disconnect(); } catch (_) {} try { controls.dispose(); } catch (_) {}
+          if (mapGroup) disposeObj(mapGroup); if (robotGroup) disposeObj(robotGroup); if (pathGroup) disposeObj(pathGroup);
+          try { renderer.dispose(); renderer.forceContextLoss(); } catch (_) {} try { if (canvas.parentNode) canvas.parentNode.removeChild(canvas); } catch (_) {} }
+        return { update, setRobots, setPaths, setView, dispose };
+      } };
+
       window.__twin3d__.ok = true;
     } catch (e) { window.__twin3d__.ok = false; window.__twin3d__.err = String(e); }
   })();
@@ -489,11 +742,18 @@
 <div id="app">
   <header>
     <button id="navtoggle" title="메뉴 표시/숨김">☰</button>
-    <h1>◈ NEXUS 관제 콘솔</h1>
+    <h1>◈ NEXUS 관제</h1>
     <div id="summarybar"></div>
-    <span class="hint">클릭=선택 · 드래그=박스선택 · Shift=토글 · 우클릭=이동 · 더블클릭/F=1:1 · S=정지 · Ctrl+1~9 그룹</span>
+    <span class="hint">클릭=선택 · 드래그=박스선택 · Shift=토글 · 우클릭=이동 · 더블클릭/F=콕핏(1:1) · S=정지 · Ctrl+1~9 그룹</span>
     <span class="srv"><label>서버</label><input id="srvurl" placeholder="시뮬레이션(서버 없음)" title="데모 — 서버 연결 불필요" /><button id="srvgo">연결</button></span>
     <span class="conn" id="conn">…</span>
+    <span id="iotwrap">
+      <button id="iotbtn" title="설비(IoT) — 엘리베이터·자동문·조명·센서 (사이트 공통)">🔌<span id="iotcount">0</span></button>
+      <div id="iotpanel" hidden>
+        <div class="ap-head"><b>설비 (IoT)</b><span class="iot-sub">사이트 공통 · 맵 무관</span></div>
+        <div id="iotlist"></div>
+      </div>
+    </span>
     <span id="alarmwrap">
       <button id="alarmbtn" title="알람">🔔<span id="alarmcount">0</span></button>
       <div id="alarmpanel" hidden>
@@ -517,7 +777,7 @@
     </nav>
     <div id="content">
       <div id="stage" hidden>
-        <div id="map"><div id="maprot"><div id="alignghost" hidden><span class="agdir"></span></div></div><button id="tooverview" title="사이트 전체 보기">← 사이트</button><select id="mapsel" title="표준맵 선택"></select><button id="maprotbtn" title="90° 회전 (보기 전용)">⟳ 90°</button><div id="selbox"></div><svg id="movearrow"></svg><div id="mapcoord"></div><div id="alignwiz" hidden></div></div>
+        <div id="map"><div id="maprot"><div id="alignghost" hidden><span class="agdir"></span></div></div><div id="map3dview" hidden><div id="map3dviews"><button data-v3d="top">▦ 탑</button><button data-v3d="iso" class="on">◇ 아이소</button><button data-v3d="follow">◎ 로봇팔로우</button></div></div><button id="tooverview" title="사이트 대시보드로">← 대시보드</button><select id="mapsel" title="표준맵 선택"></select><button id="maprotbtn" title="90° 회전 (보기 전용)">⟳ 90°</button><button id="map3dbtn" title="3D 맵 보기 — 벽 압출 + 로봇 마커 (뷰 전용)">⧊ 3D</button><div id="selbox"></div><svg id="movearrow"></svg><div id="mapcoord"></div><div id="alignwiz" hidden></div></div>
         <div id="roster"><div class="rtitle">로봇 <span id="rostercount">0</span></div></div>
       </div>
       <div id="hud" hidden>
@@ -535,7 +795,7 @@
       </div>
       <div id="overview">
         <div class="ovwrap">
-          <div class="ovhead"><h2>🛰 사이트 전체</h2><span class="ovsub" id="ovsub"></span></div>
+          <div class="ovhead"><h2>🛰 사이트 대시보드</h2><span class="ovsub" id="ovsub"></span></div>
           <div id="overviewgrid"></div>
         </div>
       </div>
@@ -745,6 +1005,8 @@
       // IoT 디바이스 — extension.io 상태(subs.main.robot_state.io) 로 표시/알람 집계
       mkRobot({ id: "elevator_01", cats: ["elevator"], map: "itp_1f", x: 3, y: 10, th: 0, state: "IDLE", bat: null, srv: 15, inet: 30, op: 20, sx: 10, sy: 50, io: { floor: 3, direction: "up", door: "open" } }),
       mkRobot({ id: "door_01", cats: ["door"], map: "itp_1f", x: 15, y: 3, th: 0, state: "IDLE", bat: null, srv: 15, inet: 30, op: 20, sx: 50, sy: 10, io: { state: "closed" } }),
+      mkRobot({ id: "light_01", cats: ["light"], map: "itp_1f", x: 9, y: 12, th: 0, state: "IDLE", bat: null, srv: 16, inet: 32, op: 21, sx: 40, sy: 25, io: { is_on: true, brightness: 80 } }),
+      mkRobot({ id: "sensor_01", cats: ["sensor"], map: "itp_1f", x: 20, y: 8, th: 0, state: "IDLE", bat: null, srv: 16, inet: 32, op: 21, sx: 62, sy: 20, io: { kind: "온도", value: 24, unit: "°C" } }),
     ];
   }
   const byId = (id) => ROBOTS.find((r) => r.robot_id === id);
@@ -758,6 +1020,8 @@
     const cat = r.cats[0]; let s = "";
     if (cat === "elevator") { const dir = io.direction === "up" ? "▲" : io.direction === "down" ? "▼" : "–"; s = `${io.floor != null ? io.floor + "F " : ""}${dir} ${io.door === "open" ? "문열림" : "문닫힘"}`; }
     else if (cat === "door") { const M = { closed: "닫힘", opening: "여는 중", open: "열림", closing: "닫는 중", jammed: "⚠ 걸림" }; s = M[io.state] || io.state || "?"; }
+    else if (cat === "light") { s = (io.is_on ? "켜짐" : "꺼짐") + (io.brightness != null ? " " + io.brightness + "%" : ""); }
+    else if (cat === "sensor") { s = (io.kind || "") + (io.value != null ? " " + io.value + (io.unit || "") : ""); }
     else { s = io.state || io.kind || ""; }
     if (io.is_alarm) s += " ⚠ 알람";
     return s;
@@ -959,6 +1223,62 @@
     }));
   }
 
+  // ===================================================================== 설비(IoT) 전용 패널 (STANDARD_iot)
+  // 사이트 공통 엔티티(맵 소속 아님) — 어느 맵 관제에서 열어도 같은 목록. 카테고리별 그룹 · io 한 줄 · 📍 설치.
+  const IOT_CAT_LABEL = { elevator: "🛗 엘리베이터", door: "🚪 자동문", light: "💡 조명", sensor: "📡 센서" };
+  function iotIoLine(cat, io) {
+    if (!io) return "";
+    if (cat === "elevator") { const dir = io.direction === "up" ? "▲" : io.direction === "down" ? "▼" : ""; return [io.floor != null ? io.floor + "F" : "", dir, io.door === "open" ? "문 열림" : io.door === "closed" ? "문 닫힘" : ""].filter(Boolean).join(" "); }
+    if (cat === "door") { const t = { open: "열림", closed: "닫힘", opening: "여는 중", closing: "닫는 중", jammed: "⚠ 걸림" }; return t[io.state] || io.state || ""; }
+    if (cat === "light") return [io.is_on ? "켜짐" : "꺼짐", io.brightness != null ? io.brightness + "%" : ""].filter(Boolean).join(" · ");
+    if (cat === "sensor") return [io.kind, io.value != null ? `${io.value}${io.unit || ""}` : "", io.is_alarm ? "🚨 알람" : "정상"].filter(Boolean).join(" · ");
+    return "";
+  }
+  let _iotSig = "";
+  function renderIoT() {
+    const btn = $("#iotbtn"), list = $("#iotlist"), panel = $("#iotpanel");
+    if (!btn || !list) return;
+    const devs = ROBOTS.filter(isIot);
+    $("#iotcount").textContent = devs.length;
+    btn.classList.toggle("has", devs.some((d) => { const io = ioState(d); return io && io.is_alarm; }));
+    if (panel.hidden) { _iotSig = ""; return; }   // 닫혀있으면 카운트/펄스만
+    const here = STATE.ui.level === "map" && STATE.ui.mapId;
+    // 시그니처 — 폴링마다 innerHTML 재생성하면 클릭 도중 버튼이 교체돼 조작 불가(안정성)
+    const sig = devs.map((d) => d.robot_id + d.base_state + JSON.stringify(ioState(d) || 0) + (d.standardMapId || "")).join("|") + "|" + (here || "");
+    if (sig === _iotSig) return; _iotSig = sig;
+    if (!devs.length) { list.innerHTML = `<div class="iot-empty">보고된 설비 없음</div>`; return; }
+    let h = "";
+    for (const cat of IOT_CATS) {
+      const group = devs.filter((d) => d.cats[0] === cat).sort((a, b) => a.robot_id.localeCompare(b.robot_id));
+      if (!group.length) continue;
+      h += `<div class="iot-cat">${IOT_CAT_LABEL[cat]}</div>`;
+      for (const d of group) {
+        const io = ioState(d), alarm = io && io.is_alarm;
+        // 유지보수/조회 캡(set_pose·set_footprint·get_*·stop)은 전용 UI(📍 설치)로 대체 — 액션에서 제외. 센서=읽기전용.
+        const hideCaps = ["stop", "set_pose", "set_footprint", "software_update", "get_pose", "get_battery", "get_joints"];
+        const caps = cat === "sensor" ? [] : (d.capabilities || []).filter((c) => !hideCaps.includes(c));
+        const btns = caps.map((c) => `<button data-id="${esc(d.robot_id)}" data-cap="${esc(c)}">${SKILL_ICON[c] || "⚙️"} ${esc(c)}</button>`).join("");
+        const placed = d.standardMapId;
+        h += `<div class="iot-dev${alarm ? " alarm" : ""}">
+          <div class="iot-head"><span class="iot-dot" style="background:var(${STATE_COLOR[d.base_state] || "--off"})"></span>
+            <span class="iot-name" data-goto="${esc(d.robot_id)}" title="${placed ? "맵으로 이동: " + esc(placed) : esc(d.robot_id)}">${esc(d.robot_id)}</span>
+            ${placed ? `<span class="iot-maps" title="설치된 맵: ${esc(placed)}">📍1</span>` : ""}
+            <button class="iot-place" data-place="${esc(d.robot_id)}" title="${here ? "이 맵에 설치(클릭 후 맵에서 위치 클릭)" : "맵 관제 화면에서 설치 가능"}">📍 설치</button></div>
+          ${io ? `<div class="iot-io">${esc(iotIoLine(cat, io))}</div>` : ""}
+          ${btns ? `<div class="iot-acts">${btns}</div>` : ""}</div>`;
+      }
+    }
+    list.innerHTML = h;
+    list.querySelectorAll("[data-cap]").forEach((b) => b.onclick = () => { const name = b.dataset.cap, spec = CAP_SPEC[name]; if (spec && spec.length === 0) dispatch(name, {}, [b.dataset.id]); else pfOpen(name, [b.dataset.id]); });
+    list.querySelectorAll("[data-goto]").forEach((el) => el.onclick = () => { const r = byId(el.dataset.goto); if (r && r.standardMapId) { if (STATE.ui.level === "overview") enterMap(r.standardMapId); pick(r.robot_id); } $("#iotpanel").hidden = true; });
+    list.querySelectorAll("[data-place]").forEach((b) => b.onclick = () => {
+      const id = b.dataset.place;
+      if (!(STATE.ui.level === "map" && currentMap())) { toast("맵 관제 화면에서 설비를 설치할 수 있습니다"); return; }
+      ARM = { kind: "place", robotId: id, install: true }; map.style.cursor = "crosshair"; $("#iotpanel").hidden = true;
+      toast("📍 설치: 현재 맵에서 위치를 클릭");
+    });
+  }
+
   // ===================================================================== 헤더(요약 칩 · 연결 표시)
   function visibleRobots() { const f = STATE.ui.filter; return f.size ? ROBOTS.filter((r) => f.has(r.base_state)) : ROBOTS; }
   function renderConn() {
@@ -1072,7 +1392,7 @@
     const ms = $("#mapsel"); if (ms) ms.value = mapId || "";
     updateDashboardLevel(); render(); renderMinimap();
   }
-  function backToOverview() { STATE.ui.level = "overview"; updateDashboardLevel(); renderOverview(); }
+  function backToOverview() { disable3D(); STATE.ui.level = "overview"; updateDashboardLevel(); renderOverview(); }
 
   // ===================================================================== FLEET 맵
   const map = $("#map"), maprot = $("#maprot"), roster = $("#roster"), selbox = $("#selbox");
@@ -1144,7 +1464,100 @@
       if (isIot(r)) { const tg = u.querySelector(".tag"); if (tg) tg.textContent = r.robot_id + " · " + ioSummary(r); }
     }
   }
-  function renderMap() { applyMapBackground(currentMap()); syncUnits(); positionUnits(); applyView(); }
+  function renderMap() { applyMapBackground(currentMap()); syncUnits(); positionUnits(); applyView(); renderPathLayer(); push3D(); }
+
+  // ===================================================================== path_plan 경로 렌더 (2D 폴리라인 + 3D 라인)
+  // 데모는 서버 PathPlan 이 없으므로 이동 중(target 보유) 로봇의 현재→목표 구간을 global/local 경로로 합성한다.
+  function robotWorldPath(r) {                    // 표준맵 world(m) 좌표의 {global, local} 경로점
+    if (!r || !r.target || r.base_state === "OFFLINE" || !r.standardMapId) return null;
+    const std = applyStandard(r.pose, r.toStandard) || { x: r.pose.x, y: r.pose.y };
+    const sx = std.x, sy = std.y, tx = r.target.x, ty = r.target.y, dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy);
+    if (d < 0.5) return null;
+    const gN = Math.max(2, Math.min(24, Math.round(d / 1.2))), global = [];
+    for (let i = 0; i <= gN; i++) { const t = i / gN; global.push({ x: sx + dx * t, y: sy + dy * t }); }
+    const ll = Math.min(1.8, d), lN = 4, local = [];
+    for (let i = 0; i <= lN; i++) { const t = (i / lN) * (ll / d); local.push({ x: sx + dx * t, y: sy + dy * t }); }
+    return { global, local };
+  }
+  function smoothPathD(pts) {                     // Catmull-Rom → 베지어 (정본 app.js 이식)
+    const f = (v) => v.toFixed(1);
+    if (pts.length === 2) return `M${f(pts[0].x)} ${f(pts[0].y)}L${f(pts[1].x)} ${f(pts[1].y)}`;
+    let d = `M${f(pts[0].x)} ${f(pts[0].y)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      d += `C${f(p1.x + (p2.x - p0.x) / 6)} ${f(p1.y + (p2.y - p0.y) / 6)} ${f(p2.x - (p3.x - p1.x) / 6)} ${f(p2.y - (p3.y - p1.y) / 6)} ${f(p2.x)} ${f(p2.y)}`;
+    }
+    return d;
+  }
+  function renderPathLayer() {
+    const m = STATE.ui.level === "map" ? currentMap() : null, rect = m ? imageRect(m) : null;
+    let svg = maprot.querySelector("svg.pathlayer");
+    const robots = (m && rect) ? visibleRobots().filter((r) => r.standardMapId === m.map_id && robotWorldPath(r)) : [];
+    if (!robots.length) { if (svg) svg.remove(); return; }
+    if (!svg) {
+      svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("pathlayer");
+      svg.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0";
+      maprot.prepend(svg);                        // 유닛(.unit)보다 아래, 배경 위
+    }
+    svg.setAttribute("viewBox", `0 0 ${Math.round(rect.W)} ${Math.round(rect.H)}`);
+    const toPx = (w) => { const { px, py } = worldToPixel(w.x, w.y, m); return { x: rect.offX + (px / rect.iw) * rect.dw, y: rect.offY + (py / rect.ih) * rect.dh }; };
+    const seen = new Set();
+    for (const r of robots) {
+      const pp = robotWorldPath(r);
+      for (const [kind, cls] of [["global", "pglobal"], ["local", "plocal"]]) {
+        const pts = (pp[kind] || []).map(toPx); if (pts.length < 2) continue;
+        const key = r.robot_id + ":" + kind; seen.add(key);
+        let g = svg.querySelector(`g[data-k="${CSS.escape(key)}"]`);
+        if (!g) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.dataset.k = key; g.innerHTML = `<path class="pglow ${cls === "plocal" ? "loc" : ""}"/><path class="${cls}"/>`; svg.appendChild(g); }
+        const d = smoothPathD(pts);
+        g.querySelector(".pglow").setAttribute("d", d); g.querySelector("." + cls).setAttribute("d", d);
+      }
+    }
+    svg.querySelectorAll("g[data-k]").forEach((g) => { if (!seen.has(g.dataset.k)) g.remove(); });
+  }
+
+  // ---- 3D 맵 뷰 데이터 푸시(같은 배치 계산 재사용 — 이미지 픽셀 % 공간) ----
+  function push3D() {
+    const m3 = STATE.ui.map3d, m = currentMap();
+    if (!m3 || !m) return;
+    const robots = [];
+    for (const r of visibleRobots()) {
+      if (r.standardMapId !== m.map_id || !r.pose) continue;
+      const std = applyStandard(r.pose, r.toStandard); if (!std) continue;
+      const { px, py } = worldToPixel(std.x, std.y, m);
+      robots.push({ id: r.robot_id, label: r.robot_id,
+        xPct: clamp(px / m.width * 100, 0, 100), yPct: clamp(py / m.height * 100, 0, 100),
+        yawDeg: std.yaw != null ? 90 - std.yaw * 180 / Math.PI : 0,
+        color: cssVar(STATE_COLOR[r.base_state] || "--off"), selected: sel.selected.has(r.robot_id) });
+    }
+    m3.update({ imageUrl: mapImgUrl(m), width: m.width, height: m.height });
+    m3.setRobots(robots);
+    if (m3.setPaths) {
+      const paths = [];
+      for (const r of visibleRobots()) {
+        if (r.standardMapId !== m.map_id) continue;
+        const pp = robotWorldPath(r); if (!pp) continue;
+        for (const [kind, arr] of [["global", pp.global], ["local", pp.local]]) {
+          if (arr.length < 2) continue;
+          paths.push({ id: r.robot_id + ":" + kind, kind, pts: arr.map((w) => { const { px, py } = worldToPixel(w.x, w.y, m); return { xPct: +(px / m.width * 100).toFixed(2), yPct: +(py / m.height * 100).toFixed(2) }; }) });
+        }
+      }
+      m3.setPaths(paths);
+    }
+  }
+  function setView3D(name) {
+    STATE.ui.view3d = name || "iso";
+    document.querySelectorAll("#map3dviews button").forEach((b) => b.classList.toggle("on", b.dataset.v3d === STATE.ui.view3d));
+    if (STATE.ui.map3d) STATE.ui.map3d.setView(STATE.ui.view3d);
+  }
+  function disable3D() {
+    if (!STATE.ui.map3d) return;
+    try { STATE.ui.map3d.dispose(); } catch (_) {}
+    STATE.ui.map3d = null;
+    const el = $("#map3dview"); if (el) el.hidden = true;
+    const b = $("#map3dbtn"); if (b) b.classList.remove("on");
+  }
   function rotVec(rot, x, y) { rot = ((rot % 4) + 4) % 4; if (rot === 1) return { x: -y, y: x }; if (rot === 2) return { x: -x, y: -y }; if (rot === 3) return { x: y, y: -x }; return { x, y }; }
   function rotRefitScale(rect, rot) { return (rot % 2 === 1) ? Math.min(rect.W / rect.dh, rect.H / rect.dw) : 1; }
   function applyView() {
@@ -1419,6 +1832,7 @@
   function startAlign(robotId) {
     const r = byId(robotId), m = currentMap();
     if (!r || !m || r.standardMapId !== m.map_id) { toast("해당 로봇의 표준맵을 먼저 여세요"); return; }
+    if (STATE.ui.map3d) { disable3D(); toast("정렬 마법사는 2D 전용 — 3D 뷰 해제됨"); }   // 맵 클릭=점 찍기(2D 전용)
     ALIGN = { robotId, step: "place", place: null, aim: null, T: null };
     toast("🧭 정렬: ① 로봇이 실제 있는 위치를 지도에서 클릭"); renderAlign();
   }
@@ -1534,11 +1948,14 @@
   }
 
   function render() { renderMap(); renderRoster(); renderSelected(); renderCmd(); renderMinimap(); renderSummary(); renderConn(); if (ALIGN) renderGhost(); }
-  function renderDashboard() { renderConn(); renderSummary(); renderAlarms(); if (STATE.ui.view === "solo") return; if (STATE.ui.level === "overview") renderOverview(); else render(); }
+  function renderDashboard() { renderConn(); renderSummary(); renderAlarms(); renderIoT(); if (STATE.ui.view === "solo") return; if (STATE.ui.level === "overview") renderOverview(); else render(); }
 
   // ===================================================================== 단축키
   window.addEventListener("keydown", (e) => {
-    if (STATE.ui.view === "solo") { if (e.key === "Escape") { e.preventDefault(); if (CK && CK.els.intervene && !CK.els.intervene.hidden) hideIntervene(); else closeCockpit(); } return; }
+    if (STATE.ui.view === "solo") {
+      if ($("#paramback").style.display === "flex") { if (e.key === "Escape") { e.preventDefault(); pfClose(); } return; }
+      if (e.key === "Escape") { e.preventDefault(); if (CK && CK.els.intervene && !CK.els.intervene.hidden) hideIntervene(); else closeCockpit(); } return;
+    }
     if ($("#paramback").style.display === "flex") { if (e.key === "Escape") { e.preventDefault(); pfClose(); } return; }
     const tag = (e.target && e.target.tagName) || ""; if (tag === "INPUT" || tag === "TEXTAREA") return;
     if (STATE.ui.level !== "map") return;
@@ -1561,6 +1978,39 @@
   function pfOpen(name, targets) {
     const spec = CAP_SPEC[name], back = $("#paramback"), form = $("#paramform");
     const tgtLabel = targets.length === 1 ? targets[0] : `${targets.length}대`;
+    // 콕핏에서 관절 로봇 조작 → 리치 폼(프리셋 드롭다운 / 관절별 입력) + 트윈 고스트 실시간 미리보기
+    const inCockpit = STATE.ui.view === "solo" && CK && targets.length === 1 && targets[0] === CK.robotId;
+    if (inCockpit && hasJoints(byId(CK.robotId))) {
+      if (name === "joint_preset") {
+        form.innerHTML = `<h3>${SKILL_ICON[name] || "📐"} ${esc(name)}</h3><div class="sub">대상: ${esc(tgtLabel)} · 선택 시 트윈에 미리보기</div>
+          <div class="param-row req"><label>name</label>
+            <select id="pf_preset">${Object.keys(JOINT_PRESETS).map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}<option value="__custom__">직접 입력…</option></select></div>
+          <div class="param-row" id="pf_custom_row" style="display:none"><label>직접</label><input id="pf_custom" type="text" placeholder="프리셋 이름"></div>
+          <div class="param-err" id="pf_err"></div>
+          <div class="param-actions"><button id="pf_cancel">취소</button><button class="go" id="pf_send">전송</button></div>`;
+        back.classList.add("preview"); back.style.display = "flex";
+        const selEl = $("#pf_preset");
+        const upd = () => { const v = selEl.value; $("#pf_custom_row").style.display = v === "__custom__" ? "" : "none"; previewJoints(v !== "__custom__" && JOINT_PRESETS[v] ? JOINT_PRESETS[v] : null); };
+        selEl.onchange = upd; upd();
+        $("#pf_cancel").onclick = pfClose;
+        $("#pf_send").onclick = () => { const v = selEl.value === "__custom__" ? ($("#pf_custom").value || "").trim() : selEl.value; if (!v) { $("#pf_err").textContent = "프리셋 이름을 선택/입력하세요"; return; } pfClose(); dispatch(name, { name: v }, targets); };
+        return;
+      }
+      if (name === "joint_ctrl") {
+        const cur = (CK.jointSim || [0, 0, 0]).slice(0, 3);
+        form.innerHTML = `<h3>${SKILL_ICON[name] || "🦾"} ${esc(name)}</h3><div class="sub">대상: ${esc(tgtLabel)} · 현재값 프리필 · 수정 즉시 트윈 미리보기(rad)</div>
+          ${cur.map((v, i) => `<div class="param-row"><label>${esc(JOINT_NAMES[i] || "j" + (i + 1))}</label><input data-jidx="${i}" type="number" step="0.01" value="${(v || 0).toFixed(3)}"><span class="punit">rad</span></div>`).join("")}
+          <div class="param-err" id="pf_err"></div>
+          <div class="param-actions"><button id="pf_cancel">취소</button><button class="go" id="pf_send">전송</button></div>`;
+        back.classList.add("preview"); back.style.display = "flex";
+        const vals = () => Array.from(form.querySelectorAll("[data-jidx]")).map((el) => parseFloat(el.value) || 0);
+        form.querySelectorAll("[data-jidx]").forEach((el) => { el.oninput = () => previewJoints(vals()); });
+        previewJoints(vals());
+        $("#pf_cancel").onclick = pfClose;
+        $("#pf_send").onclick = () => { const v = vals(); pfClose(); dispatch(name, { positions: v }, targets); };
+        return;
+      }
+    }
     let rows = "";
     for (const p of (spec || [])) {
       if (p.type === "pose") {
@@ -1604,13 +2054,13 @@
       pfClose(); dispatch(name, params, targets);
     };
   }
-  function pfClose() { $("#paramback").style.display = "none"; $("#paramform").innerHTML = ""; }
+  function pfClose() { $("#paramback").style.display = "none"; $("#paramback").classList.remove("preview"); $("#paramform").innerHTML = ""; try { previewJoints(null); } catch (_) {} }
   $("#paramback").addEventListener("mousedown", (e) => { if (e.target === $("#paramback")) pfClose(); });
 
   // ===================================================================== 1:1 콕핏 (시뮬레이션)
   const COCKPIT_HTML = `
     <div class="cockpit-bar">
-      <span class="cockpit-title">◈ 1:1 직접관제 — <b class="cockpit-rid"></b></span>
+      <span class="cockpit-title">◈ 콕핏(1:1) — <b class="cockpit-rid"></b></span>
       <span class="cockpit-badge ok" data-el="conn">connected</span>
       <span class="cockpit-lat" data-el="lat"></span>
       <span class="cockpit-presets" data-el="presets">
@@ -1677,6 +2127,7 @@
   function enterSolo(robotId) {
     if (!robotId || STATE.ui.view === "solo") return;
     const r = byId(robotId); if (!r || r.base_state === "OFFLINE") { toast("OFFLINE 로봇은 1:1 불가"); return; }
+    disable3D();
     STATE.ui.view = "solo";
     STATE.solo = { robotId, latency: { server: [], internet: [], operator: [] }, rtt: STATE.solo.rtt };
     r.base_state = "TELEOP"; r.target = null;
@@ -1688,6 +2139,12 @@
       els: { conn: q('[data-el="conn"]'), lat: q('[data-el="lat"]'), status: q('[data-el="status"]'), skills: q('[data-el="skills"]'), videos: q('[data-el="videos"]'), main: q('[data-el="main"]'), minimap: q('[data-el="minimap"]'), inhud: q('[data-el="inhud"]'), presets: q('[data-el="presets"]'), mouselock: q('[data-el="mouselock"]'), log: q('[data-el="log"]'), chart: q('[data-el="chart"]'), intervene: q('[data-el="intervene"]'), twin: q('[data-el="twin"]'), twinmode: q('[data-el="twinmode"]'), twinpane: q('[data-el="twinpane"]') },
     };
     m.querySelector(".cockpit-rid").textContent = robotId;
+    // 비전 스캔 목업 디텍(카메라 보유 로봇) — canvas 비율(0~1) 좌표. best=최고 신뢰도(청록).
+    CK.detections = r.cats.includes("camera") ? [
+      { fx1: 0.36, fy1: 0.46, fx2: 0.48, fy2: 0.62, label: "box", conf: 0.91, best: true },
+      { fx1: 0.55, fy1: 0.50, fx2: 0.65, fy2: 0.63, label: "cup", conf: 0.77, best: false },
+      { fx1: 0.20, fy1: 0.55, fx2: 0.30, fy2: 0.67, label: "tool", conf: 0.63, best: false },
+    ] : [];
     // 카메라 캔버스
     const cam = CK.els.videos; cam.innerHTML = ""; const cv = document.createElement("canvas"); cam.appendChild(cv); CK.cam = cv;
     // 스킬
@@ -1705,12 +2162,24 @@
     const vpickBtn = q('[data-el="vpick"]'), camWrap = CK.els.videos;
     if (vpickBtn) vpickBtn.onclick = () => { CK.vpick = !CK.vpick; vpickBtn.classList.toggle("on", CK.vpick); camWrap.classList.toggle("vpick-armed", CK.vpick); if (CK.vpick) ckLog("🎯 비주얼 피킹 무장 — 카메라 영상의 대상을 클릭하세요"); };
     CK.cam.addEventListener("click", (ev) => {
-      if (!CK.vpick) return;
       const rc = CK.cam.getBoundingClientRect();
-      const u = Math.round((ev.clientX - rc.left) / rc.width * (CK.cam.width || rc.width));
-      const v = Math.round((ev.clientY - rc.top) / rc.height * (CK.cam.height || rc.height));
+      const w = CK.cam.width || rc.width, h = CK.cam.height || rc.height;
+      const cx = (ev.clientX - rc.left) / rc.width * w, cy = (ev.clientY - rc.top) / rc.height * h;
+      // 클릭이 들어간 디텍 박스(있으면 신뢰도 높은 것) — 중심으로 스냅
+      let hit = null;
+      for (const o of (CK.detections || [])) {
+        if (cx >= o.fx1 * w && cx <= o.fx2 * w && cy >= o.fy1 * h && cy <= o.fy2 * h)
+          if (!hit || (o.conf || 0) > (hit.conf || 0)) hit = o;
+      }
+      if (!CK.vpick) {   // 비무장: 디텍 박스 안 클릭이면 3s 스로틀 힌트
+        if (hit && Date.now() - (CK.vpickHintAt || 0) > 3000) { CK.vpickHintAt = Date.now(); ckLog("💡 디텍 물체를 집으려면 상단 🎯 피킹을 켜고 박스를 클릭"); }
+        return;
+      }
+      const u = Math.round(hit ? (hit.fx1 + hit.fx2) / 2 * w : cx);
+      const v = Math.round(hit ? (hit.fy1 + hit.fy2) / 2 * h : cy);
       CK.vpick = false; if (vpickBtn) vpickBtn.classList.remove("on"); camWrap.classList.remove("vpick-armed");
-      dispatch("visual_pick", { u, v }, [CK.robotId]); ckLog(`🎯 visual_pick(u=${u}, v=${v}) → ${CK.robotId}`);
+      dispatch("visual_pick", { u, v }, [CK.robotId]);
+      ckLog(hit ? `🎯 visual_pick「${hit.label}」중심 (u=${u}, v=${v}) → ${CK.robotId}` : `🎯 visual_pick(u=${u}, v=${v}) → ${CK.robotId}`);
     });
     const lt = q('[data-el="lattoggle"]'); lt.onclick = () => { const d = q('[data-el="latdetail"]'); const show = d.hidden; d.hidden = !show; lt.textContent = show ? "자세히 ▴" : "자세히 ▾"; };
     CK.els.presets.querySelectorAll("button").forEach((b) => b.onclick = () => setPreset(b.dataset.preset));
@@ -1814,6 +2283,14 @@
     if (g0) g0.setAttribute("transform", `rotate(${deg(joints[0])})`);
     if (g1) g1.setAttribute("transform", `translate(0,-50) rotate(${deg(joints[1])})`);
     if (g2) g2.setAttribute("transform", `translate(0,-42) rotate(${deg(joints[2])})`);
+  }
+  // ---- 관절 프리셋/제어 리치 폼 + 트윈 고스트 프리뷰 (정본 cockpit-sim CLIK 고스트 이식·간소화) ----
+  const JOINT_PRESETS = { home: [0, 0, 0], ready: [0.4, -0.6, 0.5], pick: [0.8, -0.9, 1.1], place: [-0.6, -0.4, 0.7], stow: [0, -1.4, 1.4] };
+  const JOINT_NAMES = ["joint_1 (회전)", "joint_2 (어깨)", "joint_3 (팔꿈치)"];
+  function previewJoints(vals) {
+    if (!CK || !CK.twin) return;
+    if (CK.twin.kind === "3d" && CK.twin.api && CK.twin.api.setGhost) { try { CK.twin.api.setGhost(vals || null); } catch (_) {} return; }
+    if (vals && CK.twin.kind === "2d") updateTwin(vals);   // 2D 폴백: 고스트 미지원 → 대상 자세를 잠시 반영(다음 틱 애니가 원복)
   }
   function setPreset(name) {
     if (!CK) return; CK.preset = name;
@@ -1937,6 +2414,20 @@
     ctx.fillStyle = "#e36f6f"; ctx.beginPath(); ctx.arc(16, 18, 5, 0, 7); ctx.fill();
     ctx.fillStyle = "#dceefb"; ctx.font = "11px Consolas"; ctx.fillText("REC · CAM_FRONT", 28, 22);
     ctx.fillText(`v ${(lin * 1.2).toFixed(2)} m/s  ω ${(turn).toFixed(2)} rad/s`, 12, h - 12);
+    // 비전 스캔 오버레이(목업 디텍 박스 + 중심 + 라벨) — 무장 시 스냅 피킹 대상
+    if (CK.detections && CK.detections.length) {
+      ctx.font = "12px sans-serif";
+      for (const o of CK.detections) {
+        const x1 = o.fx1 * w, y1 = o.fy1 * h, x2 = o.fx2 * w, y2 = o.fy2 * h, ccx = (x1 + x2) / 2, ccy = (y1 + y2) / 2;
+        const col = o.best ? "#00e5ff" : "rgba(255,210,0,0.95)";
+        ctx.lineWidth = o.best ? 3 : 2; ctx.strokeStyle = col; ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ccx, ccy, o.best ? 6 : 4, 0, 7); ctx.fill();
+        const tag = `${o.label} ${Math.round(o.conf * 100)}%`, tw = ctx.measureText(tag).width;
+        ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(x1, y1 - 16, tw + 8, 14);
+        ctx.fillStyle = col; ctx.fillText(tag, x1 + 4, y1 - 5);
+      }
+      if (CK.vpick) { ctx.fillStyle = "#00e5ff"; ctx.font = "11px Consolas"; ctx.fillText("🎯 피킹 무장 — 박스를 클릭", w / 2 - 70, 40); }
+    }
   }
   function resizeCockpit() { if (!CK) return; const cam = CK.cam; const r = cam.parentElement.getBoundingClientRect(); cam.width = r.width; cam.height = r.height; renderChart(); if (CK.twin && CK.twin.kind === "3d" && CK.twin.api) { try { CK.twin.api.resize(); } catch (_) {} } }
 
@@ -2049,6 +2540,11 @@
     localStorage.setItem("nexus_ui.theme", toLight ? "light" : "dark");
     const tb = $("#themebtn"); if (tb) tb.textContent = toLight ? "☀" : "◐";
     _mapTint.clear(); _miniUrl = "";   // 테마 톤 맵 캐시 무효화
+    if (STATE.ui.map3d) {              // 3D 는 생성 시점 CSS 변수를 읽어 고정 — 재생성으로 리컬러
+      try { STATE.ui.map3d.dispose(); } catch (_) {}
+      STATE.ui.map3d = window.DemoMap3D ? window.DemoMap3D.create($("#map3dview")) : null;
+      setView3D(STATE.ui.view3d || "iso"); push3D();
+    }
     if (STATE.ui.view === "solo") { renderChart(); renderCockpitMinimap(); }
     else if (STATE.ui.level === "overview" && $("#overview").hidden === false) renderOverview();
     else { renderMap(); renderMinimap(); }
@@ -2074,6 +2570,25 @@
     ms.addEventListener("change", () => { STATE.ui.mapId = ms.value || null; if (STATE.ui.level === "map") renderMap(); });
     $("#tooverview").addEventListener("click", backToOverview);
     $("#maprotbtn").addEventListener("click", () => { STATE.ui.mapRot = ((STATE.ui.mapRot || 0) + 1) % 4; STATE.ui.mapView = { zoom: 1, panX: 0, panY: 0 }; renderMap(); });
+    // 맵 관제 3D 보기(뷰 전용) — 벽 압출 + 전 로봇 상태색 마커 + 경로. 선택/명령/정렬은 2D 로 복귀.
+    const m3btn = $("#map3dbtn");
+    if (m3btn) m3btn.addEventListener("click", () => {
+      const el = $("#map3dview");
+      if (!STATE.ui.map3d) {
+        if (!(window.__twin3d__ && window.__twin3d__.ok && window.DemoMap3D)) { toast("3D 맵 모듈 미로드(esm.sh 오프라인?)"); return; }
+        try { STATE.ui.map3d = window.DemoMap3D.create(el); } catch (e) { console.warn("[map3d]", e); toast("3D 초기화 실패"); return; }
+        el.hidden = false; m3btn.classList.add("on");
+        setView3D(STATE.ui.view3d || "iso"); push3D();
+        toast("3D: 뷰 전용 — 선택/명령/정렬은 2D · 프리셋 탑/아이소/로봇팔로우");
+      } else disable3D();
+    });
+    document.querySelectorAll("#map3dviews button").forEach((b) => b.addEventListener("click", () => setView3D(b.dataset.v3d)));
+    // 설비(IoT) 드로어
+    const ib = $("#iotbtn"), ipnl = $("#iotpanel");
+    if (ib && ipnl) {
+      ib.addEventListener("click", (e) => { e.stopPropagation(); ipnl.hidden = !ipnl.hidden; if (!ipnl.hidden) { _iotSig = ""; renderIoT(); } });
+      document.addEventListener("click", (e) => { if (!ipnl.hidden && !$("#iotwrap").contains(e.target)) ipnl.hidden = true; });
+    }
     // 미니맵 클릭/드래그
     const mmcv = $("#minimap canvas"); let mmdrag = false; mmcv.style.cursor = "pointer";
     mmcv.addEventListener("mousedown", (e) => { mmdrag = true; minimapNav(e); });
@@ -2122,12 +2637,18 @@
     if (CK) {
       drawCam(byId(CK.robotId), CK.axes); updateInputHUD(CK.axes, CK.buttons);
       if (CK.twin) { const t2 = tick * 0.03; CK.jointSim = [Math.sin(t2) * 0.6, Math.sin(t2 * 0.8) * 0.5 - 0.3, Math.sin(t2 * 1.3) * 0.4 + (CK.reach || 0) * 0.6]; if (tick % 2 === 0) updateTwin(CK.jointSim); }
+      // 디텍 후보 → 트윈 3D 마커(EE 앞 공간, best=청록) — 3D 트윈 확보 시 1회 세팅
+      if (CK.twin && CK.twin.kind === "3d" && CK.twin.api && CK.twin.api.setMarkers && !CK._markersSet) {
+        const dets = CK.detections || [];
+        CK.twin.api.setMarkers(dets.map((o, i) => ({ x: (0.5 - (o.fx1 + o.fx2) / 2) * 1.4, y: 0.95 - ((o.fy1 + o.fy2) / 2 - 0.5) * 0.8, z: -0.7 - i * 0.12, best: o.best })));
+        CK._markersSet = true;
+      }
       if (tick % 3 === 0) { renderCockpitStatus(); renderCockpitMinimap(); } if (tick % 4 === 0) pushLatency();
     }
     // 플릿 렌더(맵 표시 중) — 유닛은 위치만 갱신(DOM 재생성 X → 클릭/transition 유지)
     if (STATE.ui.view !== "solo") {
-      if (STATE.ui.level === "map" && !$("#stage").hidden) { positionUnits(); }
-      if (tick % 8 === 0) { renderSummary(); renderConn(); renderAlarms(); if (STATE.ui.level === "map" && !$("#hud").hidden) { renderRoster(); renderSelected(); renderMinimap(); } else if (STATE.ui.level === "overview" && !$("#overview").hidden) renderOverview(); }
+      if (STATE.ui.level === "map" && !$("#stage").hidden) { positionUnits(); renderPathLayer(); push3D(); }
+      if (tick % 8 === 0) { renderSummary(); renderConn(); renderAlarms(); renderIoT(); if (STATE.ui.level === "map" && !$("#hud").hidden) { renderRoster(); renderSelected(); renderMinimap(); } else if (STATE.ui.level === "overview" && !$("#overview").hidden) renderOverview(); }
     }
     // 콘솔↔서버 RTT 시뮬
     STATE.solo.rtt = clamp(STATE.solo.rtt + (Math.random() - 0.5) * 4, 14, 60);
@@ -2138,7 +2659,7 @@
   setupShell();
   updateDashboardLevel();
   renderDashboard();
-  logline("NEXUS 관제 콘솔 — 시뮬레이션 시작 · 로봇 11대 등록");
+  logline(`NEXUS 관제 — 시뮬레이션 시작 · 로봇 ${ROBOTS.length}대 등록`);
   setInterval(step, 90);
 })();
 </script>

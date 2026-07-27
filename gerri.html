@@ -165,7 +165,7 @@
           </div>
         </div>
         <div class="prose" style="margin-top:22px;">
-          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.6</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(rtc2kng WebRTC: aiortc·av·opencv·websockets·requests)·<code class="inline">[and-nexus]</code>(nexus 직결 WS)·<code class="inline">[and-rubberneck]</code>(ketirtc 미디어), <code class="inline">[rmi]</code>(fastapi·uvicorn)·<code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[vision]</code>(anthropic)·<code class="inline">[camera]</code>·<code class="inline">[ik]</code>(pinocchio)·<code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
+          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.12</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(rtc2kng WebRTC: aiortc·av·opencv·websockets·requests)·<code class="inline">[and-nexus]</code>(nexus 직결 WS)·<code class="inline">[and-rubberneck]</code>(ketirtc 미디어), <code class="inline">[rmi]</code>(fastapi·uvicorn)·<code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[vision]</code>(anthropic)·<code class="inline">[obb]</code>(numpy — OBB·파지계획)·<code class="inline">[detect]</code>(numpy·ultralytics — YOLO 디텍션 풀스택)·<code class="inline">[camera]</code>·<code class="inline">[ik]</code>(pinocchio)·<code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
         </div>
       </div>
       <p class="figcaption"><b>Figure 1.</b> TAG 묶음. <span class="nb">로봇 하나는</span> TOM·AND·GERRI <span class="nb">셋의 합으로</span> 정의된다. GERRI는 <code class="inline">synapse</code>만 의존하고, 전송 방식(AND)·로봇 SDK는 바깥의 <span class="nb">교체 가능한</span> 세부사항이다.</p>
@@ -579,7 +579,7 @@
             <tr><td class="mono">sub_controller.py</td><td>Sub — capability 구현</td></tr>
             <tr><td class="mono">mission/runner.py</td><td>MissionRunner</td></tr>
             <tr><td class="mono">handlers/</td><td>joy.py · vr.py · mobile_manipulator.py (합성/단독 팔 텔레옵)</td></tr>
-            <tr><td class="mono">vision/</td><td>VisionPicker + 교체형 VLMBackend — 프레임→VLM→피킹 값(픽셀)</td></tr>
+            <tr><td class="mono">vision/</td><td>비전 공통 라이브러리 — ① VisionPicker + 교체형 VLMBackend(프레임→VLM→픽셀) · ② 디텍션→OBB→파지계획(<code class="inline">detect.py</code>·<code class="inline">obb.py</code>·<code class="inline">grasp.py</code>·<code class="inline">pipeline.py</code>)</td></tr>
             <tr><td class="mono">interface/</td><td>cockpit(1:1 WebRTC) + rmi(로컬 관리 웹 UI)</td></tr>
             <tr><td class="mono">utils/camera/</td><td>CameraSource 레지스트리 → WebRTC 비디오 트랙</td></tr>
             <tr><td class="mono">config_loader.py</td><td>robot.config.json override 로더(설치 마법사·영속 pose/footprint)</td></tr>
@@ -659,7 +659,7 @@
           </div>
           <div class="flow-box hl">
             <div class="ti"><code>/ux</code> 현장 운영자</div>
-            <div class="su">현장 조작용<br>단순화 화면</div>
+            <div class="su">단순화 화면 + 미션 컨트롤<br>일시중지·이어하기·스킵·중지</div>
           </div>
           <div class="flow-box">
             <div class="ti"><code>/models/&lt;name&gt;</code></div>
@@ -671,6 +671,7 @@
     </div>
     <div class="prose mt-40" style="max-width:none;">
       <p>로봇 → 화면은 <code class="inline">Network.SEND</code>의 <code class="inline">robot.status</code>·<code class="inline">mission.event</code>를 그대로 push하고, 화면 → 로봇은 <span class="nb">표준 봉투</span>(<code class="inline">command.teleop</code>·<code class="inline">command.capability</code>·<code class="inline">mission.trigger</code>·<code class="inline">help.action</code>)를 <code class="inline">_deliver</code>로 <span class="nb">주입해</span> — nexus 명령과 <strong>동일 경로</strong>로 처리된다. 즉 <span class="nb">멀티 데몬 팬아웃/병합에</span> <span class="nb">그대로 편입되어,</span> 로컬 웹 UI가 <span class="nb">nexus·rubberneck과</span> <span class="nb">나란히</span> <span class="nb">또 하나의 관제망이</span> 된다. 설치는 extras <code class="inline">[rmi]</code>(fastapi·uvicorn).</p>
+      <p>대시보드의 <strong>조작 콘솔</strong>은 <span class="nb">현장에서 쓰던</span> <span class="nb">기존 tag_rmi 콘솔의</span> <strong>듀얼 조이스틱</strong> UI를 <span class="nb">그대로 이식했다</span> — <span class="nb">좌/우 스틱이</span> <span class="nb">각각</span> <code class="inline">axes[0..1]</code>·<code class="inline">axes[2..3]</code>에 <span class="nb">실리고,</span> <span class="nb">버튼 16개</span>·키보드(WASD/IJKL)·전체화면↔<strong>PiP</strong>(드래그로 옮기는 <span class="nb">떠 있는 창</span>) 토글을 <span class="nb">함께 제공한다.</span> 다만 Tailwind CDN은 <span class="nb">인라인 CSS로 바꿔</span> <span class="nb">오프라인 100%를 지켰고,</span> 전송은 <span class="nb">표준 <code class="inline">command.teleop</code> 봉투</span>(<code class="inline">axes</code> 8 · <code class="inline">buttons</code> 16)로 <span class="nb">맞췄으며,</span> 극성은 <span class="nb">위/W = 전진(+)</span> <span class="nb">규약을 따른다.</span> <code class="inline">/ux</code>(현장 운영자)에는 <span class="nb">미션 컨트롤 4버튼이</span> 있다 — <span class="nb">일시중지</span>(<code class="inline">capability.pause</code>)·<span class="nb">이어하기</span>(<code class="inline">resume</code>)·<span class="nb">스킵</span>(<code class="inline">help.skip</code>)·<span class="nb">미션 중지</span>(<code class="inline">help.abort</code> + <code class="inline">stop</code>)이며, 하드 <strong>긴급정지</strong>는 <span class="nb">별도 버튼으로</span> <span class="nb">남는다.</span></p>
     </div>
     <div class="note mt-24">
       <span class="s"><b>의도적 제외.</b></span> <span class="s"><strong>카메라 프레임 pubsub</strong> — 카메라 소유권 규약(러너 1-owner, 프레임 pubsub 금지)과 충돌하므로 <span class="nb">v1에서 제외한다.</span> 영상은 cockpit/rubberneck <span class="nb">경로가 소유한다.</span></span> <span class="s"><strong>settings 페이지</strong> — <code class="inline">robot.config.json</code> override(설치 마법사) 체계와 충돌하므로 제외한다.</span> <span class="s">템플릿은 <span class="nb">자체 완결</span> <span class="nb">단일 파일이라</span> <span class="nb">오프라인 100%.</span></span>
@@ -682,9 +683,16 @@
 <section class="section alt" id="vision">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">gerri.vision · Frame → VLM → Pick</span>
+      <span class="eyebrow">gerri.vision · Frame → Pick</span>
       <h2 class="section-title">👁️ gerri.vision — 비전 피킹 공통 라이브러리</h2>
-      <p class="section-lead"><span class="s"><span class="nb">카메라 프레임을</span> <strong>VLM</strong>에 넣어 <strong>피킹 값</strong>(어느 픽셀·중심·집는 각도)을 <span class="nb">내는</span> <span class="nb">공통 라이브러리다</span> — 어떤 로봇이든 <span class="nb">가져다 쓴다.</span></span> <span class="s">반환 좌표는 전부 <strong>픽셀 공간</strong>이고, 3D 변환·hand-eye는 <span class="nb">로봇 몫으로</span> <span class="nb">남긴다</span>(프로바이더·카메라 중립).</span> <span class="s">코드는 <code class="inline">gerri/vision/</code>, 설치는 extras <code class="inline">[vision]</code>(anthropic).</span></p>
+      <p class="section-lead"><span class="s"><span class="nb">카메라 프레임에서</span> <strong>피킹 값</strong>을 <span class="nb">뽑아내는</span> <span class="nb">공통 라이브러리다</span> — 어떤 로봇이든 <span class="nb">가져다 쓴다.</span></span> <span class="s">갈래는 <strong>둘</strong>이다 — <strong>① VLM 픽커</strong>는 <span class="nb">제로샷으로</span> <span class="nb">픽셀 좌표를</span> 내고(<code class="inline">[vision]</code>), <strong>② 디텍션→OBB→파지계획</strong>은 <span class="nb">온디바이스 디텍터로</span> <span class="nb">미터 단위</span> <span class="nb">파지 자세까지</span> 낸다(<code class="inline">[obb]</code>·<code class="inline">[detect]</code>).</span> <span class="s">코드는 <code class="inline">gerri/vision/</code>이고, 무거운 의존은 <span class="nb">전부 지연 임포트라</span> <span class="nb">코어 로봇은</span> <span class="nb">numpy·torch 없이도</span> 돈다.</span></p>
+    </div>
+
+    <!-- ── ① VLM 픽커 ── -->
+    <div class="section-head mt-40" style="text-align:left;">
+      <span class="eyebrow">① VLM Picker</span>
+      <h3 class="section-title" style="font-size:26px;">제로샷 — 프레임을 <span class="nb">모델에 묻는다</span></h3>
+      <p class="section-lead"><span class="s">학습·가중치 없이 <span class="nb">'무엇을 어디서 집을지'를</span> <span class="nb">바로 얻는 경로다.</span></span> <span class="s">반환 좌표는 전부 <strong>픽셀 공간</strong>이고, 3D 변환·hand-eye는 <span class="nb">로봇 몫으로</span> <span class="nb">남긴다</span>(프로바이더·카메라 중립).</span></p>
     </div>
     <div class="figure">
       <div class="cap-cards">
@@ -710,6 +718,75 @@
         </div>
       </div>
       <p class="figcaption"><b>Figure 10.</b> 비전 피킹 구조. <code class="inline">VisionPicker</code>(계약)는 <span class="nb">백엔드를 모르고,</span> <code class="inline">VLMBackend</code> 인터페이스만 본다 — Claude(SDK)·Claude Code(CLI 구독)를 <span class="nb">같은 계약으로</span> <span class="nb">갈아끼우고,</span> Gemini/GPT도 <span class="nb">같은 방식으로</span> <span class="nb">추가한다</span>(로봇 코드 무변경).</p>
+    </div>
+
+    <!-- ── ② 디텍션 → OBB → 파지계획 ── -->
+    <div class="section-head mt-40" style="text-align:left;">
+      <span class="eyebrow">② Detect → OBB → Grasp</span>
+      <h3 class="section-title" style="font-size:26px;">온디바이스 — <span class="nb">픽셀이 아니라</span> <span class="nb">파지 자세를 낸다</span></h3>
+      <p class="section-lead"><span class="s">VLM 왕복 없이 <span class="nb">로봇 위에서</span> 돌리는 <span class="nb">실시간 경로다.</span></span> <span class="s"><strong>디텍터</strong>가 인스턴스 마스크를 주면 → <strong>OBB</strong>가 그 마스크를 <span class="nb">베이스 3D로 역투영해</span> <span class="nb">지향 경계상자를</span> 뽑고 → <strong>파지계획</strong>이 <span class="nb">눕힘/세움을 판정해</span> <span class="nb">파지점·자세·개폐폭을</span> <span class="nb">계산으로 낸다.</span></span> <span class="s">셋 다 <strong>로봇 비의존</strong>이라 RBY1·Piper 등 <span class="nb">어떤 매니퓰레이터든</span> <span class="nb">그대로 재사용한다.</span></span></p>
+    </div>
+
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="flow-grid">
+          <div class="flow-box">
+            <div class="ti">detect.py</div>
+            <div class="su">프레임 → 인스턴스<br>클래스·점수·박스·마스크</div>
+          </div>
+          <div class="flow-box">
+            <div class="ti">obb.py</div>
+            <div class="su">마스크 → OBB<br>footprint PCA · 순수 numpy</div>
+          </div>
+          <div class="flow-box hl">
+            <div class="ti">grasp.py</div>
+            <div class="su">OBB → 파지 자세<br>top / side 자동 선택</div>
+          </div>
+          <div class="flow-box">
+            <div class="ti">pipeline.py</div>
+            <div class="su"><code>GraspPipeline.scan()</code><br>셋을 한 번에</div>
+          </div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 11.</b> 파지 파이프라인. <code class="inline">scan(frame, deproject, plane_z, labels)</code> 한 번이 <code class="inline">{class, score, center_px, box2d, bbox, plan, feasible}</code> 목록을 <span class="nb">파지 가능·고신뢰 순으로</span> <span class="nb">돌려준다.</span> 카메라 역투영은 <strong>주입된 콜백</strong>(<code class="inline">deproject(u,v) → [x,y,z]</code>)이라 <span class="nb">extrinsic·광학 리맵은</span> <span class="nb">로봇 소유로 남는다</span> — 마스크 없는 디텍션(박스만)은 <span class="nb">OBB 산출 불가라</span> 스킵.</p>
+    </div>
+
+    <div class="figure mt-40">
+      <div class="cap-cards">
+        <div class="cap-card common">
+          <div class="ck">Detector A · 클로즈드보캐브</div>
+          <div class="ctitle">Yolo26Detector</div>
+          <div class="cdesc">Ultralytics <strong>YOLO26-seg</strong>(COCO 80) — 물체셋이 고정이거나 <span class="nb">파인튜닝할 때.</span> <code class="inline">.pt</code>(개발)/<code class="inline">.engine</code>(Orin TensorRT) 둘 다. <span class="nb">Jetson Orin 실측</span> <strong>49 FPS</strong>.</div>
+        </div>
+        <div class="cap-card common">
+          <div class="ck">Detector B · 오픈보캐브</div>
+          <div class="ctitle">YoloeDetector</div>
+          <div class="cdesc"><strong>YOLOE-seg</strong> — <code class="inline">labels</code>가 <span class="nb">곧 어휘다</span>(<code class="inline">["cup","snack box","tape"]</code>). COCO 밖 물체를 <span class="nb">이름으로 찾는다</span>(실측: 과자박스·테이프가 <span class="nb">YOLO26 미검출이던</span> 원인). Orin <strong>26.5 FPS</strong>.</div>
+        </div>
+        <div class="cap-card">
+          <div class="ck">Detector C · 오픈월드</div>
+          <div class="ctitle">VlmSamDetector</div>
+          <div class="cdesc">VLM이 <span class="nb">이름·중심을 찾고</span> <strong>MobileSAM</strong>이 <span class="nb">그 자리 마스크를</span> 뽑는 합성 디텍터 — <span class="nb">어휘를 모르는</span> <span class="nb">원샷 스캔용.</span> Orin 실측 126 ms/물체라 <span class="nb">연속 모드엔 부적합.</span> <code class="inline">FakeDetector</code>/<code class="inline">FakeSegmenter</code>는 torch 없는 테스트용.</div>
+        </div>
+        <div class="cap-card">
+          <div class="ck">build_detector · 팩토리</div>
+          <div class="ctitle">config가 백엔드를 고른다</div>
+          <div class="cdesc"><code class="inline">detect.backend</code>(<code class="inline">yolo26</code>·<code class="inline">yoloe</code>·<code class="inline">vlm_sam</code>) 한 줄로 갈아끼운다 — 플래그를 <span class="nb">늘리지 않는</span> config-driven 원칙. <code class="inline">model</code>은 <span class="nb">백엔드 소유라,</span> backend만 바꾼 config에 <span class="nb">남아 있는</span> <span class="nb">타 백엔드 기본 가중치는</span> <span class="nb">자동으로 무시된다.</span></div>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 12.</b> 디텍터 브릿지. 셋 다 <code class="inline">detect(frame_bgr, labels) → [Detection]</code> <span class="nb">한 프로토콜만</span> 지키므로 <span class="nb">파이프라인 아래는</span> <span class="nb">무엇이 꽂혀도 동일하다.</span> 어휘를 <span class="nb">미리 알면</span> YOLOE로 빠르게, <span class="nb">말로 이해해야 하면</span> VLM+SAM으로 <span class="nb">한 번만.</span></p>
+    </div>
+
+    <div class="prose mt-40" style="max-width:none;">
+      <p><strong>OBB</strong>는 <span class="nb">마스크 픽셀을</span> <span class="nb">베이스 3D로 역투영한 뒤,</span> <span class="nb">수평 footprint에</span> <strong>PCA</strong>를 걸어 <span class="nb">장축·단축과</span> <code class="inline">yaw_deg</code>를, <span class="nb">z 범위로</span> <span class="nb">높이를 뽑는다</span> — <code class="inline">{center, size, yaw_deg}</code>가 <span class="nb">전부이고</span> open3d 없이 <span class="nb">순수 numpy로</span> 끝난다(<code class="inline">plane_z</code>를 주면 <span class="nb">책상면 아래 점을</span> 잘라 <span class="nb">마스크 가장자리의</span> <span class="nb">테이블 혼입을</span> 막는다). 이어서 <strong><code class="inline">plan_grasp</code></strong>가 <span class="nb">그 상자만 보고</span> 결정한다 — 납작하게 <span class="nb">눕힌 물체는</span> <strong>위에서</strong>(<code class="inline">top</code>), 세워 길쭉하면 <strong>옆에서</strong>(<code class="inline">side</code>) 문다. 반환은 <code class="inline">mode</code>·<code class="inline">target</code>·<code class="inline">orient{rx,ry,rz}</code>·<code class="inline">grip_width</code>·<code class="inline">feasible</code>·<code class="inline">reason</code>이고, 판정 기준(<code class="inline">standing_ratio</code>)·그리퍼 한계(<code class="inline">gripper_max_width</code>)·손가락 개폐축 <span class="nb">캘리브</span>(<code class="inline">finger_offset_deg</code>)는 <span class="nb">전부 config다.</span></p>
+      <p>결과는 <code class="inline">extension.vision.objects</code>로 발행되어 <strong>콕핏 오버레이의 클릭 대상</strong>이 되거나, 미션이 <code class="inline">pick_at(bbox=…)</code>으로 <span class="nb">그대로 실행한다</span> — 즉 <span class="nb">비전과 실행 사이의 계약도</span> <span class="nb">표준 status 필드</span> 하나로 <span class="nb">끝난다.</span></p>
+    </div>
+
+    <div class="note mt-24">
+      <span class="s"><b>이식 규약.</b> <code class="inline">orient</code>은 <strong>EE 항등(rx=ry=rz=0) = 그리퍼가 아래(-z)를 향하는 top-down</strong> 기준이다(RBY1 플랜지). <span class="nb">플랜지 항등이</span> <span class="nb">그리퍼-다운이 아닌 로봇</span>(Piper 류)은 <strong>소비자 쪽에서</strong> <span class="nb">자기 플랜지→그리퍼 오프셋을</span> 합성해 쓴다 — <span class="nb">공통 레이어에</span> <span class="nb">로봇별 분기를 넣지 않는다.</span></span>
+    </div>
+    <div class="note mt-16">
+      <span class="s"><b>왜 6-DOF grasp net이 아닌가</b>(설계 리뷰 기록, <span class="nb">2026-07-21</span>).</span> <span class="s">현 실행기(<code class="inline">_pick_sequence</code>)가 <strong>수직(+z) 접근 고정</strong>이라, 임의 접근·측면 파지라는 <span class="nb">grasp net의 핵심 이득이</span> <span class="nb">사장된다</span> — 즉 6-DOF의 게이트는 <span class="nb">비전이 아니라 실행기다.</span></span> <span class="s">pre/lift를 <span class="nb">접근축 기준 오프셋으로</span> 일반화하면 <span class="nb">그때 다시 연다</span>(금지가 아니라 <strong>재평가 트리거</strong>가 걸린 판단이다).</span>
     </div>
   </div>
 </section>

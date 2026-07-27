@@ -242,11 +242,11 @@
       </div>
       <div class="file-card">
         <div class="fn">peer_connection.py</div>
-        <div class="fd"><strong>RobotPeerConnection</strong> — <span class="nb">operator 1명과의</span> aiortc 연결. ICE 협상 + DataChannel(<code class="inline">"synapse"</code>)로 <span class="nb">표준 메시지(JSON)</span> 교환.</div>
+        <div class="fd"><strong>RobotPeerConnection</strong> — <span class="nb">operator 1명과의</span> aiortc 연결. ICE 협상 + DataChannel(<code class="inline">"synapse"</code>)로 <span class="nb">표준 메시지(JSON)</span> 교환. <code class="inline">ice_servers</code>를 주면 <code class="inline">RTCConfiguration</code>으로 <span class="nb">넘겨</span> TURN 릴레이를 <span class="nb">쓰고,</span> 없으면 aiortc 기본 STUN.</div>
       </div>
       <div class="file-card">
         <div class="fn">rtc2kng_backend.py</div>
-        <div class="fd"><strong>Rtc2kngBackend</strong> — <code class="inline">NetworkBackend</code> 구현. robot-first, 여러 operator와 동시 1:N. asyncio <span class="nb">루프 스레드에서</span> 시그널링·peer 구동.</div>
+        <div class="fd"><strong>Rtc2kngBackend</strong> — <code class="inline">NetworkBackend</code> 구현. robot-first, 여러 operator와 동시 1:N. asyncio <span class="nb">루프 스레드에서</span> 시그널링·peer 구동. <span class="nb">연결을 만들 때마다</span> nexus <code class="inline">/api/ice</code>를 <span class="nb">재조회한다</span> — coturn <span class="nb">시간제한 크리덴셜은</span> <span class="nb">만료가 있어</span> <span class="nb">캐시할 수 없다</span>(실패 시 기본 STUN 폴백).</div>
       </div>
       <div class="file-card">
         <div class="fn">camera_track.py</div>
@@ -255,6 +255,26 @@
     </div>
     <div class="note mt-24">
       <span class="s"><b>공유 카메라 허브.</b></span> <span class="s">컨벤션은 <strong>물리 카메라 1대 = <code class="inline">CameraSource</code> 1개</strong> — 한 장치를 <span class="nb">딱 한 번 열고</span>(캡처 1회), rtc2kng·rubberneck 등 <span class="nb">여러 전송 소비자가</span> 같은 인스턴스를 <span class="nb">받아 구독한다</span>(같은 장치 이중 open=device busy 방지, 소유권은 <span class="nb">여는 쪽=러너</span>).</span> <span class="s"><b>제어 버스에 고빈도 프레임을 싣지 않는다</b> — 영상은 <span class="nb">미디어 경로</span>(WebRTC 트랙)로 흐르고, <code class="inline">Network.SEND/RECV</code> 제어 채널에는 <span class="nb">status·명령 같은</span> <span class="nb">저빈도 JSON만</span> 오간다.</span>
+    </div>
+
+    <!-- ── 영상이 관제에 닿는 두 경로 서브섹션 ── -->
+    <div class="section-head mt-40" style="text-align:left;">
+      <span class="eyebrow">Video Paths</span>
+      <h3 class="section-title" style="font-size:26px;">로봇 영상이 관제에 닿는 <span class="nb">두 경로</span></h3>
+      <p class="section-lead"><span class="s">카메라·마이크가 <span class="nb">관제에 닿는 길은</span> <strong>둘</strong>이며, <span class="nb">데이터·제어</span>(<code class="inline">NexusWsBackend</code>의 WebSocket JSON)와는 <strong>별개 레이어</strong>다.</span> <span class="s">온보딩에서 <span class="nb">"rubberneck엔 뜨는데</span> <span class="nb">콕핏엔 안 뜬다"로</span> <span class="nb">헤매는 지점이라</span> <span class="nb">설계에 명문화했다.</span></span></p>
+    </div>
+    <div class="file-grid">
+      <div class="file-card">
+        <div class="fn">[A] rtc2kng — 콕핏 1:1 (P2P)</div>
+        <div class="fd">로봇이 nexus room에 <code class="inline">{robot_id}-cam</code> peer로 합류하고, operator가 <span class="nb">1:1 콕핏에</span> 들어오면 <strong>WebRTC로 직접</strong> 받는다. 러너 config의 <code class="inline">camera</code>(또는 <code class="inline">--camera</code>)가 있으면 켜진다. ICE는 nexus <code class="inline">/api/ice</code>(STUN/TURN·coturn).</div>
+      </div>
+      <div class="file-card">
+        <div class="fn">[B] rubberneck — 릴레이</div>
+        <div class="fd">로봇이 <code class="inline">rubberneck.kr</code>로 <strong>올리고</strong> 그쪽 뷰어/operator가 받는다. <code class="inline">networks</code>의 rubberneck 항목(<code class="inline">video_info</code>/<code class="inline">audio_info</code>·<code class="inline">api_key</code>)으로 켜진다 — 서버를 거치므로 <span class="nb">P2P보다 지연이 있지만</span> <span class="nb">망 제약에 강하다.</span></div>
+      </div>
+    </div>
+    <div class="note mt-24">
+      <span class="s">한 로봇이 <b>A·B를 동시에</b> 쓸 수 있고 <b>같은 카메라를 공유</b>한다 — 위의 <span class="nb">공유 카메라 허브가</span> <span class="nb">캡처 1회·다수 구독을</span> 보장하므로 <span class="nb">"경로마다 카메라를 따로 열어야 한다"는</span> <span class="nb">오해다</span>(device busy 충돌 없음).</span> <span class="s"><b>콕핏에 띄우는 게 목적이면 A</b>, 외부 뷰어·릴레이가 목적이면 B — 콕핏에 영상이 없다면 <span class="nb">대개 B만 켜진 것이다.</span></span> <span class="s">함정: nexus 콕핏은 <span class="nb">관례상 단일 카메라</span> 기준이라 <span class="nb">멀티캠은</span> rtc2kng <span class="nb">다중 카메라 지원이</span> 전제다.</span>
     </div>
     <div class="figure mt-40">
       <div class="figure-frame">
@@ -287,7 +307,7 @@
         </div>
         <div class="file-card">
           <div class="fn">internet 링크</div>
-          <div class="fd"><strong>InternetProbe</strong> — 기본 <code class="inline">1.1.1.1:53</code>에 TCP 핸드셰이크 RTT(ICMP·권한 불필요). 프로세스 공용 싱글턴으로 주기 갱신.</div>
+          <div class="fd"><strong>InternetProbe</strong> — 공용 앵커 <span class="nb">목록에</span> TCP 핸드셰이크 RTT(ICMP·권한 불필요). 프로세스 공용 싱글턴으로 주기 갱신. 기본 앵커는 <span class="nb">사업자·포트를 섞은</span> 셋(<code class="inline">1.1.1.1:53</code> · <code class="inline">8.8.8.8:53</code> · <code class="inline">8.8.8.8:443</code>)이고, <strong>첫 성공 앵커의 RTT를 쓰되 전부 실패해야 끊김</strong>으로 본다 — <span class="nb">단일 앵커는</span> <span class="nb">특정 IP만 막는</span> <span class="nb">방화벽에서</span> <span class="nb">오탐이었다</span>(실측: 내부망이 <code class="inline">1.1.1.1</code>만 차단).</div>
         </div>
         <div class="file-card">
           <div class="fn">operator 링크</div>

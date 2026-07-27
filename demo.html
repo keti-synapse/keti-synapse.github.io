@@ -395,11 +395,60 @@
   .cockpit-presets button.on{ background:var(--accent); color:#fff; }
   .cockpit-msgbtn{ background:var(--card); border:1px solid var(--line); color:var(--ink2); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
   .cockpit-msgbtn.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
-  /* 비주얼 피킹 버튼 + 영상 무장 상태 */
-  .cockpit-vpick{ background:var(--card); border:1px solid var(--line); color:var(--ink2); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
+  /* 비주얼 피킹 / 프로브 / 디텍 토글 버튼 + 영상 무장 상태 */
+  .cockpit-vpick, .cockpit-probe, .cockpit-detect{ background:var(--card); border:1px solid var(--line); color:var(--ink2); padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; }
   .cockpit-vpick.on{ background:var(--ok); border-color:var(--ok); color:var(--on-accent); font-weight:600; }
+  .cockpit-probe.on{ background:#2f7fe6; border-color:#2f7fe6; color:#fff; font-weight:600; }   /* 프로브 = 시야 프러스텀과 같은 파란색 */
+  .cockpit-detect.on{ background:#e0b341; border-color:#e0b341; color:#241a04; font-weight:600; }
   .cockpit-cam.vpick-armed{ outline:2px solid var(--ok); outline-offset:-2px; }
-  .cockpit-cam.vpick-armed canvas{ cursor:crosshair; }
+  .cockpit-cam.probe-armed{ outline:2px solid #2f7fe6; outline-offset:-2px; }
+  .cockpit-cam.vpick-armed canvas, .cockpit-cam.probe-armed canvas{ cursor:crosshair; }
+  /* 영상 클릭 마커 — 클릭 지점(% 고정, 리사이즈 추종) + 로봇 회신 x,y,z·도달성 라벨 */
+  .cockpit-cam{ position:relative; }
+  .cockpit-cam-mark{ position:absolute; z-index:6; pointer-events:none; transform:translate(-50%,-50%); color:#e0b341; }
+  .cockpit-cam-mark.ok{ color:#33e07a; } .cockpit-cam-mark.bad{ color:#ff5a5a; }
+  .cockpit-cam-mark::before{ content:""; display:block; width:13px; height:13px; margin:0 auto;
+    border:2px solid currentColor; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.55); }
+  .cockpit-cam-mark .cm-lab{ position:absolute; left:50%; top:calc(100% + 4px); transform:translateX(-50%);
+    white-space:nowrap; font:11px/1.4 ui-monospace,monospace; padding:2px 7px; border-radius:5px; color:var(--ink);
+    background:color-mix(in srgb, var(--bg) 86%, transparent); border:1px solid currentColor; }
+  /* 6DOF 피킹 어댑터 — 클릭 지점을 시드로 x/y/z·rx/ry/rz 조정 → 고스트 실시간 → [실행]. 트윈을 안 가리게 좌측. */
+  .cockpit-pickpanel{ position:absolute; left:8px; top:44px; z-index:40; width:238px;
+    background:color-mix(in srgb, var(--panel) 94%, transparent); border:1px solid var(--accent); border-radius:8px;
+    padding:9px 11px; box-shadow:0 6px 22px rgba(0,0,0,.55); font-size:12px; }
+  .cockpit-pickpanel .pk-head{ font-weight:700; color:var(--ink); margin-bottom:7px; display:flex; justify-content:space-between; align-items:center; }
+  .pk-reach{ font-size:11px; font-weight:600; color:var(--dim); }
+  .pk-reach.ok{ color:#33e07a; } .pk-reach.bad{ color:var(--err); }
+  .cockpit-pickpanel .pk-row{ display:flex; align-items:center; gap:5px; margin:3px 0; }
+  .cockpit-pickpanel .pk-row label{ width:26px; color:var(--ink2); font-weight:600; }
+  .cockpit-pickpanel .pk-sld{ flex:1; min-width:0; accent-color:var(--accent); }
+  .cockpit-pickpanel .pk-val{ width:58px; text-align:right; color:var(--ink); font:11px ui-monospace,monospace; }
+  .cockpit-pickpanel .pk-manip{ display:flex; align-items:center; gap:5px; margin:8px 0 2px; }
+  .cockpit-pickpanel .pk-manip label{ width:38px; color:var(--ink2); font-weight:600; font-size:11px; }
+  .cockpit-pickpanel .pk-bar{ flex:1; height:7px; border-radius:4px; background:var(--card2); border:1px solid var(--line); overflow:hidden; }
+  .cockpit-pickpanel .pk-bar > i{ display:block; height:100%; width:0; transition:width .12s; background:var(--dim); }
+  .cockpit-pickpanel .pk-bar > i.hi{ background:#33e07a; } .cockpit-pickpanel .pk-bar > i.mid{ background:#e0b341; } .cockpit-pickpanel .pk-bar > i.lo{ background:var(--err); }
+  .cockpit-pickpanel .pk-mval{ width:30px; text-align:right; color:var(--ink); font:11px ui-monospace,monospace; }
+  .cockpit-pickpanel .pk-acts{ display:flex; gap:6px; margin-top:9px; }
+  .cockpit-pickpanel .pk-acts button{ flex:1; font:inherit; font-size:12px; border-radius:5px; padding:5px; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  .pk-go{ background:#33e07a !important; color:#04223a !important; border-color:#33e07a !important; font-weight:700; }
+  .pk-go:disabled{ background:var(--card) !important; color:var(--dim) !important; border-color:var(--line) !important; font-weight:400; cursor:not-allowed; }
+  .cockpit-pickpanel .pk-reset{ flex:0 0 auto; }
+  /* 피킹 ready 바 — 스캔 물체 클릭 시 6DOF 패널 대신 컴팩트 확인(스캔 오버레이 유지) */
+  .cockpit-pickready{ position:absolute; left:8px; top:44px; z-index:40; display:flex; align-items:center; gap:8px;
+    background:color-mix(in srgb, var(--panel) 94%, transparent); border:1px solid var(--accent); border-radius:8px;
+    padding:7px 10px; box-shadow:0 6px 22px rgba(0,0,0,.55); font-size:12px; }
+  .cockpit-pickready .pr-lab{ font-weight:700; color:var(--ink); max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cockpit-pickready button{ font:inherit; font-size:12px; border-radius:5px; padding:4px 10px; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  /* 디텍션 색상 레전드 — 트윈 하단 절대 오버레이(플로우에서 빼 트윈이 밀리지 않게). 탐지 0 이면 숨김.
+     트윈 div 는 3D 마운트가 innerHTML 을 비우므로 레전드는 pane 기준으로 띄운다. */
+  .cockpit-pane[data-el="twinpane"]{ position:relative; }
+  .sim-legend{ position:absolute; left:8px; right:8px; bottom:6px; z-index:5; display:flex; flex-wrap:wrap; align-items:center;
+    gap:10px; font-size:11px; color:var(--ink2); padding:3px 7px; border-radius:6px;
+    background:color-mix(in srgb,var(--panel) 72%,transparent); pointer-events:none; }
+  .sim-legend[hidden]{ display:none; }   /* 작성자 규칙이 UA [hidden] 을 이기므로 명시 */
+  .sim-legend .lg{ display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+  .sim-legend .lg.ok{ background:#33e07a; } .sim-legend .lg.bad{ background:#ff5a5a; } .sim-legend .lg.cam{ background:#2f7fe6; }
   /* 콕핏 감도 슬라이더 2분할(조작/시야) */
   .cockpit-sens{ display:flex; flex-direction:column; gap:7px; }
   .cockpit-sens .srow{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink2); }
@@ -458,6 +507,10 @@
   /* 좁은 폭에선 저우선 항목(도움말·서버입력)을 숨겨 알람벨·테마가 첫 줄에 남게 한다 */
   @media (max-width:1320px){ header .hint{ display:none; } }
   @media (max-width:1180px){ header .srv{ display:none; } }
+  /* 콕핏 바도 같은 규칙 — 피킹/프로브/디텍 3버튼이 붙으면서 좁은 폭에서 STOP·나가기가 둘째 줄로
+     밀렸다. 저우선(데모 시뮬 버튼 → 메시지 로그) 순으로 접어 STOP 이 항상 첫 줄에 남게 한다. */
+  @media (max-width:1280px){ .cockpit-bar [data-el="demohelp"], .cockpit-bar [data-el="demoinput"]{ display:none; } }
+  @media (max-width:1120px){ .cockpit-bar [data-el="msgbtn"]{ display:none; } }
   @media (max-width:820px){
     #sidebar{ width:46px; } #app #sidebar .ni-tx{ display:none; }
     #roster{ width:120px; }
@@ -493,7 +546,7 @@
 { "imports": {
   "three": "https://esm.sh/three@0.160.0",
   "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
-  "urdf-loader": "https://esm.sh/urdf-loader@0.12.6"
+  "urdf-loader": "https://esm.sh/urdf-loader@0.12.4?deps=three@0.160.0"
 } }
 </script>
 <script type="module">
@@ -539,27 +592,49 @@
         const arm = buildArm(false); scene.add(arm.g);
         const ghost = buildArm(true); ghost.g.visible = false; scene.add(ghost.g);
         const setArm = (t, a) => { if (!a) return; if (a[0] != null) t.j1.rotation.y = a[0]; if (a[1] != null) t.j2.rotation.z = a[1]; if (a[2] != null) t.j3.rotation.z = a[2]; };
-        // 디텍 후보 3D 마커(EE 앞 공간에 구+링) — best=청록, 그 외=노랑
+        // 디텍 후보 3D 마커 — 구 + (파지가능 판정 시) OBB 와이어박스. 색은 도달성 3상:
+        // reach=true 초록 / false 빨강 / undefined(판정 전) 노랑, pick 선택은 링을 덧씌운다.
         let markerGroup = null;
         function setMarkers(list) {
           if (markerGroup) { scene.remove(markerGroup); markerGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); markerGroup = null; }
           if (!list || !list.length) return;
           markerGroup = new THREE.Group();
           list.forEach((m) => {
-            const col = m.best ? 0x00e5ff : 0xffd200;
-            const s = new THREE.Mesh(new THREE.SphereGeometry(m.best ? 0.09 : 0.06, 14, 14),
+            const col = m.reach === true ? 0x33e07a : (m.reach === false ? 0xff5a5a : (m.best ? 0x00e5ff : 0xffd200));
+            const s = new THREE.Mesh(new THREE.SphereGeometry(m.best || m.pick ? 0.09 : 0.06, 14, 14),
               new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.92 }));
             s.position.set(m.x || 0, m.y || 0, m.z || 0); markerGroup.add(s);
+            if (m.pick) {                                   // 선택 표시 링(정본의 pick 마커)
+              const ring = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.012, 8, 28),
+                new THREE.MeshBasicMaterial({ color: col }));
+              ring.position.copy(s.position); ring.rotation.x = Math.PI / 2; markerGroup.add(ring);
+            }
+            if (m.size) {                                   // OBB — 마스크→PCA 로 나온 지향 경계상자
+              const box = new THREE.LineSegments(
+                new THREE.EdgesGeometry(new THREE.BoxGeometry(m.size[0], m.size[2], m.size[1])),
+                new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.85 }));
+              box.position.copy(s.position); box.rotation.y = -(m.yaw || 0); markerGroup.add(box);
+            }
           });
           scene.add(markerGroup);
+        }
+        // 카메라 시야 프러스텀 — 마운트 링크(상체) 앞으로 뻗는 파란 와이어 피라미드.
+        let frustum = null;
+        function setFrustum(on) {
+          if (frustum) { scene.remove(frustum); frustum.geometry.dispose(); frustum.material.dispose(); frustum = null; }
+          if (!on) return;
+          const cone = new THREE.ConeGeometry(0.55, 1.5, 4, 1, true);
+          frustum = new THREE.LineSegments(new THREE.EdgesGeometry(cone),
+            new THREE.LineBasicMaterial({ color: 0x2f7fe6, transparent: true, opacity: 0.55 }));
+          frustum.position.set(0, 1.35, -0.62); frustum.rotation.x = -Math.PI / 2; scene.add(frustum);
         }
         let raf = 0; const loop = () => { raf = requestAnimationFrame(loop); renderer.render(scene, camera); }; loop();
         return {
           setJoints(a) { setArm(arm, a); },
           setGhost(a) { if (!a) { ghost.g.visible = false; return; } ghost.g.visible = true; setArm(ghost, a); },
-          setMarkers,
+          setMarkers, setFrustum,
           resize() { const w = container.clientWidth || 300, h = container.clientHeight || 150; if (!w || !h) return; camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); },
-          dispose() { cancelAnimationFrame(raf); setMarkers(null); try { renderer.dispose(); } catch (_) {} container.innerHTML = ""; },
+          dispose() { cancelAnimationFrame(raf); setMarkers(null); setFrustum(false); try { renderer.dispose(); } catch (_) {} container.innerHTML = ""; },
         };
       };
 
@@ -1147,6 +1222,9 @@
     else if (name === "call" || name === "go_to_floor") { const io = ioState(r); if (io) { const f = +params.floor; if (!Number.isNaN(f)) { io.direction = f > (io.floor || 0) ? "up" : f < (io.floor || 0) ? "down" : "idle"; io.floor = f; io.door = "closed"; } } }
     else if (name === "open") { const io = ioState(r); if (io) { if (r.cats[0] === "door") io.state = "open"; else io.door = "open"; } }
     else if (name === "open_cancel") { const io = ioState(r); if (io) { if (r.cats[0] === "door") io.state = "closed"; else io.door = "closed"; } }
+    // 피킹은 2단계 — execute:false(프리뷰)는 고스트/도달성만 회신하므로 로봇 상태를 바꾸지 않는다.
+    else if (name === "pick_at" || name === "visual_pick") { if (params.execute === false) return; r.base_state = "BUSY"; r.busyUntil = Date.now() + 2200; }
+    else if (name === "detect_mode" || name === "pick_preview_clear") { /* 스캔 모드·프리뷰 회수 — 무변경 */ }
     else if (name.startsWith("get_") || name === "queue_empty" || name === "boarding_state" || name === "passage_state") { /* 조회/상태 — 무변경 */ }
     else { r.base_state = "BUSY"; r.busyUntil = Date.now() + 1400; }
   }
@@ -2072,7 +2150,9 @@
       <button class="cockpit-msgbtn" data-el="demohelp" title="개입 요청(need_help) 시뮬레이션 — 데모">🆘 데모</button>
       <button class="cockpit-msgbtn" data-el="demoinput" title="입력 대기(wait_input) 시뮬레이션 — 데모">⌨ 데모</button>
       <span class="cockpit-spacer"></span>
-      <button class="cockpit-vpick" data-el="vpick" title="비주얼 피킹 — 카메라 영상의 대상 클릭 → visual_pick(u,v)">🎯 피킹</button>
+      <button class="cockpit-detect" data-el="detect" title="디텍 모드 — 연속 스캔(detect_mode) on/off. 끄면 오버레이·레전드가 사라진다" hidden>🔍 디텍</button>
+      <button class="cockpit-vpick" data-el="vpick" title="비주얼 피킹 — 영상 클릭 → 프리뷰(고스트) → [실행]의 2단계">🎯 피킹</button>
+      <button class="cockpit-probe" data-el="probe" title="프로브 — 측정 전용(연속). 클릭 지점의 베이스 좌표만 회신, 팔은 안 움직인다" hidden>📐 프로브</button>
       <button class="cockpit-stop" data-el="stop">■ STOP</button>
       <button class="cockpit-exit" data-el="exit">✕ 나가기 (Esc)</button>
     </div>
@@ -2104,7 +2184,8 @@
           <div class="cockpit-lat-detail" data-el="latdetail" hidden></div>
         </div>
         <div class="cockpit-pane" data-el="twinpane" hidden><div class="cockpit-h">3D 디지털 트윈 <span class="cockpit-dim" data-el="twinmode"></span></div>
-          <div class="cockpit-twin" data-el="twin"></div></div>
+          <div class="cockpit-twin" data-el="twin"></div>
+          <div class="sim-legend" data-el="simlegend" hidden></div></div>
       </div>
       <div class="cockpit-main" data-el="main">
         <div class="cockpit-cam" data-el="videos"></div>
@@ -2135,15 +2216,16 @@
     const m = $("#cockpit"); m.innerHTML = COCKPIT_HTML;
     const q = (s) => m.querySelector(s);
     CK = {
-      robotId, preset: "keyboard", dpad: { lin: 0, ang: 0 }, mouse: { pan: 0, tilt: 0, locked: false }, sens: { drive: 1.0, look: 0.8 }, vpick: false, camOff: 0, reach: 0, twin: null, axes: new Array(8).fill(0), buttons: new Array(16).fill(0),
-      els: { conn: q('[data-el="conn"]'), lat: q('[data-el="lat"]'), status: q('[data-el="status"]'), skills: q('[data-el="skills"]'), videos: q('[data-el="videos"]'), main: q('[data-el="main"]'), minimap: q('[data-el="minimap"]'), inhud: q('[data-el="inhud"]'), presets: q('[data-el="presets"]'), mouselock: q('[data-el="mouselock"]'), log: q('[data-el="log"]'), chart: q('[data-el="chart"]'), intervene: q('[data-el="intervene"]'), twin: q('[data-el="twin"]'), twinmode: q('[data-el="twinmode"]'), twinpane: q('[data-el="twinpane"]') },
+      robotId, preset: "keyboard", dpad: { lin: 0, ang: 0 }, mouse: { pan: 0, tilt: 0, locked: false }, sens: { drive: 1.0, look: 0.8 }, vpick: false, probe: false, detectOn: true, planeZ: 0.82, camOff: 0, reach: 0, twin: null, axes: new Array(8).fill(0), buttons: new Array(16).fill(0),
+      els: { conn: q('[data-el="conn"]'), lat: q('[data-el="lat"]'), status: q('[data-el="status"]'), skills: q('[data-el="skills"]'), videos: q('[data-el="videos"]'), main: q('[data-el="main"]'), minimap: q('[data-el="minimap"]'), inhud: q('[data-el="inhud"]'), presets: q('[data-el="presets"]'), mouselock: q('[data-el="mouselock"]'), log: q('[data-el="log"]'), chart: q('[data-el="chart"]'), intervene: q('[data-el="intervene"]'), twin: q('[data-el="twin"]'), twinmode: q('[data-el="twinmode"]'), twinpane: q('[data-el="twinpane"]'), simlegend: q('[data-el="simlegend"]'), vpick: q('[data-el="vpick"]'), probe: q('[data-el="probe"]'), detect: q('[data-el="detect"]') },
     };
     m.querySelector(".cockpit-rid").textContent = robotId;
     // 비전 스캔 목업 디텍(카메라 보유 로봇) — canvas 비율(0~1) 좌표. best=최고 신뢰도(청록).
+    // reach = 로봇이 회신하는 파지 가능 여부(plan.feasible + reachable 종합) — 레전드/마커 색의 근거.
     CK.detections = r.cats.includes("camera") ? [
-      { fx1: 0.36, fy1: 0.46, fx2: 0.48, fy2: 0.62, label: "box", conf: 0.91, best: true },
-      { fx1: 0.55, fy1: 0.50, fx2: 0.65, fy2: 0.63, label: "cup", conf: 0.77, best: false },
-      { fx1: 0.20, fy1: 0.55, fx2: 0.30, fy2: 0.67, label: "tool", conf: 0.63, best: false },
+      { fx1: 0.36, fy1: 0.46, fx2: 0.48, fy2: 0.62, label: "box", conf: 0.91, best: true, reach: true },
+      { fx1: 0.55, fy1: 0.50, fx2: 0.65, fy2: 0.63, label: "cup", conf: 0.77, best: false, reach: true },
+      { fx1: 0.20, fy1: 0.55, fx2: 0.30, fy2: 0.67, label: "tool", conf: 0.63, best: false, reach: false },
     ] : [];
     // 카메라 캔버스
     const cam = CK.els.videos; cam.innerHTML = ""; const cv = document.createElement("canvas"); cam.appendChild(cv); CK.cam = cv;
@@ -2158,18 +2240,38 @@
     const sd = q('[data-el="sensdrive"]'), sl = q('[data-el="senslook"]');
     if (sd) { sd.value = Math.round(CK.sens.drive * 100); sd.oninput = () => { CK.sens.drive = +sd.value / 100; q('[data-el="sensdriveval"]').textContent = sd.value + "%"; }; }
     if (sl) { sl.value = Math.round(CK.sens.look * 100); sl.oninput = () => { CK.sens.look = +sl.value / 100; q('[data-el="senslookval"]').textContent = sl.value + "%"; }; }
-    // 비주얼 피킹: 🎯 무장 → 카메라 캔버스 클릭 → visual_pick(u,v)
-    const vpickBtn = q('[data-el="vpick"]'), camWrap = CK.els.videos;
-    if (vpickBtn) vpickBtn.onclick = () => { CK.vpick = !CK.vpick; vpickBtn.classList.toggle("on", CK.vpick); camWrap.classList.toggle("vpick-armed", CK.vpick); if (CK.vpick) ckLog("🎯 비주얼 피킹 무장 — 카메라 영상의 대상을 클릭하세요"); };
+    // 피킹(🎯)·프로브(📐)·디텍 토글(🔍) — 셋 다 카메라 보유 로봇에서만 노출(미보유 로봇에서 조용히
+    // 실패하는 버튼을 안 보이게 하는 정본의 capability 게이팅 재현).
+    const vpickBtn = CK.els.vpick, probeBtn = CK.els.probe, detectBtn = CK.els.detect, camWrap = CK.els.videos;
+    const hasCam = r.cats.includes("camera");
+    if (vpickBtn) vpickBtn.hidden = !hasCam;
+    if (probeBtn) probeBtn.hidden = !hasCam;
+    if (detectBtn) { detectBtn.hidden = !hasCam; detectBtn.classList.toggle("on", CK.detectOn); }
+    const armVpick = (on) => { CK.vpick = on; if (on) armProbe(false); if (vpickBtn) vpickBtn.classList.toggle("on", on); camWrap.classList.toggle("vpick-armed", on); };
+    const armProbe = (on) => { CK.probe = on; if (probeBtn) probeBtn.classList.toggle("on", on); camWrap.classList.toggle("probe-armed", on); };
+    CK.armVpick = armVpick; CK.armProbe = armProbe;   // 실행/취소 경로(모듈 스코프 함수)에서 무장 해제용
+    if (vpickBtn) vpickBtn.onclick = () => { const on = !CK.vpick; armVpick(on); if (on) ckLog("🎯 피킹 무장 — 영상을 클릭하면 고스트 프리뷰가 뜨고, [실행]을 눌러야 팔이 움직입니다"); else hideConfirm(); };
+    if (probeBtn) probeBtn.onclick = () => { const on = !CK.probe; if (on) armVpick(false); armProbe(on); ckLog(on ? "📐 프로브 무장 — 클릭 지점의 베이스 좌표만 회신(연속, 팔 미동작)" : "📐 프로브 해제"); };
+    if (detectBtn) detectBtn.onclick = () => {
+      CK.detectOn = !CK.detectOn; detectBtn.classList.toggle("on", CK.detectOn);
+      dispatch("detect_mode", { enable: CK.detectOn }, [CK.robotId]);
+      ckLog(`🔍 detect_mode(${CK.detectOn ? "on" : "off"}) → ${CK.robotId}`); syncLegend();
+    };
     CK.cam.addEventListener("click", (ev) => {
       const rc = CK.cam.getBoundingClientRect();
       const w = CK.cam.width || rc.width, h = CK.cam.height || rc.height;
       const cx = (ev.clientX - rc.left) / rc.width * w, cy = (ev.clientY - rc.top) / rc.height * h;
       // 클릭이 들어간 디텍 박스(있으면 신뢰도 높은 것) — 중심으로 스냅
       let hit = null;
-      for (const o of (CK.detections || [])) {
+      if (CK.detectOn) for (const o of (CK.detections || [])) {
         if (cx >= o.fx1 * w && cx <= o.fx2 * w && cy >= o.fy1 * h && cy <= o.fy2 * h)
           if (!hit || (o.conf || 0) > (hit.conf || 0)) hit = o;
+      }
+      if (CK.probe) {                       // 프로브: 측정만(연속 — 무장 유지)
+        const u = Math.round(cx), v = Math.round(cy), p = pixelToBase(u, v, w, h);
+        showCamMark(u / w, v / h, p, "probe");
+        ckLog(`📐 probe(u=${u}, v=${v}) → x=${p.x.toFixed(3)} y=${p.y.toFixed(3)} z=${p.z.toFixed(3)} (${p.reachable ? "도달 가능" : "도달 불가"})`);
+        return;
       }
       if (!CK.vpick) {   // 비무장: 디텍 박스 안 클릭이면 3s 스로틀 힌트
         if (hit && Date.now() - (CK.vpickHintAt || 0) > 3000) { CK.vpickHintAt = Date.now(); ckLog("💡 디텍 물체를 집으려면 상단 🎯 피킹을 켜고 박스를 클릭"); }
@@ -2177,9 +2279,13 @@
       }
       const u = Math.round(hit ? (hit.fx1 + hit.fx2) / 2 * w : cx);
       const v = Math.round(hit ? (hit.fy1 + hit.fy2) / 2 * h : cy);
-      CK.vpick = false; if (vpickBtn) vpickBtn.classList.remove("on"); camWrap.classList.remove("vpick-armed");
-      dispatch("visual_pick", { u, v }, [CK.robotId]);
-      ckLog(hit ? `🎯 visual_pick「${hit.label}」중심 (u=${u}, v=${v}) → ${CK.robotId}` : `🎯 visual_pick(u=${u}, v=${v}) → ${CK.robotId}`);
+      const seed = pixelToBase(u, v, w, h);
+      // 1단계 = 프리뷰만(execute:false) — 로봇은 고스트/도달성만 회신하고 팔은 안 움직인다.
+      dispatch("visual_pick", { u, v, execute: false }, [CK.robotId]);
+      ckLog(`🎯 visual_pick(u=${u}, v=${v}, execute=false) — 프리뷰 요청${hit ? `「${hit.label}」` : ""}`);
+      // 스캔 물체에 스냅됐으면 컴팩트 'ready' 바(스캔 오버레이 유지), 빈 공간이면 6DOF 미세조정 패널.
+      if (hit) openPickReady(seed, hit.label); else openPickPanel(seed);
+      showCamMark(u / w, v / h, seed, "pick");   // 확인 UI 생성 뒤 — hideConfirm 이 방금 마커를 지우지 않게
     });
     const lt = q('[data-el="lattoggle"]'); lt.onclick = () => { const d = q('[data-el="latdetail"]'); const show = d.hidden; d.hidden = !show; lt.textContent = show ? "자세히 ▴" : "자세히 ▾"; };
     CK.els.presets.querySelectorAll("button").forEach((b) => b.onclick = () => setPreset(b.dataset.preset));
@@ -2201,7 +2307,13 @@
     CK.els.main.addEventListener("wheel", (e) => { e.preventDefault(); CK.reach = clamp((CK.reach || 0) + (e.deltaY < 0 ? 0.08 : -0.08), 0, 1); ckLog(`휠 reach axes[4] = ${CK.reach.toFixed(2)}`); }, { passive: false });
     // 3D URDF 디지털 트윈(조인트 보유 로봇)
     setupTwin(r);
+    syncLegend();
+    // 정본 콘솔은 통화 직전 /api/ice 를 재조회한다 — coturn 시간제한 크리덴셜은 만료가 있어 캐시 금지.
+    ckLog(`GET /api/ice → iceServers 2건(STUN + TURN, username=만료epoch:nexus) · 통화 직전 재조회`);
     ckLog(`1:1 진입: ${robotId} · WebRTC P2P 시그널링(시뮬)`);
+    if (hasCam) {   // 장면 문답 답변(extension.speech) — 로봇이 올린 답을 콕핏이 로그에 1회 표기
+      setTimeout(() => { if (CK && CK.robotId === robotId) ckLog("💬 「책상 위에 상자·컵·공구가 있습니다. 상자가 가장 앞이라 집기 좋습니다」"); }, 2600);
+    }
     console.log("[command.capability]", buildCommand(cfg.operatorId, "velocity_ctrl", {}, robotId));
     resizeCockpit(); renderConn();
   }
@@ -2292,6 +2404,130 @@
     if (CK.twin.kind === "3d" && CK.twin.api && CK.twin.api.setGhost) { try { CK.twin.api.setGhost(vals || null); } catch (_) {} return; }
     if (vals && CK.twin.kind === "2d") updateTwin(vals);   // 2D 폴백: 고스트 미지원 → 대상 자세를 잠시 반영(다음 틱 애니가 원복)
   }
+  // ---- 피킹 2단계 확인 UI (정본 콕핏 이식·간소화) ---------------------------------------------
+  // 데모엔 실 카메라·깊이가 없으므로 "클릭 픽셀 → 베이스 좌표"를 단순 모델로 시뮬한다(화면 아래일수록
+  // 가깝고, 좌우가 그대로 y, z 는 책상=피킹 평면 높이). 실물은 로봇이 deproject 로 풀어 회신한다.
+  function pixelToBase(u, v, w, h) {
+    const fx = clamp(u / w, 0, 1), fy = clamp(v / h, 0, 1);
+    const p = { x: 0.30 + (1 - fy) * 0.62, y: (0.5 - fx) * 0.80, z: CK ? CK.planeZ : 0.82, rx: 0, ry: 0, rz: 0 };
+    return baseReach(p);
+  }
+  function baseReach(p) {
+    const d = Math.hypot(p.x, p.y);
+    p.reachable = d <= 0.78 && d >= 0.20 && p.z > 0.55 && p.z < 1.15;
+    // 조작성(역조건수 0~1) — 팔을 다 뻗을수록(특이점 근접) 0 에 수렴. 로봇이 회신하는 값의 목업.
+    p.cond = clamp(1 - Math.abs(d - 0.48) / 0.42, 0, 1) * (p.reachable ? 1 : 0.3);
+    return p;
+  }
+  function pickGhostJoints(p) {   // 목표 자세 → 프리미티브 팔 관절 근사(고스트 표시용)
+    const d = Math.hypot(p.x, p.y);
+    return [Math.atan2(p.y, p.x), -0.30 - d * 0.8, 0.45 + d * 0.9];
+  }
+  function clearCamMarks(kind) {
+    if (!CK) return;
+    CK.els.videos.querySelectorAll(".cockpit-cam-mark" + (kind ? `[data-kind="${kind}"]` : "")).forEach((e) => e.remove());
+  }
+  function showCamMark(fx, fy, p, kind) {
+    clearCamMarks(kind);
+    const el = document.createElement("div");
+    el.className = "cockpit-cam-mark " + (p.reachable ? "ok" : "bad");
+    el.dataset.kind = kind;
+    el.style.left = (fx * 100) + "%"; el.style.top = (fy * 100) + "%";
+    const lab = document.createElement("div"); lab.className = "cm-lab";
+    lab.textContent = `${kind === "probe" ? "📐" : "🎯"} ${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}` + (p.reachable ? "" : " · 도달 불가");
+    el.appendChild(lab); CK.els.videos.appendChild(el);
+    if (kind === "pick" && CK._pick) { CK._pick.fx = fx; CK._pick.fy = fy; }   // 트윈 pick 마커 위치의 근거
+  }
+  function hideConfirm() {          // 확인 UI 정리 — 프리뷰 고스트·마커·선택 표시 회수
+    if (!CK) return;
+    if (CK._pickEl) { CK._pickEl.remove(); CK._pickEl = null; }
+    CK._pick = null; clearCamMarks("pick");
+    try { previewJoints(null); } catch (_) {}
+  }
+  function updateReachUi() {        // 도달성/조작성 → 라벨·[실행] 활성·게이지
+    if (!CK || !CK._pick || !CK._pickEl) return;
+    const p = baseReach(CK._pick.pose), el = CK._pickEl;
+    const reach = el.querySelector(".pk-reach");
+    if (reach) { reach.textContent = p.reachable ? "도달 가능" : "도달 불가"; reach.className = "pk-reach " + (p.reachable ? "ok" : "bad"); }
+    const go = el.querySelector(".pk-go"); if (go) go.disabled = !p.reachable;
+    const bar = el.querySelector(".pk-bar > i"), mval = el.querySelector(".pk-mval");
+    if (bar) { bar.style.width = Math.max(3, p.cond * 100) + "%"; bar.className = p.cond < 0.15 ? "lo" : (p.cond < 0.35 ? "mid" : "hi"); }
+    if (mval) mval.textContent = p.cond.toFixed(2);
+    previewJoints(pickGhostJoints(p));
+  }
+  function sendPickPreview() {      // 조정할 때마다 프리뷰 재발행(디바운스) — 고스트/도달성만 갱신.
+    if (!CK || !CK._pick) return;   // 토스트 없이 조용히 — 슬라이더 한 번에 알림이 쏟아지면 안 된다.
+    clearTimeout(CK._pickPrevT);
+    CK._pickPrevT = setTimeout(() => {
+      if (!CK || !CK._pick) return;
+      const p = CK._pick.pose;
+      console.log("[command.capability]", buildCommand(senderFor(), "pick_at",
+        { x: +p.x.toFixed(3), y: +p.y.toFixed(3), z: +p.z.toFixed(3), rx: p.rx, ry: p.ry, rz: p.rz, execute: false }, CK.robotId));
+    }, 220);
+  }
+  function runPick() {              // 2단계 = 실제 실행(execute:true) — 여기서만 팔이 움직인다
+    if (!CK || !CK._pick) return;
+    const p = baseReach(CK._pick.pose);
+    if (!p.reachable) { toast("도달 불가 자세 — 실행 차단"); return; }
+    dispatch("pick_at", { x: +p.x.toFixed(3), y: +p.y.toFixed(3), z: +p.z.toFixed(3), rx: p.rx, ry: p.ry, rz: p.rz, execute: true }, [CK.robotId]);
+    ckLog(`▶ pick_at(x=${p.x.toFixed(3)}, y=${p.y.toFixed(3)}, z=${p.z.toFixed(3)}, execute=true) → ${CK.robotId}`);
+    if (CK.armVpick) CK.armVpick(false);      // 실행 = 피킹 무장 소비(프로브는 독립)
+    hideConfirm();
+  }
+  const PK_AXES = [
+    { k: "x", step: 0.01, span: 0.16, unit: "m" }, { k: "y", step: 0.01, span: 0.16, unit: "m" }, { k: "z", step: 0.01, span: 0.16, unit: "m" },
+    { k: "rx", step: 5, span: 180, unit: "°" }, { k: "ry", step: 5, span: 180, unit: "°" }, { k: "rz", step: 5, span: 180, unit: "°" },
+  ];
+  function openPickPanel(seed) {    // 빈 공간 클릭 → 6DOF 미세조정 패널
+    hideConfirm();
+    const pose = { x: seed.x, y: seed.y, z: seed.z, rx: 0, ry: 0, rz: 0 };
+    CK._pick = { pose, seed: { ...pose }, mode: "panel", fx: 0.5, fy: 0.5 };   // fx/fy 는 곧 showCamMark 가 채운다
+    const el = document.createElement("div"); el.className = "cockpit-pickpanel";
+    el.innerHTML = `<div class="pk-head"><span>🎯 피킹 자세 조정</span><span class="pk-reach"></span></div>
+      <div class="pk-rows"></div>
+      <div class="pk-manip"><label>조작성</label><div class="pk-bar"><i></i></div><b class="pk-mval">–</b></div>
+      <div class="pk-acts"><button class="pk-reset" title="클릭 시드로 되돌림">↺</button><button class="pk-go">▶ 실행</button><button class="pk-cancel">취소</button></div>`;
+    const rows = el.querySelector(".pk-rows"), vals = {};
+    PK_AXES.forEach((a) => {
+      const row = document.createElement("div"); row.className = "pk-row";
+      row.innerHTML = `<label>${a.k}</label><input class="pk-sld" type="range"><span class="pk-val"></span>`;
+      const sld = row.querySelector("input"), out = row.querySelector(".pk-val");
+      sld.min = (pose[a.k] - a.span).toFixed(3); sld.max = (pose[a.k] + a.span).toFixed(3);
+      sld.step = a.step; sld.value = pose[a.k];
+      const show = () => { out.textContent = (a.unit === "°" ? Math.round(pose[a.k]) : pose[a.k].toFixed(3)) + a.unit; };
+      vals[a.k] = { sld, show };
+      sld.oninput = () => { pose[a.k] = +sld.value; show(); updateReachUi(); sendPickPreview(); };
+      show(); rows.appendChild(row);
+    });
+    el.querySelector(".pk-go").onclick = runPick;
+    el.querySelector(".pk-cancel").onclick = () => { ckLog("↩ 피킹 취소 — 프리뷰 회수(pick_preview_clear)"); dispatch("pick_preview_clear", {}, [CK.robotId]); hideConfirm(); };
+    el.querySelector(".pk-reset").onclick = () => {
+      Object.assign(pose, CK._pick.seed);
+      PK_AXES.forEach((a) => { vals[a.k].sld.value = pose[a.k]; vals[a.k].show(); });
+      updateReachUi(); sendPickPreview();
+    };
+    CK.els.main.appendChild(el); CK._pickEl = el;
+    updateReachUi();
+  }
+  function openPickReady(seed, label) {   // 스캔 물체 클릭 → 컴팩트 확인 바(스캔 오버레이는 유지)
+    hideConfirm();
+    CK._pick = { pose: { ...seed }, seed: { ...seed }, mode: "ready", fx: 0.5, fy: 0.5 };
+    const el = document.createElement("div"); el.className = "cockpit-pickready";
+    el.innerHTML = `<span class="pr-lab"></span><span class="pk-reach"></span><button class="pk-go">▶ 실행</button><button class="pr-x">✕</button>`;
+    el.querySelector(".pr-lab").textContent = "🎯 " + (label || "물체");   // textContent — esc 불필요
+    el.querySelector(".pk-go").onclick = runPick;
+    el.querySelector(".pr-x").onclick = () => { ckLog("↩ 선택 해제 — 프리뷰만 회수(pick_preview_clear), 스캔 오버레이는 유지"); dispatch("pick_preview_clear", {}, [CK.robotId]); hideConfirm(); };
+    CK.els.main.appendChild(el); CK._pickEl = el;
+    updateReachUi();
+  }
+  function syncLegend() {           // 디텍 색상 레전드 — 트윈에 실제로 그려지는 물체만 집계
+    if (!CK || !CK.els.simlegend) return;
+    const lg = CK.els.simlegend, dets = CK.detectOn ? (CK.detections || []) : [];
+    if (!dets.length) { lg.hidden = true; return; }
+    const ok = dets.filter((o) => o.reach).length;
+    lg.innerHTML = `<span><i class="lg ok"></i>파지 가능 ${ok}</span><span><i class="lg bad"></i>불가 ${dets.length - ok}</span><span><i class="lg cam"></i>카메라 시야</span>`;
+    lg.hidden = false;
+  }
   function setPreset(name) {
     if (!CK) return; CK.preset = name;
     CK.els.presets.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.preset === name));
@@ -2302,6 +2538,7 @@
   function ckLog(msg) { if (!CK || !CK.els.log) return; CK.els.log.textContent += msg + "\n"; if (CK.els.log.textContent.length > 9000) CK.els.log.textContent = CK.els.log.textContent.slice(-7000); CK.els.log.scrollTop = CK.els.log.scrollHeight; }
   function closeCockpit() {
     if (!CK) return;
+    clearTimeout(CK._pickPrevT); hideConfirm();   // 확인 UI·프리뷰 고스트 정리(늦은 프리뷰 발사 차단)
     if (document.pointerLockElement) document.exitPointerLock();
     if (CK._twinRetry) { clearTimeout(CK._twinRetry); CK._twinRetry = null; }
     if (CK.twin && CK.twin.kind === "3d" && CK.twin.api) { try { CK.twin.api.dispose(); } catch (_) {} }
@@ -2414,19 +2651,22 @@
     ctx.fillStyle = "#e36f6f"; ctx.beginPath(); ctx.arc(16, 18, 5, 0, 7); ctx.fill();
     ctx.fillStyle = "#dceefb"; ctx.font = "11px Consolas"; ctx.fillText("REC · CAM_FRONT", 28, 22);
     ctx.fillText(`v ${(lin * 1.2).toFixed(2)} m/s  ω ${(turn).toFixed(2)} rad/s`, 12, h - 12);
-    // 비전 스캔 오버레이(목업 디텍 박스 + 중심 + 라벨) — 무장 시 스냅 피킹 대상
-    if (CK.detections && CK.detections.length) {
+    // 비전 스캔 오버레이(목업 디텍 박스 + 중심 + 라벨) — 무장 시 스냅 피킹 대상. 디텍 토글 OFF면 미표시.
+    if (CK.detectOn && CK.detections && CK.detections.length) {
       ctx.font = "12px sans-serif";
       for (const o of CK.detections) {
         const x1 = o.fx1 * w, y1 = o.fy1 * h, x2 = o.fx2 * w, y2 = o.fy2 * h, ccx = (x1 + x2) / 2, ccy = (y1 + y2) / 2;
-        const col = o.best ? "#00e5ff" : "rgba(255,210,0,0.95)";
+        const col = o.reach === false ? "#ff5a5a" : (o.best ? "#00e5ff" : "rgba(255,210,0,0.95)");
         ctx.lineWidth = o.best ? 3 : 2; ctx.strokeStyle = col; ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
         ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ccx, ccy, o.best ? 6 : 4, 0, 7); ctx.fill();
         const tag = `${o.label} ${Math.round(o.conf * 100)}%`, tw = ctx.measureText(tag).width;
         ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(x1, y1 - 16, tw + 8, 14);
         ctx.fillStyle = col; ctx.fillText(tag, x1 + 4, y1 - 5);
       }
-      if (CK.vpick) { ctx.fillStyle = "#00e5ff"; ctx.font = "11px Consolas"; ctx.fillText("🎯 피킹 무장 — 박스를 클릭", w / 2 - 70, 40); }
+    }
+    if (CK.vpick || CK.probe) {   // 무장 안내(디텍 오버레이 유무와 무관 — 빈 공간 클릭도 유효한 경로)
+      ctx.fillStyle = CK.vpick ? "#00e5ff" : "#7fb6ff"; ctx.font = "11px Consolas";
+      ctx.fillText(CK.vpick ? "🎯 피킹 무장 — 클릭 = 프리뷰, [실행]을 눌러야 동작" : "📐 프로브 무장 — 클릭 = 좌표 측정(연속)", 12, 40);
     }
   }
   function resizeCockpit() { if (!CK) return; const cam = CK.cam; const r = cam.parentElement.getBoundingClientRect(); cam.width = r.width; cam.height = r.height; renderChart(); if (CK.twin && CK.twin.kind === "3d" && CK.twin.api) { try { CK.twin.api.resize(); } catch (_) {} } }
@@ -2637,11 +2877,21 @@
     if (CK) {
       drawCam(byId(CK.robotId), CK.axes); updateInputHUD(CK.axes, CK.buttons);
       if (CK.twin) { const t2 = tick * 0.03; CK.jointSim = [Math.sin(t2) * 0.6, Math.sin(t2 * 0.8) * 0.5 - 0.3, Math.sin(t2 * 1.3) * 0.4 + (CK.reach || 0) * 0.6]; if (tick % 2 === 0) updateTwin(CK.jointSim); }
-      // 디텍 후보 → 트윈 3D 마커(EE 앞 공간, best=청록) — 3D 트윈 확보 시 1회 세팅
-      if (CK.twin && CK.twin.kind === "3d" && CK.twin.api && CK.twin.api.setMarkers && !CK._markersSet) {
-        const dets = CK.detections || [];
-        CK.twin.api.setMarkers(dets.map((o, i) => ({ x: (0.5 - (o.fx1 + o.fx2) / 2) * 1.4, y: 0.95 - ((o.fy1 + o.fy2) / 2 - 0.5) * 0.8, z: -0.7 - i * 0.12, best: o.best })));
-        CK._markersSet = true;
+      // 디텍 후보 + 선택(pick) → 트윈 3D 마커/OBB + 카메라 시야 프러스텀.
+      // 디텍 토글·선택 좌표가 바뀔 때만 다시 세팅(매 프레임 재생성 금지 — 정본의 sync/position 분리 원칙).
+      if (CK.twin && CK.twin.kind === "3d" && CK.twin.api && CK.twin.api.setMarkers) {
+        const sig = (CK.detectOn ? "d" : "-") + "|" + (CK._pick ? `${CK._pick.fx.toFixed(3)},${CK._pick.fy.toFixed(3)},${CK._pick.pose.reachable}` : "");
+        if (sig !== CK._markerSig) {
+          CK._markerSig = sig;
+          const dets = CK.detectOn ? (CK.detections || []) : [];
+          const list = dets.map((o, i) => ({
+            x: (0.5 - (o.fx1 + o.fx2) / 2) * 1.4, y: 0.95 - ((o.fy1 + o.fy2) / 2 - 0.5) * 0.8, z: -0.7 - i * 0.12,
+            best: o.best, reach: o.reach, size: [0.18, 0.13, 0.15], yaw: (i + 1) * 0.4,   // OBB(마스크→PCA) 목업
+          }));
+          if (CK._pick) list.push({ x: (0.5 - CK._pick.fx) * 1.4, y: 0.95 - (CK._pick.fy - 0.5) * 0.8, z: -0.78, pick: true, reach: !!CK._pick.pose.reachable });
+          CK.twin.api.setMarkers(list);
+          if (CK.twin.api.setFrustum) CK.twin.api.setFrustum(CK.detectOn);
+        }
       }
       if (tick % 3 === 0) { renderCockpitStatus(); renderCockpitMinimap(); } if (tick % 4 === 0) pushLatency();
     }

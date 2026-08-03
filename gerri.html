@@ -165,7 +165,7 @@
           </div>
         </div>
         <div class="prose" style="margin-top:22px;">
-          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.0.12</code>이다.</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(rtc2kng WebRTC: aiortc·av·opencv·websockets·requests)·<code class="inline">[and-nexus]</code>(nexus 직결 WS)·<code class="inline">[and-rubberneck]</code>(ketirtc 미디어), <code class="inline">[rmi]</code>(fastapi·uvicorn)·<code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[vision]</code>(anthropic)·<code class="inline">[obb]</code>(numpy — OBB·파지계획)·<code class="inline">[detect]</code>(numpy·ultralytics — YOLO 디텍션 풀스택)·<code class="inline">[camera]</code>·<code class="inline">[ik]</code>(pinocchio)·<code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
+          <div class="note"><span class="s"><b>레포 경계:</b> <code class="inline">tom_and_gerri</code>는 버전 <code class="inline">0.12.0</code>이다(<span class="nb">스택 세대 정렬</span> — MINOR는 <span class="nb">전 레포가 함께 올린다</span>).</span> <span class="s">의존성은 <code class="inline">synapse&gt;=0.0.1</code>·<code class="inline">pypubsub&gt;=4.0</code>이며, 무거운 백엔드는 extras로 분리한다 — <code class="inline">[and]</code>(rtc2kng WebRTC: aiortc·av·opencv·websockets·requests)·<code class="inline">[and-nexus]</code>(nexus 직결 WS)·<code class="inline">[and-rubberneck]</code>(ketirtc 미디어), <code class="inline">[rmi]</code>(fastapi·uvicorn)·<code class="inline">[cockpit]</code>(fastapi·uvicorn), <code class="inline">[vision]</code>(anthropic)·<code class="inline">[obb]</code>(numpy — OBB·파지계획)·<code class="inline">[detect]</code>(numpy·ultralytics — YOLO 디텍션 풀스택)·<code class="inline">[voice]</code>(sounddevice·edge-tts·faster-whisper — 음성 인터페이스)·<code class="inline">[mcap]</code>(raasdata — 상시 녹화)·<code class="inline">[camera]</code>·<code class="inline">[ik]</code>(pinocchio)·<code class="inline">[dev]</code>(pytest).</span> <span class="s">로봇별 코드는 <code class="inline">tag_{robot}</code> <span class="nb">별도 레포로</span> 분리된다.</span></div>
         </div>
       </div>
       <p class="figcaption"><b>Figure 1.</b> TAG 묶음. <span class="nb">로봇 하나는</span> TOM·AND·GERRI <span class="nb">셋의 합으로</span> 정의된다. GERRI는 <code class="inline">synapse</code>만 의존하고, 전송 방식(AND)·로봇 SDK는 바깥의 <span class="nb">교체 가능한</span> 세부사항이다.</p>
@@ -303,7 +303,7 @@
         ]
 
     <span class="kw">def</span> <span class="fn">navigate_to_pose</span>(<span class="cn">self</span>, x, y, theta=<span class="num">0.0</span>, timeout_s=<span class="num">30.0</span>) -> <span class="cn">Result</span>:
-        <span class="str">"""좌표로 이동. x,y(미터, map frame) · theta(라디안) · timeout_s(초)."""</span>
+        <span class="str">"""좌표로 이동. x,y(미터, map frame) · theta(도, deg) · timeout_s(초)."""</span>
         <span class="kw">try</span>:
             <span class="kw">if</span> <span class="cn">self</span>._sdk.<span class="fn">move_to</span>(x, y, theta):
                 <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">ok</span>(message=<span class="str">"도착"</span>, reached=[x, y, theta])
@@ -312,7 +312,7 @@
             <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">fail</span>(<span class="str">"timeout"</span>, message=<span class="str">f"{timeout_s}초 초과"</span>)
 
     <span class="kw">def</span> <span class="fn">velocity_ctrl</span>(<span class="cn">self</span>, linear, angular) -> <span class="cn">Result</span>:
-        <span class="str">"""직접 속도 제어. linear(m/s) · angular(rad/s)."""</span>
+        <span class="str">"""직접 속도 제어. linear(m/s) · angular(deg/s)."""</span>
         <span class="cn">self</span>._sdk.<span class="fn">set_velocity</span>(linear, angular)
         <span class="kw">return</span> <span class="cn">Result</span>.<span class="fn">ok</span>()
 
@@ -371,7 +371,7 @@
     </div>
     <div class="prose mt-24">
       <div class="note">
-        <span class="s"><b>자동 제공 capability.</b></span> <span class="s"><code class="inline">relocate</code>는 <span class="nb">표준 pose 보정</span> — 로봇 pose 추정치를 자기 map 프레임에서 <code class="inline">(x,y,theta)</code>로 <span class="nb">보정하되,</span> 맵 정렬 <code class="inline">T</code>(서버 소유)는 <span class="nb">건드리지 않는다.</span> pose를 <span class="nb">리포트하는 sub만</span> <span class="nb">자동 광고하고,</span> 정적(고정) sub는 그 보정을 <code class="inline">robot.config.json</code>에 <span class="nb">영속한다.</span></span> <span class="s"><code class="inline">software_update</code>는 base가 <span class="nb">전 로봇 공통으로</span> <span class="nb">광고하는</span> <span class="nb">유지보수 동작이다.</span></span> <span class="s">custom 쪽 <code class="inline">set_status_rate</code>(적응형 status 주기)·<code class="inline">set_footprint</code>(실측 크기)·<code class="inline">set_pose</code>(표시 pose 배치)는 <code class="inline">SubControllerCommon</code>이 <span class="nb">공통 제공한다.</span></span>
+        <span class="s"><b>자동 제공 capability.</b></span> <span class="s"><code class="inline">relocate</code>는 <span class="nb">표준 pose 보정</span> — 로봇 pose 추정치를 자기 map 프레임에서 <code class="inline">(x,y,theta)</code>로 <span class="nb">보정하되,</span> 맵 정렬 <code class="inline">T</code>(서버 소유)는 <span class="nb">건드리지 않는다.</span> pose를 <span class="nb">리포트하는 sub만</span> <span class="nb">자동 광고하고,</span> 정적(고정) sub는 그 보정을 <code class="inline">robot.config.json</code>에 <span class="nb">영속한다.</span></span> <span class="s"><code class="inline">software_update</code>는 base가 <span class="nb">전 로봇 공통으로</span> <span class="nb">광고하는</span> <span class="nb">유지보수 동작이다.</span></span> <span class="s">custom 쪽 <code class="inline">set_status_rate</code>(적응형 status 주기)·<code class="inline">set_footprint</code>(실측 크기)·<code class="inline">set_pose</code>(표시 pose 배치)·<code class="inline">speak</code>(발화)·<code class="inline">ai_chat</code>(대화)은 <code class="inline">SubControllerCommon</code>이 <span class="nb">공통 제공한다.</span></span> <span class="s">⚠️ <span class="nb">뒤의 둘은</span> <strong><span class="nb">조건부 광고</span></strong>다 — <code class="inline">speak</code>는 <span class="nb">로봇이</span> <code class="inline">publish_speech</code>를 <span class="nb">오버라이드해</span> <span class="nb">발화 슬롯을 가졌을 때만,</span> <code class="inline">ai_chat</code>은 <span class="nb">러너가</span> <code class="inline">attach_chat</code>을 <span class="nb">붙였을 때만</span> <span class="nb">광고된다.</span> <span class="nb">광고해놓고 못 하면</span> <span class="nb">콘솔에 누를 수 있는</span> <strong>죽은 버튼</strong>이 생긴다.</span> <span class="s"><span class="nb">그래서 정본은</span> <code class="inline">sub.advertised_capability()</code> <strong>하나</strong>다 — <span class="nb">선언한 것과</span> <span class="nb">광고되는 것이</span> <span class="nb">갈라지면</span> <span class="nb">두뇌 화이트리스트가</span> <em>화이트리스트 ∩ 광고</em>라 <span class="nb">넣은 항목이</span> <strong><span class="nb">조용히 탈락한다</span></strong>(오류도 경고도 없이 <span class="nb">로봇이 그냥 말을 안 한다</span>).</span>
       </div>
     </div>
     <div class="prose mt-32">
@@ -502,8 +502,8 @@
         <div class="step">
           <div class="step-num">1</div>
           <div>
-            <div class="step-title">scaffold 복사</div>
-            <div class="step-desc"><code>cp -r gerri/tag_template/ gerri/tag_{myrobot}/</code></div>
+            <div class="step-title"><code>gerri --init</code> — 템플릿에서 레포 생성</div>
+            <div class="step-desc"><span class="nb">레이아웃은</span> <strong>nested가 정본</strong>이다 — <code>tag_{robot}/tag_{robot}/</code> <span class="nb">패키지 +</span> <span class="nb">루트에</span> <code>{robot}_robot.py</code>·<code>tests/</code>·<code>pyproject.toml</code>·<code>setup.sh</code>. <code>tag_template</code> <span class="nb">토큰은</span> <span class="nb">전부 자동 치환된다</span>(실측 10개 파일 — <span class="nb">종전엔 사람이</span> <span class="nb">pyproject 3곳 + setup.sh 3곳을</span> <span class="nb">손으로 고쳐야 했다</span>).</div>
           </div>
         </div>
         <div class="step">
@@ -522,6 +522,13 @@
         </div>
         <div class="step">
           <div class="step-num">4</div>
+          <div>
+            <div class="step-title"><code>RobotRunner</code>로 배선 — 여기가 조용히 빠진다</div>
+            <div class="step-desc"><span class="nb">배선 순서와</span> <strong>역순(LIFO) 정리</strong>를 <span class="nb">한 곳에 모은 러너다.</span> <span class="nb">정리 실패는</span> <span class="nb">삼키지 않고</span> <code>cleanup_errors</code>로 <span class="nb">남긴다.</span> <span class="nb">로봇은 콜백·인자로만 받으므로</span> <span class="nb">러너는</span> <code>tag_*</code>를 <span class="nb">import하지 않는다.</span> <span class="nb">문서만 주고</span> <span class="nb">신규 로봇 3대를 만들게 한 실험에서</span> <strong>3/3이 남의 러너를 베꼈고</strong> <span class="nb">그 종료 경로의</span> <code>except Exception: pass</code> <span class="nb">4개까지 복제했다</span> — <span class="nb">선택 배선도 제각각 빠졌다</span>(WebRTC 1/3 · RMI 1/3 · <code>sync_description</code> <strong>0/3</strong> = <span class="nb">콕핏에 영상·3D 트윈 없음</span>).</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
           <div>
             <div class="step-title">로컬 단독 → NEXUS 연결 테스트</div>
             <div class="step-desc">capability 단위 호출 → status 발행 확인 → 미션 시퀀스 실행. <span class="nb">NEXUS 없이</span> <span class="nb">로컬 단독으로도</span> <span class="nb">테스트 가능하다.</span></div>
@@ -699,7 +706,7 @@
         <div class="cap-card">
           <div class="ck">VisionPicker · picker.py</div>
           <div class="ctitle">프레임 → 피킹 값</div>
-          <div class="cdesc"><code class="inline">analyze_frame(bgr)</code> — 다운스케일 후 <span class="nb">원본 좌표 복원.</span> <code class="inline">PickObject</code>(center·grasp_angle_deg·bbox)와 추천 <code class="inline">best</code>를 <span class="nb">반환한다.</span> 교체형 <code class="inline">VLMBackend</code>를 <span class="nb">주입받는</span> <span class="nb">'모델 교체 시임(seam)'.</span></div>
+          <div class="cdesc"><code class="inline">analyze_frame(bgr)</code> — 다운스케일 후 <span class="nb">원본 좌표 복원.</span> <code class="inline">PickObject</code>(center·grasp_angle_deg·bbox·thin_width_px·<strong>shape</strong>·<strong>approach</strong>)와 추천 <code class="inline">best</code>를 <span class="nb">반환한다.</span> <code class="inline">center</code>는 <strong><span class="nb">잡을 지점이지</span> <span class="nb">기하 중심이 아니다.</span></strong> 교체형 <code class="inline">VLMBackend</code>를 <span class="nb">주입받는</span> <span class="nb">'모델 교체 시임(seam)'.</span></div>
         </div>
         <div class="cap-card">
           <div class="ck">유틸</div>
@@ -709,7 +716,7 @@
         <div class="cap-card common">
           <div class="ck">Backend A</div>
           <div class="ctitle">ClaudeBackend (anthropic SDK)</div>
-          <div class="cdesc"><strong>2단 운용</strong> — 연속 추적은 <code class="inline">haiku</code>(빠름·저가), <span class="nb">집기 직전 확정은</span> <code class="inline">opus</code> 1회. 구조화 출력으로 <span class="nb">스키마 준수 JSON을</span> <span class="nb">보장한다.</span> API 키는 <code class="inline">ANTHROPIC_API_KEY</code>.</div>
+          <div class="cdesc"><strong>2단 운용</strong> — 연속 추적은 <code class="inline">claude-sonnet-5</code>, <span class="nb">집기 직전 확정은</span> <code class="inline">claude-opus-5</code> 1회(<span class="nb">오집기 비용이</span> <span class="nb">호출 1회 비용보다</span> <span class="nb">훨씬 크다</span>). 구조화 출력으로 <span class="nb">스키마 준수 JSON을</span> <span class="nb">보장한다.</span> API 키는 <code class="inline">ANTHROPIC_API_KEY</code>.</div>
         </div>
         <div class="cap-card common">
           <div class="ck">Backend B</div>
@@ -783,10 +790,86 @@
     </div>
 
     <div class="note mt-24">
+      <span class="s"><b>VLM이 찍는 것은 <em>파지점</em>이지 기하 중심이 아니다.</b> <span class="nb">프롬프트가</span> <code class="inline">center</code>를 <span class="nb">"물체의 기하 중심"으로</span> <span class="nb">못박고 있어서</span> 머그는 <span class="nb">손잡이가 아니라 몸통을,</span> <strong>도넛·그릇은 구멍</strong>을 찍었다.</span> <span class="s"><code class="inline">shape</code>(cylinder·box·ring·handle·flat·irregular)와 <code class="inline">approach</code>(top·side)를 <span class="nb">함께 내게 해</span> <strong><span class="nb">의미는 VLM,</span> <span class="nb">metric 보정은 로봇</span></strong>으로 <span class="nb">역할을 갈랐다.</span> <span class="nb">둘 다 선택 필드라</span> <span class="nb">기존 소비자는</span> <span class="nb">무영향이다.</span></span>
+    </div>
+    <div class="note mt-16">
+      <span class="s"><b>파지점의 <em>높이</em>는 접근 방향이 정한다.</b> top-down은 물체 <strong>윗부분</strong>, side는 <strong>윗면 중심</strong>이다.</span> <span class="s"><span class="nb">윗면 중심은</span> <span class="nb">물체 중심축 바로 위라,</span> <span class="nb">옆면을 찍었을 때 생기는</span> "앞면 표면점" 어긋남(반지름만큼 앞)이 <strong><span class="nb">애초에 생기지 않는다</span></strong> — <span class="nb">반지름 metric 보정이</span> <span class="nb">필요 없어진다.</span></span>
+    </div>
+    <div class="note mt-16">
+      <span class="s"><b>견고 통계 — 튄 점 하나가 중심을 끌고 가던 것</b>(옵트인).</span> <span class="s"><code class="inline">obb_from_points</code>가 <span class="nb">극단값(min/max)으로</span> <span class="nb">박스를 만들어</span> <span class="nb">이상치 하나가</span> <span class="nb">중심을 그 거리의</span> <span class="nb">절반만큼 끌었다.</span> <code class="inline">trim_pct</code>(축별 백분위 트림)와 <code class="inline">method="caliper"</code>(최소폭 회전 캘리퍼)를 <span class="nb">더했다.</span></span> <span class="s">⚠️ <strong>기본값은 종전 그대로다</strong>(<code class="inline">trim_pct=0.0</code>·<code class="inline">method="pca"</code>) — <span class="nb">소비자가 전부</span> <span class="nb">실기 파지 경로라</span> <span class="nb">기본을 바꾸면</span> <span class="nb">되던 파지가 바뀐다.</span></span>
+    </div>
+    <div class="note mt-16">
+      <span class="s"><b>③ 피듀셜 마커(AprilTag·QR) — 추정을 <em>실측</em>으로.</b> <span class="nb">이 레포의 비전 결함은</span> <span class="nb">거의 전부</span> <strong>근사의 노이즈</strong>에서 나왔다 — <span class="nb">마스크가</span> <span class="nb">그림자·책상을 먹고,</span> <span class="nb">점군 통계가 튄다.</span> <span class="nb">마커는</span> <span class="nb">그 구조가 없다</span>: <span class="nb">정체는 라벨이 아니라</span> <strong>ID</strong>(프레임 불변 — <span class="nb">연관 없이</span> <span class="nb">그대로 트랙</span>), <span class="nb">기하는 통계 추정이 아니라</span> <strong><span class="nb">서브픽셀 코너 4점</span></strong>, <span class="nb">자세는 IK 격자탐색</span>(실측 47후보·1,258ms)이 <span class="nb">아니라</span> <span class="nb">법선·yaw 직접이다.</span></span> <span class="s"><span class="nb">기본 백엔드는</span> <strong>AprilTag 36h11</strong> — <span class="nb">같은 조건 9종 실측에서</span> QR 구형 1/9(15ms)·QR 신형 5/9(6ms)인데 <strong>AprilTag는 9/9(1ms)</strong>였다. <span class="nb">당연한 결과다</span> — QR은 <span class="nb">데이터를 싣는 규격이고</span> AprilTag는 <strong><span class="nb">자세를 재는</span> 규격</strong>이다.</span> <span class="s">⚠️ <strong><span class="nb">파이프라인 교체가 아니다.</span></strong> <span class="nb">마커 없는 물체는</span> <span class="nb">그대로 SAM/YOLO 경로다</span> — <span class="nb">더 정확한</span> <strong>출처 추가</strong>다.</span>
+    </div>
+    <div class="note mt-16">
       <span class="s"><b>이식 규약.</b> <code class="inline">orient</code>은 <strong>EE 항등(rx=ry=rz=0) = 그리퍼가 아래(-z)를 향하는 top-down</strong> 기준이다(RBY1 플랜지). <span class="nb">플랜지 항등이</span> <span class="nb">그리퍼-다운이 아닌 로봇</span>(Piper 류)은 <strong>소비자 쪽에서</strong> <span class="nb">자기 플랜지→그리퍼 오프셋을</span> 합성해 쓴다 — <span class="nb">공통 레이어에</span> <span class="nb">로봇별 분기를 넣지 않는다.</span></span>
     </div>
     <div class="note mt-16">
       <span class="s"><b>왜 6-DOF grasp net이 아닌가</b>(설계 리뷰 기록, <span class="nb">2026-07-21</span>).</span> <span class="s">현 실행기(<code class="inline">_pick_sequence</code>)가 <strong>수직(+z) 접근 고정</strong>이라, 임의 접근·측면 파지라는 <span class="nb">grasp net의 핵심 이득이</span> <span class="nb">사장된다</span> — 즉 6-DOF의 게이트는 <span class="nb">비전이 아니라 실행기다.</span></span> <span class="s">pre/lift를 <span class="nb">접근축 기준 오프셋으로</span> 일반화하면 <span class="nb">그때 다시 연다</span>(금지가 아니라 <strong>재평가 트리거</strong>가 걸린 판단이다).</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ AI INTERFACE (voice / ai_chat) ════════ -->
+<section class="section" id="ai">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">AI Interface</span>
+      <h2 class="section-title">🗣️ gerri.voice — 말과 글로 <span class="nb">로봇을 부린다</span></h2>
+      <p class="section-lead"><span class="s"><span class="nb">입력은 두 갈래다</span> — <strong>마이크</strong>(STT)와 <strong>콕핏 텍스트</strong>(<code class="inline">ai_chat</code>). <span class="nb">그 뒤는 완전히 같다</span>: <span class="nb">같은 LLM 두뇌,</span> <span class="nb">같은 출력 경로,</span> <span class="nb">같은 안전 계약.</span></span> <span class="s"><span class="nb">코어는 이 폴더를</span> <span class="nb">import하지 않는다</span> — base도 sub도 <span class="nb">두뇌를 모르고,</span> <strong>러너가 배선한다</strong>(MissionRunner와 동형).</span></p>
+    </div>
+
+    <div class="figure">
+      <div class="figure-frame">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th style="width:190px;">단계</th><th>무엇이 일어나나</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">입력 ①  마이크</td><td><code class="inline">MicListener</code>(발화 분할) → <code class="inline">FasterWhisperSTT</code> → <code class="inline">handle_transcript</code>. <span class="nb">로봇이 말하는 동안 들어온 소리는</span> <strong>캡처 시점에</strong> 폐기한다(에코)</td></tr>
+              <tr><td class="mono">입력 ②  텍스트</td><td>콕핏 💬 → <code class="inline">ai_chat {text}</code> capability → <code class="inline">handle_text</code>. <span class="nb">마이크 없는 로봇·시끄러운 현장·원격 콘솔용</span></td></tr>
+              <tr><td class="mono">두뇌</td><td><code class="inline">VoiceBrain.decide</code> — <span class="nb">백엔드는</span> <code class="inline">gerri.vision.backends</code>를 <strong>텍스트 전용</strong>으로 재사용한다(<code class="inline">auto</code> = 키 있으면 SDK, 없으면 claude CLI 구독)</td></tr>
+              <tr><td class="mono">출력 <em>하나</em></td><td>말하기 → <code class="inline">publish_speech()</code> → <code class="inline">status.extension.speech</code>. <span class="nb">status 워처가 그걸 읽어</span> TTS한다 — <strong><span class="nb">발화의 단일 소스</span></strong>(콕핏 말풍선도 같은 자리)</td></tr>
+              <tr><td class="mono">실행</td><td>capability 디스패치 <span class="nb">또는</span> 미션 트리거. <span class="nb">둘 다</span> <span class="nb">아래 안전 계약을</span> <span class="nb">코드가 강제한다</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="figcaption"><b>Figure 13.</b> <span class="nb">AI 인터페이스 파이프라인.</span> <code class="inline">handle_text</code>는 <strong>말하지 않고</strong> <span class="nb">답변 문자열만 돌려주며,</span> <span class="nb">발행은</span> <code class="inline">ai_chat</code>이 한다 — <span class="nb">직접 say와</span> <span class="nb">워처 say가 겹치면</span> <strong>이중 발화</strong>가 된다. <span class="nb">배선은 러너 한 곳이다</span>(<code class="inline">VoiceService(...)</code> + <code class="inline">sub.attach_chat(...)</code>).</p>
+    </div>
+
+    <div class="prose">
+      <div class="note"><b>config 섹션 이름은 <code class="inline">ai</code>다 — 폴더 이름은 <code class="inline">voice</code>로 남는다:</b> <span class="s"><span class="nb">텍스트도 같은 두뇌를 쓰게 되면서</span> <code class="inline">voice</code>라는 <span class="nb">config 이름이</span> <strong>거짓말이 됐다.</strong> <code class="inline">capabilities</code>/<code class="inline">missions</code>는 <span class="nb">"로봇이 무엇을 해도 되는가"라는</span> <strong>권한</strong>이라 <span class="nb">마이크와 무관하다.</span></span> <span class="s">두뇌·권한(<code class="inline">backend</code>·<code class="inline">model</code>·<code class="inline">robot_name</code>·<code class="inline">capabilities</code>·<code class="inline">missions</code>)은 <code class="inline">ai</code> 직속, <span class="nb">마이크 전용</span>(<code class="inline">listen</code>·<code class="inline">wake_*</code>·<code class="inline">stt</code>·<code class="inline">tts</code>·<code class="inline">mic</code>)은 <code class="inline">ai.voice</code> 하위다.</span> <span class="s"><code class="inline">listen:false</code>면 <strong>두뇌만</strong> 켠다 — <span class="nb">수백MB STT 모델도</span> <span class="nb">마이크 스레드도</span> <span class="nb">만들지 않는다.</span> <span class="nb">구 스키마는</span> <span class="nb">승격 + 워닝으로 받는다</span>(<code class="inline">robot.config.json</code>은 gitignore라 <span class="nb">코드 pull로 안 바뀐다</span>).</span></div>
+
+      <div class="note mt-20"><b>안전 계약 ① — 화이트리스트는 <em>이름만</em> 막고 인자는 못 막는다:</b> <span class="s"><span class="nb">즉시 실행은</span> <code class="inline">ai.capabilities</code> ∩ <span class="nb">로봇 광고</span>이고 <strong>정보성만</strong> 넣는다. LLM이 <span class="nb">목록 밖을 내놔도</span> <code class="inline">decide</code>가 <span class="nb">코드에서 무효화한다</span>(프롬프트 불신).</span> <span class="s">⚠️ <span class="nb">그런데 두뇌가</span> <code class="inline">params</code>를 <span class="nb">자유 생성하므로</span> <strong><span class="nb">기본값이 안전해도</span> <span class="nb">인자로 뒤집히는 것은</span> <span class="nb">넣지 않는다</span></strong> — <code class="inline">visual_pick(execute=True)</code>·<code class="inline">detect_mode(on=True)</code>·<code class="inline">pick_at</code>이 그 부류다.</span></div>
+
+      <div class="note mt-20"><b>안전 계약 ② — <code class="inline">ai_chat</code>은 화이트리스트에 넣을 수 <em>없다</em>:</b> <span class="s"><code class="inline">attach_chat</code>이 <span class="nb">붙는 순간</span> <span class="nb">자동 광고되므로</span> <span class="nb">교집합을 통과할 수 있고,</span> <span class="nb">통과하면</span> 두뇌→<code class="inline">ai_chat</code>→두뇌 <strong>무한 재귀</strong>다(<code class="inline">handle_text</code>는 <span class="nb">침묵 게이트도 우회한다</span>). <code class="inline">_FORBIDDEN_CAPABILITIES</code>가 <span class="nb">config에 뭐가 오든</span> <span class="nb">코드에서 걷어낸다.</span></span></div>
+
+      <div class="note mt-20"><b>안전 계약 ③ — 동작류는 capability가 아니라 <em>미션</em>으로:</b> <span class="s"><span class="nb">여러 단계짜리 요청은</span> <span class="nb">미션이다.</span> 다만 <strong><span class="nb">시퀀스는 사람이 짜고</span> <span class="nb">두뇌는 인자만 채운다</span></strong> — "프링글스 잡아줘" → <code class="inline">fetch(대상=프링글스)</code>. <span class="nb">위험 동작은</span> <span class="nb">미션 안</span> <code class="inline">wait_input</code>이 <span class="nb">되묻고 나서야 지나간다</span>(<code class="inline">fetch</code> = 인식 → <strong>확인</strong> → 집기 → 건네기 → 복귀).</span> <span class="s"><span class="nb">인자를 못 채운 채</span> <span class="nb">미션을 걸면</span> <code class="inline">decide</code>가 <strong>막고 되묻는다</strong> — <span class="nb">안 막으면</span> <code class="inline">"$대상"</code>이 <span class="nb">문자열 그대로</span> capability까지 흘러 <span class="nb">팔이 엉뚱한 곳으로 간다.</span> <span class="nb">필수 인자 목록은</span> <span class="nb">미션 정의에서</span> <strong>자동 추출</strong>된다.</span></div>
+
+      <div class="note mt-20"><b>비용이 드는 지점은 <em>LLM 앞에서</em> 막는다:</b> <span class="s"><span class="nb">이름 호출 게이트가</span> <strong>LLM 앞</strong>에 있어 <span class="nb">호출되지 않은 발화는</span> <span class="nb">비용이 0이다.</span> <span class="nb">그 밖에</span> <span class="nb">침묵 게이트·바지-인·</span><span class="nb">발화 처리 후 큐 플러시가</span> <span class="nb">실마이크 밀림을 잡는다.</span></span> <span class="s"><span class="nb">캡처 백엔드는</span> <code class="inline">sounddevice</code>가 기본이고, PipeWire에서 <span class="nb">무음이 잡히는 환경은</span> <code class="inline">parec</code>로 <span class="nb">우회한다.</span></span></div>
+
+      <div class="note mt-20"><b>⚠️ 두뇌를 수신 스레드에서 돌리면 로봇이 끊긴다:</b> <span class="s">capability는 <span class="nb">게이트웨이</span> <strong>수신 스레드</strong>에서 불리는데 <span class="nb">두뇌는 1~3초 걸린다.</span> <span class="nb">그동안</span> <span class="nb">status 발행·명령 수신이 멈춰</span> WS가 끊기고 <span class="nb">WebRTC 영상까지 죽었다</span>(실기 실측: <span class="nb">말 걸 때마다 끊김</span>).</span> <span class="s"><code class="inline">_start_mission</code>과 <span class="nb">같은 규약으로</span> <span class="nb">데몬 스레드에 뺐고,</span> <span class="nb">중복 진입은</span> <code class="inline">chat_busy</code>로 <span class="nb">거부한다.</span> <span class="nb">이 문제의 일반해는</span> <span class="nb">AND 데몬화다</span>(<a href="and.html">AND</a> 참조) — <span class="nb">거기서 송수신 자체를</span> <span class="nb">워커 스레드로 끊었다.</span></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ OPS PLUMBING (생략 계약 · 녹화 · 러너) ════════ -->
+<section class="section alt" id="ops">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Operational Plumbing</span>
+      <h2 class="section-title">와이어를 아끼는 계약과 <span class="nb">잃지 않는 장치</span></h2>
+      <p class="section-lead"><span class="s"><span class="nb">로봇이 10Hz로 status를 밀면</span> <span class="nb">안 바뀐 정적 메타가</span> <span class="nb">대역의 대부분을 차지한다.</span></span> <span class="s"><span class="nb">그래서 생략하는데,</span> <strong><span class="nb">생략과 소멸을</span> <span class="nb">구분하지 않으면</span> <span class="nb">소비자 캐시에</span> <span class="nb">유령이 남는다.</span></strong></span></p>
+    </div>
+
+    <div class="prose">
+      <div class="note"><b>생략 계약(<code class="inline">_omit_unchanged</code>) — 안 바뀐 블록은 안 보낸다:</b> <span class="s"><code class="inline">robot_info</code>가 <span class="nb">와이어의</span> <strong>61%</strong>인데 <span class="nb">거의 안 변한다.</span> <span class="nb">소비자(NEXUS registry·콕핏)는</span> <span class="nb">"온 블록은 그대로, 안 온 블록은 직전 것 유지"로</span> 병합한다.</span> <span class="s">⚠️ digest가 <strong>블록 통째</strong>로 걸리므로 <span class="nb">무거운 정적 메타와</span> <span class="nb">가벼운 런타임 값이</span> <span class="nb">같은 블록에 있으면</span> <span class="nb">후자가 바뀔 때마다</span> <span class="nb">전자까지 끌려 나온다</span> — 실측: <span class="nb">토글 하나</span>(~30B 변경)가 <code class="inline">robot_info</code> 3,869B <span class="nb">전체를 재전송,</span> <strong>약 130배</strong>다.</span></div>
+
+      <div class="note mt-20"><b>소멸 툼스톤 — 생략과 소멸은 다르다:</b> <span class="s"><span class="nb">진행 표시</span>(<code class="inline">capability_info</code>)처럼 <span class="nb">끝나면 키가 사라지는 블록은,</span> <span class="nb">와이어에서</span> <span class="nb">"안 바뀜"과</span> <span class="nb">"없어짐"이 구분되지 않아</span> <span class="nb">소비자 병합 캐시에</span> <strong>영구 고착</strong>됐다.</span> <span class="s"><span class="nb">직전에 보냈던 블록이 없어지면</span> <span class="nb">명시적</span> <code class="inline">None</code>을 <span class="nb">한 번 실어</span> <strong>삭제를 표현</strong>한다 — <span class="nb">전체 프레임·부분 프레임 공통이다</span>(소멸 시점이 <span class="nb">전체 전송 틱이면</span> <span class="nb">툼스톤을 영영 못 보내는</span> <span class="nb">창이 있었다).</span></span></div>
+
+      <div class="note mt-20"><b>RMI는 델타를 내보낸다:</b> <span class="s"><span class="nb">로컬 화면 브로드캐스트를</span> <span class="nb">완전본으로 두면</span> <span class="nb">생략 계약의 이득이</span> <span class="nb">이 경로에서만 사라진다.</span> <span class="nb">실측(유휴)</span> <strong>5,105B → 1,107B</strong>(중앙값 78% 감소), 47.5 → 11.4 KB/s. <span class="nb">버려지던 76%가</span> <span class="nb">안 바뀌는</span> <code class="inline">robot_info</code>였다.</span> <span class="s"><span class="nb">병합은 화면이 하고,</span> <span class="nb">캐시는 완전본으로 남겨</span> <span class="nb">신규·재접속 클라이언트의</span> <span class="nb">기준선으로 쓴다.</span></span></div>
+
+      <div class="note mt-20"><b>🎞️ mcap 상시 녹화 — 팀 규칙이라 <em>기본 ON</em>:</b> <span class="s"><code class="inline">gerri/recording/mcap_bridge.py</code>가 <span class="nb">새 채널 없이</span> <code class="inline">Topic.Robot.STATUS</code>를 <span class="nb">(생략 <strong>전</strong>) 구독한다.</span> <span class="nb">콜백은</span> <em>직렬화 + 큐 + 즉시 반환</em>만 하고 <span class="nb">디스크는 전용 워커가 만진다</span> — <span class="nb">발행 스레드 추가비용</span> <strong>약 0.08 ms/건</strong>(10Hz 예산의 0.08%), <span class="nb">그래서 켜둔다.</span></span> <span class="s"><span class="nb">드롭은</span> <span class="nb">실시간성 우선(reject-new)이고</span> <span class="nb">누적 건수를 로그와</span> <span class="nb">파일 안</span> <code class="inline">recording.stats</code>에 <span class="nb">남긴다</span> — <strong><span class="nb">조용한 드롭은 없다.</span></strong> <span class="nb">영상은 비용 자릿수가</span> <span class="nb">200배라 안 넣었다.</span> <span class="nb">패키지가 없어도</span> <span class="nb">로봇은 그대로 뜬다</span>(<span class="nb">이유를 로그로 말하고</span> <span class="nb">녹화만 끈다</span>).</span></div>
     </div>
   </div>
 </section>
@@ -816,6 +899,8 @@
       <li><a href="#capability">Capability 컨벤션</a></li>
       <li><a href="#mission">미션 시스템</a></li>
       <li><a href="#new-robot">새 로봇 추가</a></li>
+      <li><a href="#vision">gerri.vision</a></li>
+      <li><a href="#ai">AI 인터페이스</a></li>
     </ul></div>
     <div class="footer-col"><h4>연락처</h4><ul>
       <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>

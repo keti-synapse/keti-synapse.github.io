@@ -92,13 +92,22 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Definition &amp; Role</span>
-      <h2 class="section-title">전달만 하는 어댑터 데몬</h2>
+      <h2 class="section-title">전달만 하는 어댑터 — <span class="nb">이제 진짜 데몬</span></h2>
       <p class="section-lead"><span class="s">AND는 “로봇이 바깥과 어떻게 통신하는가”를 한 곳에 가둔다.</span><span class="s">GERRI(제어 SW)는 <span class="nb">전송 수단을</span> <span class="nb">전혀 모른 채</span> <span class="nb">표준 토픽으로만</span> 말하고, AND가 그것을 <span class="nb">실제 네트워크로</span> 옮긴다.</span></p>
     </div>
     <div class="prose">
       <p class="lead-para"><strong>A</strong>daptive <strong>N</strong>etwork <strong>D</strong>aemon — synapse 내부 버스와 외부 transport 백엔드를 잇는 레이어다.</p>
-      <p>AND는 <span class="nb">두 조각으로</span> 나뉜다. <strong>브리지</strong>(<code class="inline">daemon.py</code>의 <code class="inline">AdaptiveNetworkDaemon</code>)는 <span class="nb">synapse 토픽</span> <code class="inline">Topic.Network.SEND</code>/<code class="inline">Topic.Network.RECV</code>와 <span class="nb">백엔드를 잇고,</span> <strong>백엔드</strong>(<code class="inline">backend.py</code>의 <code class="inline">NetworkBackend</code> 인터페이스 + 구현)는 <span class="nb">실제 전송 수단을 담당한다</span> — WebRTC(rtc2kng), 테스트용 loopback 등.</p>
-      <p>내부 버스는 <code class="inline">pypubsub</code>(in-process·동기 디스패치)이다. 브리지 자체에는 <span class="nb">큐도 스레드도</span> <span class="nb">상태도 없다</span>(인스턴스 상태는 <code class="inline">self.backend</code> 하나뿐). 그저 <span class="nb">한쪽 토픽에서</span> <span class="nb">받은 것을</span> <span class="nb">다른 쪽으로</span> 넘긴다.</p>
+      <p>AND는 <span class="nb">두 조각으로</span> 나뉜다. <strong>브리지</strong>(<code class="inline">daemon.py</code>의 <code class="inline">AdaptiveNetworkDaemon</code>)는 <span class="nb">synapse 토픽</span> <code class="inline">Topic.Network.SEND</code>/<code class="inline">Topic.Network.RECV</code>와 <span class="nb">백엔드를 잇고,</span> <strong>백엔드</strong>(<code class="inline">backend.py</code>의 <code class="inline">NetworkBackend</code> 인터페이스 + 구현)는 <span class="nb">실제 전송 수단을 담당한다</span> — WebRTC(rtc2kng), nexus 직결 WS, rubberneck, 테스트용 loopback 등.</p>
+      <p>내부 버스는 <code class="inline">pypubsub</code>(in-process·동기 디스패치)이다. 문서는 <span class="nb">오랫동안 브리지를</span> <span class="nb">"제어 로직 없음 — 전달만"이라</span> <span class="nb">적어놨지만,</span> <code class="inline">pub.sendMessage</code>가 <strong>동기</strong>라 <strong><span class="nb">전달이 곧 실행이었다.</span></strong> <span class="nb">수신 쪽은</span> <span class="nb">백엔드의 WS/asyncio 루프 스레드가</span> capability를 <span class="nb">끝까지 떠안았고</span>(IK 격자탐색 <span class="nb">실측 604~800ms</span>·SAM·VLM <span class="nb">수 초</span>) — 현장에서 <span class="nb">"누르면 바로 끊겨"로 나타났다.</span> <span class="nb">송신 쪽은</span> <code class="inline">backend.send</code>가 <span class="nb">발행 스레드에서 돌아</span> <span class="nb">"누르면 잠시 멈췄다 진행해"였다.</span></p>
+      <p><strong>그래서 RX/TX를 독립 워커 스레드로 끊었다</strong>(전 로봇 <strong>기본 ON</strong>). <span class="nb">데몬당 데몬 스레드 2개</span> — <code class="inline">and-rx-&lt;tag&gt;</code>(RX 큐 → <code class="inline">Network.RECV</code>, <strong><span class="nb">단일 워커라</span> FIFO 순서 보존</strong>)와 <code class="inline">and-tx-&lt;tag&gt;</code>(TX 큐 → <code class="inline">backend.send</code>)를 <code class="inline">connect()</code>가 띄우고 <code class="inline">disconnect()</code>가 접는다. <span class="nb">제리에 무엇을 구현하든</span> <span class="nb">송수신은 영향받지 않는다</span> — <span class="nb">종전에</span> <code class="inline">ai_chat</code> 하나를 <span class="nb">스레드로 뺐던 것을</span> <strong><span class="nb">브리지 한 곳에서</span> 전역으로</strong> 해결한 셈이다.</p>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><b>⛔ STOP은 큐를 <em>우회</em>한다:</b> <span class="s"><span class="nb">그 자리에서 인라인으로 발행하고,</span> <span class="nb">밀려 있던</span> <span class="nb">비-STOP 명령은</span> <strong>purge</strong>한다 — <strong><span class="nb">밀린 명령 뒤에서</span> <span class="nb">기다리는 STOP은</span> <span class="nb">STOP이 아니다.</span></strong></span> <span class="s">base의 <code class="inline">_handle_for_self</code> 계약은 <span class="nb">불변이다.</span></span></div>
+
+      <div class="note mt-20"><b>백프레셔 — 무엇을 합치고 무엇을 절대 안 합치나:</b> <span class="s"><span class="nb">큐는 bounded(256)다.</span> status는 <span class="nb">포화 시</span> <strong><span class="nb">가장 오래된 것부터</span> coalescing</strong>한다 — <span class="nb">옛 스냅샷은</span> <span class="nb">새 것이 완전히 대체하기 때문이다.</span> <span class="nb">반면</span> <strong>명령·이벤트는 절대 합치지 않는다</strong>(무손실 우선).</span> <span class="s"><strong><span class="nb">모든 폐기 경로가</span> <span class="nb">건수·식별자를 로그로 남긴다</span> — <span class="nb">조용한 드롭은 없다.</span></strong> <span class="nb">튜닝은</span> <code class="inline">AND_RX_QUEUE</code>·<code class="inline">AND_TX_QUEUE</code>·<code class="inline">AND_*_FULL_WAIT</code>.</span></div>
+
+      <div class="note mt-20"><b>접을 때의 비대칭 · 방어의 시점:</b> <span class="s"><code class="inline">disconnect()</code>는 <span class="nb">남은</span> <strong>송신을 배출</strong>하고(<span class="nb">마지막 status 유실 방지</span>) <strong>수신은 폐기</strong>한 뒤 접는다.</span> <span class="s"><span class="nb">교차오염 방어</span> <code class="inline">deepcopy</code>는 <strong>enqueue 시점</strong>으로 못박았다 — <span class="nb">워커에서 뜨면</span> <span class="nb">큐 대기시간만큼</span> <span class="nb">창이 넓어져</span> <span class="nb">방어가 무의미해진다.</span></span> <span class="s"><span class="nb">회귀망은</span> <span class="nb">상수 비교가 아니라</span> <strong>거동</strong>으로 짰다 — <span class="nb">느린 핸들러·느린 send를</span> <span class="nb">실제로 물리고</span> <span class="nb">반환 시간을 잰다</span>(13개).</span></div>
     </div>
   </div>
 </section>
@@ -123,7 +132,7 @@
           <div class="bridge-box mid">
             <div class="ic">🌐</div>
             <div class="ti">AND 브리지</div>
-            <div class="su">AdaptiveNetworkDaemon<br>전달만 · 상태 없음</div>
+            <div class="su">AdaptiveNetworkDaemon<br>RX/TX 워커 · 백프레셔</div>
           </div>
           <div class="bridge-conn"><div class="bridge-arrow">→</div><div class="bridge-lbl">backend.send()</div></div>
           <div class="bridge-box">
@@ -134,7 +143,7 @@
         </div>
         <div style="text-align:center;font-size:12.5px;color:var(--text3);margin:14px 0 2px;font-family:var(--mono);">▲ 외부 수신은 역방향 — backend → <code style="font-size:11.5px;">Topic.Network.RECV</code> → Base</div>
       </div>
-      <p class="figcaption"><b>Figure 1.</b> AND 브리지 양방향 배선. 송신: Base가 <code class="inline">Network.SEND</code> 발행 → 브리지가 <code class="inline">backend.send()</code> 호출. 수신: backend가 외부 메시지 수신 → 브리지가 <code class="inline">Network.RECV</code>로 재발행. 변환·검증 없는 pass-through.</p>
+      <p class="figcaption"><b>Figure 1.</b> AND 브리지 양방향 배선. 송신: Base가 <code class="inline">Network.SEND</code> 발행 → <span class="nb">TX 큐</span> → 워커가 <code class="inline">backend.send()</code> 호출. 수신: backend가 외부 메시지 수신 → <span class="nb">RX 큐</span> → 워커가 <code class="inline">Network.RECV</code>로 재발행. <strong>내용은 변환·검증 없는 pass-through</strong>이고, <span class="nb">달라진 것은</span> <strong>어느 스레드에서 실행되는가</strong>뿐이다(STOP만 인라인).</p>
     </div>
 
     <div class="prose mt-40">
@@ -142,12 +151,13 @@
         <table class="tbl">
           <thead><tr><th>방향</th><th>흐름</th></tr></thead>
           <tbody>
-            <tr><td class="mono">송신</td><td>Base가 <code class="inline">Topic.Network.SEND</code>로 발행 → 브리지가 <span class="nb">구독하고 있다가</span> <code class="inline">backend.send(message)</code> 호출 → <span class="nb">외부로 전송</span></td></tr>
-            <tr><td class="mono">수신</td><td>backend가 <span class="nb">외부 메시지</span> 수신 → <span class="nb">주입된 콜백이</span> <code class="inline">Topic.Network.RECV</code>로 재발행 → Base가 <span class="nb">받아 처리</span></td></tr>
+            <tr><td class="mono">송신</td><td>Base가 <code class="inline">Topic.Network.SEND</code>로 발행 → 브리지가 <span class="nb">구독하고 있다가</span> <strong>TX 큐에 넣고 즉시 반환</strong> → <code class="inline">and-tx</code> 워커가 <code class="inline">backend.send(message)</code> 호출</td></tr>
+            <tr><td class="mono">수신</td><td>backend가 <span class="nb">외부 메시지</span> 수신 → <span class="nb">주입된 콜백이</span> <strong>RX 큐에 넣고 즉시 반환</strong> → <code class="inline">and-rx</code> 워커가 <code class="inline">Topic.Network.RECV</code>로 재발행 → Base가 <span class="nb">받아 처리</span></td></tr>
+            <tr><td class="mono">STOP</td><td><strong>큐 우회 · 인라인 발행</strong> + <span class="nb">밀린 비-STOP 명령</span> purge</td></tr>
           </tbody>
         </table>
       </div>
-      <div class="note mt-20"><b>상태 없는 pass-through.</b> 브리지는 메시지를 <strong>변환·검증 없이 그대로</strong> 넘긴다. 생성 즉시 SEND <span class="nb">구독이 활성화되고</span> 외부 수신 콜백이 <span class="nb">백엔드에 주입되며,</span> <code class="inline">connect()</code>/<code class="inline">disconnect()</code>는 전송 계층의 수립·정리를 백엔드에 위임한다.</div>
+      <div class="note mt-20"><b>내용은 여전히 pass-through.</b> 브리지는 메시지를 <strong>변환·검증 없이 그대로</strong> 넘긴다 — <span class="nb">달라진 것은</span> <span class="nb">실행 스레드와</span> <span class="nb">포화 정책뿐이다.</span> 생성 즉시 SEND <span class="nb">구독이 활성화되고</span> 외부 수신 콜백이 <span class="nb">백엔드에 주입되며,</span> <code class="inline">connect()</code>/<code class="inline">disconnect()</code>는 전송 계층의 수립·정리를 백엔드에 위임한다(<span class="nb">그리고 워커 2개를</span> <span class="nb">띄우고 접는다</span>).</div>
     </div>
   </div>
 </section>
@@ -287,6 +297,14 @@
         </div>
       </div>
       <p class="figcaption"><b>Figure 4.</b> robot-first 핸드셰이크. <span class="nb">시그널링이 끝나면</span> 미디어·제어는 <span class="nb">P2P로 직결되고</span> 서버는 <span class="nb">데이터 흐름에서</span> 빠진다. aiortc는 non-trickle이라 로봇 ICE 후보를 offer SDP에 한 번에 담는다.</p>
+    </div>
+
+    <div class="prose mt-40">
+      <div class="note"><b>🔊 오디오 트랙 — 경로 A가 소리도 나른다:</b> <span class="s"><span class="nb">콕핏은 이미</span> <span class="nb">nexus 직결 P2P를</span> <strong>상시</strong> 유지하므로(영상 유무와 무관) <span class="nb">소리도 여기로 간다</span> — <span class="nb">rubberneck을 켜야만</span> <span class="nb">소리가 나는 것은</span> <span class="nb">"기본"이 아니다.</span></span> <span class="s">⚠️ <span class="nb">그리고</span> <strong><span class="nb">오디오가 영상을 막지 않게</span> <span class="nb">만드는 것이</span> <span class="nb">설계의 절반이다</span></strong> — rubberneck이 <span class="nb">정확히 그 함정에 빠졌었다</span>(오디오 채널을 <span class="nb">모듈 최상단에서 import해서</span> <span class="nb">portaudio 없는 로봇이</span> <strong>영상·command까지</strong> 잃었다). <span class="nb">지금은</span> <span class="nb">오디오 모듈이</span> <span class="nb">의존성 0으로 import되고,</span> <span class="nb">비디오를 먼저 붙인 뒤</span> <span class="nb">오디오는 자체 try로 감싸며,</span> <span class="nb">마이크 실패는</span> <span class="nb">전용 예외라</span> <span class="nb">호출자가 오디오만 생략한다.</span> <code class="inline">audio_device=None</code>(미사용·기본)과 <code class="inline">""</code>(기본 장치)를 <span class="nb">구분하고,</span> <strong><span class="nb">이름을 줬는데 못 찾으면 실패한다</span></strong> — <span class="nb">기본 장치로 떨어지면</span> <span class="nb">지정한 게 아닌 소리가 나간다.</span></span></div>
+
+      <div class="note mt-20"><b>MediaRelay — 오퍼레이터가 N명이어도 인코딩은 1회:</b> <span class="s"><span class="nb">실기에서</span> <span class="nb">"멀티유저일 때</span> <span class="nb">서로 가져가서</span> <span class="nb">둘 다 끊긴다"는 관측이 있었다.</span> <span class="nb">원인은 캡처가 아니라</span> <strong>인코딩</strong>이었다 — <span class="nb">캡처는 이미</span> <span class="nb">1-owner 스레드가</span> <span class="nb">공유했는데,</span> <span class="nb">오퍼레이터마다</span> <span class="nb">새 트랙을 붙여</span> <span class="nb">같은 프레임을</span> N번 인코딩했다.</span> <span class="s"><span class="nb">실측(x86 640×480 프레임당)</span> VP8 <strong>1.40ms</strong>·H.264 0.90ms → <span class="nb">오퍼레이터 5 × 카메라 2 =</span> <strong>18.6ms</strong>로 <span class="nb">33.3ms 예산의 55.9%다.</span> <strong>Orin에서 3~5배면 3명×2대가 이미 넘친다</strong> — <span class="nb">그게 "둘 다 끊긴다"의 정체였다.</span></span> <span class="s">aiortc <code class="inline">MediaRelay</code>로 <span class="nb">소스당 relay 1개·오퍼레이터마다 구독</span>으로 바꿔 <span class="nb">비용을</span> <strong><span class="nb">오퍼레이터 수와 무관</span></strong>하게 만들었다(검증: <span class="nb">4명 × 5프레임 = 20 요청 →</span> <span class="nb">실제 카메라 pull</span> <strong>5회</strong>).</span></div>
+
+      <div class="note mt-20"><b>고정 주기 캡처 — 처리율이 아니라 <em>꼬리 신선도</em>:</b> <span class="s"><span class="nb">캡처 루프가</span> <code class="inline">_read()</code> <span class="nb">뒤에</span> <strong>무조건</strong> <code class="inline">sleep(interval)</code>했는데, <span class="nb">그건</span> <code class="inline">_read</code>가 <span class="nb">공짜라는 가정이다</span> — <span class="nb">블로킹 백엔드에선 거짓이라</span>(RealSense <code class="inline">wait_for_frames()</code>) <span class="nb">한 주기를 기다린 뒤</span> <span class="nb">또 한 주기를 잤다.</span></span> <span class="s"><span class="nb">실측(D415 640×480@30):</span> <span class="nb">처리율 이득은 작았지만</span>(28.4 → 29.8Hz) <span class="nb">프레임 나이</span> <strong>p95가 31.7 → 21.6ms(−32%)</strong>다 — <span class="nb">종전엔</span> <span class="nb">20프레임 중 1개를</span> <span class="nb">한 주기 통째로 낡은 채</span> <span class="nb">넘겼다.</span> <span class="nb">"프레임률이 절반 된다"는</span> <span class="nb">앞선 추측은</span> <strong>실측으로 반증됐다.</strong></span> <span class="s"><span class="nb">프레임에</span> <code class="inline">seq</code>·<code class="inline">age</code> <strong>신원</strong>을 <span class="nb">붙여 소비자가</span> <span class="nb">낡음을 판정할 수 있게 했다.</span></span></div>
     </div>
   </div>
 </section>

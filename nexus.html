@@ -231,7 +231,7 @@
           <div class="kv"><div class="k">상태 저장</div><div class="v">in-memory dict <span class="nb">레지스트리가 기본</span> · <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> 옵션(<code class="inline">persistence.py</code>, stdlib sqlite3 최소 구현) — <code class="inline">NEXUS_DB_PATH</code>로 켬(<code class="inline">run.sh</code> 기본 ON). <span class="nb">per-robot 이력(history) seam</span> 배선됨 — <code class="inline">NEXUS_HISTORY</code>로 opt-in(실 백엔드는 이관 영역)</div></div>
           <div class="kv"><div class="k">기동</div><div class="v"><code>python -m nexus</code> 단일 명령 · 빌드 없음 — 서버 배포는 <code class="inline">./setup.sh</code> <span class="nb">한 번으로</span> <span class="nb">설치·systemd 등록·기동·헬스체크까지</span> 끝난다</div></div>
           <div class="kv"><div class="k">의존</div><div class="v">오직 <code>synapse</code> import (tom_and_gerri·tag 미import → 결합도 0)</div></div>
-          <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.0.1 · pytest 스위트 통과(19개 파일)</div></div>
+          <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.12.0(<span class="nb">스택 세대 정렬</span> — MINOR는 <span class="nb">전 레포 공통</span>) · pytest 스위트 통과(19개 파일)</div></div>
         </div>
       </div>
       <p class="figcaption"><b>Figure 1.</b> NEXUS 핵심 사실. <span class="nb">상태 원본은</span> <span class="nb">로봇이 소유하고</span> NEXUS는 뷰/캐시 — <span class="nb">메모리 레지스트리가 기본이고,</span> <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> <code class="inline">run.sh</code> 기본 ON이다.</p>
@@ -343,6 +343,11 @@
               <td><span class="path">/healthz</span></td>
               <td>헬스체크 — uptime · 등록 로봇 수.</td>
             </tr>
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td><span class="path">/register_robot/{room}</span></td>
+              <td><code class="inline">rtc2kng</code> <span class="nb">호환용 ack</span> — <strong>no-op</strong>이다. NEXUS는 <code class="inline">/ws/{room}</code> <span class="nb">합류 시</span> <span class="nb">자동 등록이라</span> <span class="nb">실제 동작은 없고,</span> <span class="nb">등록 POST를 보내는</span> <span class="nb">클라이언트에</span> 200으로 <span class="nb">답해 404 노이즈를 없앤다</span>(드롭인 호환). <span class="nb">실제 등록·라우팅은</span> <span class="nb">로봇이 보내는</span> <code class="inline">robot.status</code>로 <span class="nb">이뤄진다.</span></td>
+            </tr>
 
             <tr class="api-grp"><td colspan="3">로봇 description (3D 디지털 트윈)</td></tr>
             <tr>
@@ -370,7 +375,7 @@
             <tr>
               <td><span class="method get">GET</span> <span class="method post">POST</span> <span class="method del">DEL</span></td>
               <td><span class="path">/api/alignments</span></td>
-              <td>로봇맵→표준맵 정렬(SE(2)) 조회·등록·삭제. status 수신 시 <code class="inline">standard_map_id</code>+<code class="inline">to_standard</code>를 <b>부착만</b> 한다(좌표 계산은 UI). <span class="nb">등록(POST)은</span> <code class="inline">standard_map_id</code>가 <span class="nb">실제 등록된 표준맵</span>(config + 업로드맵)인지 <span class="nb">검증</span> → 아니면 <b>400</b>(dangling 방지). <span class="nb">맵을 보고하지 않는</span> 로봇도 <code class="inline">(robot_id, '*')</code> 정렬로 <span class="nb">표준맵 위에 배치할 수 있다.</span></td>
+              <td>로봇맵→표준맵 정렬(SE(2)) 조회·등록·삭제. status 수신 시 <code class="inline">standard_map_id</code>+<code class="inline">to_standard</code>를 <b>부착만</b> 한다(좌표 계산은 UI). <span class="nb">등록(POST)은</span> <code class="inline">standard_map_id</code>가 <span class="nb">실제 등록된 표준맵</span>(config + 업로드맵)인지 <span class="nb">검증</span> → 아니면 <b>400</b>(dangling 방지). <span class="nb">맵을 보고하지 않는</span> 로봇도 <code class="inline">(robot_id, '*')</code> 정렬로 <span class="nb">표준맵 위에 배치할 수 있다.</span> <span class="nb">저장 시</span> <code class="inline">to_standard</code>의 <span class="nb">자릿수를 정리한다</span> — <span class="nb">마법사가 계산한 SE(2)의</span> <span class="nb">부동소수 꼬리</span>(<code class="inline">-33.33006134969326</code>)가 <span class="nb">그대로 저장돼 있었고,</span> <span class="nb">이 값은</span> <span class="nb">로봇 발행 경로를 안 타서</span> <span class="nb">gerri 자릿수 게이트가 못 본다</span> — <span class="nb">저장하는 여기가</span> <span class="nb">유일한 초크포인트다.</span></td>
             </tr>
 
             <tr class="api-grp"><td colspan="3">플릿 미션 (FleetMissionRunner)</td></tr>
@@ -629,6 +634,12 @@ NEXUS_ICE_SERVERS=<span class="str">'[{"urls":"stun:stun.l.google.com:19302"},
 
     <div class="prose mt-32">
       <div class="note"><span class="s"><b>OFFLINE은 클라이언트가 판정한다.</b> NEXUS는 <span class="nb">단정하지 않고,</span> 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 인지로 <span class="nb">스스로 판단한다.</span></span></div>
+
+      <div class="note mt-20"><b>화이트리스트가 아니라 <em>패스스루</em>다:</b> <span class="s"><span class="nb">종전엔</span> <code class="inline">robot_info</code>·<code class="inline">robot_state</code>·<code class="inline">mission_info</code> <span class="nb">3개만 뽑아 저장해서,</span> <span class="nb">로봇이</span> <code class="inline">value</code> <span class="nb">최상위에 실은</span> <span class="nb">나머지 블록이</span> <strong>조용히 잘렸다.</strong></span> <span class="s"><span class="nb">실제로</span> <code class="inline">capability_info</code>(진행 표시)가 <span class="nb">이 지점에서 소실됐고</span> — <span class="nb">로봇도 gerri도</span> <span class="nb">정상 발행 중인데</span> <span class="nb">콘솔에만 안 보여서</span> <span class="nb">원인 추적이 어려웠다.</span></span> <span class="s"><strong><span class="nb">릴레이는 계약을</span> <span class="nb">해석하지 말고</span> <span class="nb">실어 나른다</span></strong> — Postel's Law.</span></div>
+
+      <div class="note mt-20"><b>통째 교체가 아니라 <em>블록 병합</em>이다:</b> <span class="s"><span class="nb">로봇이</span> <span class="nb">안 바뀐 정적 블록을</span> <strong>생략</strong>하기 때문이다(gerri <code class="inline">_omit_unchanged</code> — <code class="inline">robot_info</code>가 <span class="nb">와이어의 61%인데</span> <span class="nb">거의 안 변한다).</span></span> <span class="s"><span class="nb">교체로 두면</span> <span class="nb">생략된 틱마다</span> capability·presets·version이 <span class="nb">사라졌다 다시 나타나</span> <span class="nb">콘솔이 깜빡였다.</span></span> <span class="s"><span class="nb">규칙은 한 줄이다</span> — <strong><span class="nb">온 블록은 그대로 쓰고,</span> <span class="nb">안 온 블록은</span> <span class="nb">직전 것을 유지.</span></strong> <span class="nb">예외는</span> <code class="inline">robot_info</code> 하나로, <span class="nb">라우팅 키가</span> <span class="nb">항상 실려 오므로</span> <span class="nb">이 블록만</span> <strong>키 단위로</strong> 병합한다.</span></div>
+
+      <div class="note mt-20"><b>이기종 각도 단위 브릿지 — 수신 경계에서 1회:</b> <span class="s">로봇이 <code class="inline">robot_info.angle_unit="rad"</code>를 <span class="nb">선언하면</span> <code class="inline">upsert_status</code>가 <code class="inline">to_standard_angles()</code>로 <span class="nb">deg로 접는다</span>(멱등). <span class="nb">그 뒤로</span> registry·API·콘솔은 <span class="nb">전부 deg만 본다.</span></span> <span class="s"><span class="nb">이건 gerri를 안 쓰는 로봇</span>(plain class·외부 스택)을 <span class="nb">위한 안전망이다</span> — <span class="nb">gerri 로봇은</span> <span class="nb">이미 발행 시점에</span> <span class="nb">접어서 보낸다</span>(<a href="synapse.html">synapse 각도 표준</a>). <span class="nb">정규화가 실패해도</span> <span class="nb">status 수신을 죽이지 않는다</span>(워닝 후 원본 저장).</span></div>
     </div>
 
     <div class="split mt-40">

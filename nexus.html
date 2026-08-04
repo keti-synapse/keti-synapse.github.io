@@ -218,7 +218,7 @@
     <div class="prose">
       <p class="lead-para"><strong>NEXUS는 진실의 원본(SSOT)이 아니다.</strong> 각 로봇(TOM)이 <span class="nb">자기 상태의</span> <span class="nb">권위를 가지며,</span> NEXUS는 WebSocket으로 받은 상태를 <span class="nb">메모리에 캐시해</span> <span class="nb">대시보드에 비춰주는</span> <em>뷰</em>다.</p>
       <p>핵심 축은 <span class="nb">둘이다.</span> 첫째, <span class="nb">연결된 로봇들의</span> <strong>status를 모아 캐시</strong>하고 <span class="nb">REST로 노출한다</span>(<code class="inline">/api/robots</code>). 둘째, <span class="nb">운영자와 로봇이</span> <span class="nb">직접 만나도록</span> <strong>WebRTC 시그널링을 중계</strong>한다(<code class="inline">/ws/{room}</code>). 핸드셰이크가 끝나면 미디어·DataChannel은 <span class="nb">P2P로 직결되고</span> NEXUS는 <span class="nb">데이터 경로에서</span> <span class="nb">빠진다</span> — 작은 시그널링 <span class="nb">JSON만 오간다.</span></p>
-      <p>이 두 축 위에 <span class="nb">엣지 원칙을 지키는</span> 얇은 서비스가 얹힌다 — <strong>FleetMission 조율</strong>(<code class="inline">/api/fleet/*</code>), <strong>공간 메타</strong>(표준맵·로봇맵 정렬 부착 <code class="inline">/api/maps</code>·<code class="inline">/api/alignments</code>), <strong>3D 트윈용 로봇 description(URDF/GLB) 캐시·서빙</strong>(<code class="inline">/api/description</code>), <span class="nb">컨트롤플레인 명령 릴레이</span>(<code class="inline">/api/command</code>), IoT 알람 집계(<code class="inline">/api/alarms</code>). 어느 것도 <span class="nb">좌표 계산이나</span> <span class="nb">미션 실행을 대신하지 않는다</span> — 여전히 <span class="nb">부착·중계·모니터링만</span> 한다.</p>
+      <p>이 두 축 위에 <span class="nb">엣지 원칙을 지키는</span> 얇은 서비스가 얹힌다 — <strong>FleetMission 조율</strong>(<code class="inline">/api/fleet/*</code>), <strong>공간 메타</strong>(표준맵·로봇맵 정렬 부착 <code class="inline">/api/maps</code>·<code class="inline">/api/alignments</code>), <strong>3D 트윈용 로봇 description(URDF/GLB) 캐시·서빙</strong>(<code class="inline">/api/description</code>), <span class="nb">컨트롤플레인 명령 릴레이</span>(<code class="inline">/api/command</code>), IoT 알람 집계(<code class="inline">/api/alarms</code>), <strong>흐름 추적 집계</strong>(<code class="inline">/api/trace/*</code> — <span class="nb">기본 꺼짐</span>). 어느 것도 <span class="nb">좌표 계산이나</span> <span class="nb">미션 실행을 대신하지 않는다</span> — 여전히 <span class="nb">부착·중계·모니터링만</span> 한다.</p>
       <p>의존성도 좁다. NEXUS가 import하는 것은 <span class="nb">공통 표준</span> <code class="inline">synapse</code> 하나뿐이며(메시지 토픽 <code class="inline">Topic</code> 사용), <code class="inline">tom_and_gerri</code>나 <code class="inline">tag_*</code> 같은 <span class="nb">로봇 코드는</span> 전혀 import하지 않는다 — <strong>코드 결합도 0</strong>, 오직 <span class="nb">네트워크 메시지</span> <span class="nb">표준으로만</span> <span class="nb">대화한다.</span></p>
       <div class="note mt-8"><span class="s"><b>Edge-Authoritative.</b> 연결 끊김(OFFLINE)조차 NEXUS가 <span class="nb">단정하지 않는다.</span></span><span class="s"><code class="inline">/api/robots</code>는 <code class="inline">server_time</code>을 함께 내려주고, 클라이언트가 <code class="inline">server_time − last_seen &gt; ttl</code> 로 스스로 판단한다.</span></div>
     </div>
@@ -231,7 +231,7 @@
           <div class="kv"><div class="k">상태 저장</div><div class="v">in-memory dict <span class="nb">레지스트리가 기본</span> · <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> 옵션(<code class="inline">persistence.py</code>, stdlib sqlite3 최소 구현) — <code class="inline">NEXUS_DB_PATH</code>로 켬(<code class="inline">run.sh</code> 기본 ON). <span class="nb">per-robot 이력(history) seam</span> 배선됨 — <code class="inline">NEXUS_HISTORY</code>로 opt-in(실 백엔드는 이관 영역)</div></div>
           <div class="kv"><div class="k">기동</div><div class="v"><code>python -m nexus</code> 단일 명령 · 빌드 없음 — 서버 배포는 <code class="inline">./setup.sh</code> <span class="nb">한 번으로</span> <span class="nb">설치·systemd 등록·기동·헬스체크까지</span> 끝난다</div></div>
           <div class="kv"><div class="k">의존</div><div class="v">오직 <code>synapse</code> import (tom_and_gerri·tag 미import → 결합도 0)</div></div>
-          <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.12.0(<span class="nb">스택 세대 정렬</span> — MINOR는 <span class="nb">전 레포 공통</span>) · pytest 스위트 통과(19개 파일)</div></div>
+          <div class="kv"><div class="k">버전 · 테스트</div><div class="v">v0.12.0(<span class="nb">스택 세대 정렬</span> — MINOR는 <span class="nb">전 레포 공통</span>) · pytest 스위트 통과(20개 파일)</div></div>
         </div>
       </div>
       <p class="figcaption"><b>Figure 1.</b> NEXUS 핵심 사실. <span class="nb">상태 원본은</span> <span class="nb">로봇이 소유하고</span> NEXUS는 뷰/캐시 — <span class="nb">메모리 레지스트리가 기본이고,</span> <span class="nb">재시작 생존용</span> SQLite <span class="nb">스냅샷 영속은</span> <code class="inline">run.sh</code> 기본 ON이다.</p>
@@ -300,6 +300,7 @@
             <tr><td class="mono">registry.py</td><td><code class="inline">RobotRegistry</code> — <code class="inline">(robot_id, sub_id)</code> in-memory status 상태 캐시.</td></tr>
             <tr><td class="mono">fleet.py</td><td><code class="inline">FleetMissionRunner</code> — <code class="inline">depends_on</code> DAG 검증·조율, run_view 발행.</td></tr>
             <tr><td class="mono">persistence.py</td><td>영속 seam — <code class="inline">NullStore</code>(기본) / <code class="inline">SqliteStore</code>(stdlib sqlite3, 스냅샷 + 이력).</td></tr>
+            <tr><td class="mono">trace.py</td><td><code class="inline">TraceGraph</code> — <code class="inline">trace.hop</code> 수집·집계(노드/엣지 + 개수 상한·TTL). <strong>기본 꺼짐</strong> — 로봇이 켠 만큼만 산다.</td></tr>
             <tr><td class="mono">config.py</td><td><code class="inline">SystemConfig</code> / <code class="inline">SiteConfig</code> / <code class="inline">FloorConfig</code> (pydantic, 정적) — 배포마다 다른 <code class="inline">IceServer</code>(STUN/TURN)만 <code class="inline">NEXUS_ICE_SERVERS</code> 환경변수로 주입.</td></tr>
             <tr><td class="mono">gateway.py</td><td>콕핏 정적 서빙 + <code class="inline">window.__COCKPIT__</code> 주입.</td></tr>
             <tr><td class="mono">ratelimit.py · logging_config.py</td><td><code class="inline">/api/command</code> 릴레이 rate-limit · 로깅 설정.</td></tr>
@@ -318,7 +319,7 @@
     <div class="section-head">
       <span class="eyebrow">HTTP &amp; WebSocket API</span>
       <h2 class="section-title">엔드포인트 한눈에</h2>
-      <p class="section-lead"><span class="s"><code class="inline">app.py</code>가 노출하는 표면 — <span class="nb">상태·description·맵/정렬·플릿·제어·IoT</span> REST + 콕핏 게이트웨이 + WS 2개(<code class="inline">/ws/dashboard</code>·<code class="inline">/ws/{room}</code>).</span><span class="s">site/building/floor는 URL 네임스페이스일 뿐, <span class="nb">콕핏 폴더는</span> robot id로 <span class="nb">고른다.</span></span></p>
+      <p class="section-lead"><span class="s"><code class="inline">app.py</code>가 노출하는 표면 — <span class="nb">상태·description·맵/정렬·플릿·제어·IoT·흐름추적</span> REST + 콕핏 게이트웨이 + WS 3개(<code class="inline">/ws/dashboard</code>·<code class="inline">/ws/trace</code>·<code class="inline">/ws/{room}</code>).</span><span class="s">site/building/floor는 URL 네임스페이스일 뿐, <span class="nb">콕핏 폴더는</span> robot id로 <span class="nb">고른다.</span></span></p>
     </div>
     <div class="figure">
       <div class="tbl-wrap">
@@ -412,6 +413,23 @@
               <td>활성 IoT 알람 집계(<code class="inline">io.is_alarm</code>) · WebRTC ICE(STUN/TURN) 설정 — TURN은 <span class="nb">요청 시마다</span> <span class="nb">시간제한 크리덴셜</span> 생성(coturn <code class="inline">use-auth-secret</code>), <code class="inline">server_time</code> 동봉.</td>
             </tr>
 
+            <tr class="api-grp"><td colspan="3">흐름 추적(trace) · 기본 꺼짐</td></tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/api/trace/graph</span></td>
+              <td>흐름 그래프 스냅샷 — <strong>노드</strong>=참여자(<code class="inline">operator:{id}</code>·<code class="inline">nexus</code>·<code class="inline">robot:{id}/{layer}</code>), <strong>엣지</strong>=<code class="inline">(source, target, topic)</code>별 관측 흐름(<span class="nb">최근 60초 창의</span> 메시지/초 · p50/p95 지연 · <span class="nb">정규화 탈락 필드</span> · 마지막 hop). <span class="nb">로봇이 안 켰으면</span> <span class="nb">빈 그래프다</span> — <strong>에러가 아니다.</strong></td>
+            </tr>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td><span class="path">/api/trace/message/{uuid}</span></td>
+              <td>한 메시지(<code class="inline">msg_info.uuid</code>)의 <strong>end-to-end hop 타임라인</strong>. 링버퍼라 <span class="nb">최근 것만 남는다</span> → 없으면 404.</td>
+            </tr>
+            <tr>
+              <td><span class="method ws">WS</span></td>
+              <td><span class="path">/ws/trace</span></td>
+              <td>흐름 추적 증분 push — 연결 시 전체 <code class="inline">snapshot</code>, 이후 <span class="nb">배치가 건드린</span> <span class="nb">노드/엣지만</span> 보낸다(<code class="inline">/ws/{room}</code>보다 <strong>먼저</strong> 정의 — 와일드카드 가로채기 방지).</td>
+            </tr>
+
             <tr class="api-grp"><td colspan="3">콕핏 게이트웨이 · WebSocket · 정적</td></tr>
             <tr>
               <td><span class="method get">GET</span></td>
@@ -446,8 +464,8 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Signaling Relay &amp; Status Cache</span>
-      <h2 class="section-title">하나의 WS, 네 갈래 처리</h2>
-      <p class="section-lead"><span class="s">단일 엔드포인트 <code class="inline">/ws/{room}</code>가 <span class="nb">메시지 종류에 따라</span> 캐시 / 브로드캐스트 / 1:1 라우팅 / 컨트롤플레인 중계로 <span class="nb">갈린다.</span></span><span class="s">시그널링 JSON은 <span class="nb">해석 없이</span> <span class="nb">원문 그대로</span> 전달된다.</span></p>
+      <h2 class="section-title">하나의 WS, 다섯 갈래 처리</h2>
+      <p class="section-lead"><span class="s">단일 엔드포인트 <code class="inline">/ws/{room}</code>가 <span class="nb">메시지 종류에 따라</span> 캐시 / 브로드캐스트 / 1:1 라우팅 / 컨트롤플레인 중계 / <span class="nb">흐름 추적 수집으로</span> <span class="nb">갈린다.</span></span><span class="s">시그널링 JSON은 <span class="nb">해석 없이</span> <span class="nb">원문 그대로</span> 전달된다.</span></p>
     </div>
 
     <div class="figure">
@@ -473,9 +491,14 @@
             <div class="route-arrow">→</div>
             <div class="route-out unicast"><b>명령 중계 — HTTP 불필요.</b> 로봇이 <span class="nb">이미 연결된 WS로</span> <code class="inline">command.*</code> 봉투(receiver ≠ room)를 보내면 <code class="inline">/api/command</code>와 <b>동일 게이트키핑</b>(미연결 경고 · rate-limit 429)으로 <span class="nb">대상 피어에 중계.</span> <span class="nb">로봇이 IoT·타 노드를</span> <span class="nb">조작할 때</span> <span class="nb">별도 HTTP가 필요 없다.</span></div>
           </div>
+          <div class="route-row">
+            <div class="route-in">topic == "trace.hop"<span>흐름 추적 · 기본 꺼짐</span></div>
+            <div class="route-arrow">→</div>
+            <div class="route-out cache"><b>집계만 (릴레이 X).</b> <code class="inline">TraceGraph.record_batch</code>로 접고 <code class="inline">/ws/trace</code> 구독자에게 <span class="nb">증분만 push.</span> <span class="nb">분기는</span> <strong>status 분기 뒤</strong>에 둔다 — 10~50Hz 핫패스에 <span class="nb">비교 한 줄도</span> <span class="nb">더하지 않는다</span>(<span class="nb">관측이 대상을</span> <span class="nb">바꾸면 안 된다</span>).</div>
+          </div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 6.</b> <code class="inline">RelayHub.targets()</code> + app WS 핸들러의 분기. receiver가 있으면 그 피어에게만, 없으면 room 전체로. status는 라우팅에서 빠져 캐시로 흡수되고, <code class="inline">command.*</code>(receiver ≠ room)는 게이트키핑을 거쳐 대상 피어로 중계된다.</p>
+      <p class="figcaption"><b>Figure 6.</b> <code class="inline">RelayHub.targets()</code> + app WS 핸들러의 분기. receiver가 있으면 그 피어에게만, 없으면 room 전체로. status는 라우팅에서 빠져 캐시로 흡수되고, <code class="inline">command.*</code>(receiver ≠ room)는 게이트키핑을 거쳐 대상 피어로 중계되며, <code class="inline">trace.hop</code>은 <span class="nb">릴레이 없이</span> 집계기로만 간다.</p>
     </div>
 
     <div class="prose mt-32">
@@ -651,6 +674,7 @@ NEXUS_ICE_SERVERS=<span class="str">'[{"urls":"stun:stun.l.google.com:19302"},
         <div class="split-li"><span class="mk">🧭</span><span><b>플릿 미션 조율</b> — FleetMissionRunner가 DAG를 풀어 <span class="nb">미션 트리거·모니터링</span></span></div>
         <div class="split-li"><span class="mk">🗺️</span><span><b>공간 메타 부착</b> — /api/sites·maps·alignments, status에 표준맵 정렬 부착(계산 X)</span></div>
         <div class="split-li"><span class="mk">🧊</span><span><b>3D 트윈 description 캐시</b> — 로봇 URDF/GLB/메시 업로드·서빙(/api/description)</span></div>
+        <div class="split-li"><span class="mk">◈</span><span><b>흐름 추적 집계</b> — trace.hop을 그래프로 접어 /api/trace/*·/ws/trace로 노출(<span class="nb">기본 꺼짐</span>)</span></div>
       </div>
       <div class="split-box not">
         <h4>🚫 NEXUS가 하지 않는 것</h4>
@@ -703,6 +727,46 @@ NEXUS_ICE_SERVERS=<span class="str">'[{"urls":"stun:stun.l.google.com:19302"},
   </div>
 </section>
 
+<!-- ════════ 흐름 추적(trace) 집계 ════════ -->
+<section class="section alt" id="trace">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Flow Observability · 기본 꺼짐</span>
+      <h2 class="section-title">흐름 추적 — hop을 <span class="nb">그래프로 접는다</span></h2>
+      <p class="section-lead"><span class="s">한 명령이 <span class="nb">운영자 → NEXUS → AND → base → sub → 메서드</span>를 <span class="nb">지나는 동안</span> <span class="nb">어디서 무엇이 되었는지</span> <span class="nb">한 화면에서 보게 한다.</span></span><span class="s">계약(<code class="inline">TraceHop</code>·<code class="inline">TraceBatch</code>)은 <a href="synapse.html#trace">synapse</a>가 소유하고, 발행은 <a href="gerri.html#trace">GERRI/AND</a>, <strong>집계는 NEXUS</strong>다 — <code class="inline">nexus/trace.py</code>의 <code class="inline">TraceGraph</code>.</span></p>
+    </div>
+
+    <div class="prose">
+      <p class="lead-para">노드는 <strong>참여자</strong>, 엣지는 <strong>관측된 흐름</strong>이다. hop 1건은 “참여자 하나를 지나갔다”는 사실일 뿐이므로, <span class="nb">같은</span> <code class="inline">msg_info.uuid</code>의 <strong>앞뒤 hop</strong>을 <code class="inline">at</code> 순으로 이어 <span class="nb">직전 hop → 이 hop</span>을 엣지로 센다.</p>
+      <p><span class="nb">NEXUS도</span> <strong>자기가 와이어에서 본 것만</strong> 얹는다. 로봇만 hop을 만들면 노드가 언제나 <code class="inline">robot:{id}/{layer}</code>뿐이라 <code class="inline">nexus</code>도 <code class="inline">operator:{id}</code>도 <span class="nb">그래프에 영원히</span> <span class="nb">나타나지 않고,</span> <span class="nb">간판인 end-to-end가</span> <span class="nb">로봇 내부로 쪼그라든다.</span> 얹는 <strong>무게는 토픽 정책으로 가른다</strong>(정책은 synapse가 미리 고정 — 판단이 두 곳에 있으면 드리프트한다).</p>
+    </div>
+
+    <div class="figure mt-32">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th style="width:150px;">정책</th><th style="width:210px;">토픽</th><th>NEXUS가 하는 일</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">틱(tick)</td><td class="mono">robot.status · command.teleop</td><td>10~50Hz라 <strong>hop을 만들지 않는다</strong> — 창 카운터(dict 조회 + 정수 증가)만 올리고 <span class="nb">1초 창마다</span> <span class="nb">엣지 관측 1건으로</span> 접는다(<code class="inline">count</code>=창의 건수).</td></tr>
+            <tr><td class="mono">건별(per-message)</td><td class="mono">command.capability · mission.trigger · mission.event · help.action</td><td>사람이 누를 때만 생기는 저빈도 → <span class="nb">그때만</span> 실제 <code class="inline">TraceHop</code>을 만든다. <code class="inline">uuid</code>로 <span class="nb">end-to-end를 꿴다.</span></td></tr>
+            <tr><td class="mono">정책 없음</td><td class="mono">trace.hop 자신</td><td><strong>아무 일도 하지 않는다</strong> — hop이 hop을 낳는 <span class="nb">증폭을 차단한다</span>(관측이 대상을 바꾸는 최악의 형태).</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 12.</b> 관측 샘플링 정책. 실측 근거 — <code class="inline">command.teleop</code>을 건별로 추적하면 hop 트래픽이 <strong>원본 업링크의 148%</strong>였다. 사용자 지침도 “최대한 가볍게, 토픽 정도만”이었다.</p>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><b>계기를 둔 자리는 <em>이미 있던</em> 초크포인트뿐:</b> <span class="s">NEXUS 쪽 발행 지점은 <strong>WS 수신 루프</strong>와 <strong><code class="inline">/api/command</code> 릴레이</strong> 둘이다. <span class="nb">후자를 빼먹으면</span> <code class="inline">operator</code> 노드가 <span class="nb">아예 안 나타난다</span> — 콕핏의 <code class="inline">send()</code>는 <span class="nb">P2P DataChannel을 먼저 쓰고</span> <span class="nb">미개통이면 그 HTTP로 폴백하기</span> 때문이다.</span> <span class="s"><code class="inline">registry.upsert_status</code>는 <strong>건드리지 않는다</strong>(핫패스). <span class="nb">P2P로 직행한 명령은</span> NEXUS를 <span class="nb">지나지 않으므로</span> <span class="nb">여기서 보이지 않고,</span> <span class="nb">로봇쪽 AND가</span> <span class="nb">자기 RX hop으로 기록한다.</span></span></div>
+
+      <div class="note mt-20"><b>관측 기능이 서버를 죽이면 안 된다:</b> <span class="s">세 저장소(노드·엣지·uuid 타임라인) 모두 <strong>개수 상한 + TTL</strong>을 동시에 건다 — 노드 256 · 엣지 2048 · uuid 512 · uuid당 hop 32 · 엣지당 지연 표본 128, <span class="nb">TTL 300초.</span> <code class="inline">OrderedDict</code> 순서가 <span class="nb">곧 LRU라</span> 상한 초과 시 앞에서 버리고, TTL 정리도 <span class="nb">앞에서 훑다가</span> <span class="nb">살아있는 첫 항목에서 멈춘다.</span></span> <span class="s"><b>시계</b>: 빈도·TTL은 <strong>서버 수신 시각</strong>으로 세고(로봇 시계가 틀어져도 msg/s는 정확해야 한다), 지연은 <span class="nb">발행자가 계산한</span> <code class="inline">latency_ms</code>를 우선 쓴다. 음수(시계 역전)는 <span class="nb">표본에서 뺀다.</span> <span class="nb">발신 시각이</span> <span class="nb">수신 시각보다 앞서면</span> <span class="nb">수신 시각으로 눕힌다</span> — <strong><span class="nb">없는 흐름을 그리는 것이</span> <span class="nb">가장 나쁜 관측이다.</span></strong></span></div>
+
+      <div class="note mt-20"><b>엣지 키에 <em>topic</em>을 포함한다:</b> <span class="s">한 쌍(nexus↔robot)에 50Hz <code class="inline">robot.status</code>와 <span class="nb">가끔 오는</span> <code class="inline">command.capability</code>를 <span class="nb">함께 담으면</span> p50 지연도 “마지막 1건”도 <span class="nb">status가 다 덮어써</span> <span class="nb">의미가 사라진다.</span></span> <span class="s"><span class="nb">접어 보는 것은</span> <span class="nb">소비자 몫이다</span> — <code class="inline">/api/robots</code>와 같은 원칙으로 <strong>서버는 전체를 준다.</strong></span> <span class="s"><span class="nb">같은 노드끼리</span>(in→out, 처리 시간)는 <span class="nb">엣지로 만들지 않는다</span> — self-loop이 그래프를 덮기 때문이고, <span class="nb">그 구간은</span> <code class="inline">/api/trace/message/{uuid}</code>의 <span class="nb">원본 타임라인에</span> 그대로 남는다.</span></div>
+
+      <div class="note mt-20"><b>숨은 값은 <code class="inline">dropped_fields</code>다:</b> <span class="s">엣지에 <span class="nb">정규화가 떨군 필드 경로가</span> 실린다 — <strong>“내 필드가 왜 콘솔에 안 보이지?”</strong>에 답하는 유일한 데이터다. <span class="nb">종전에 그걸 아는 곳은</span> <span class="nb">발행측 워닝 로그뿐이었고,</span> <span class="nb">그마저 경로당 60초 1회로</span> <span class="nb">스로틀돼 사실상 안 보였다.</span></span></div>
+    </div>
+  </div>
+</section>
+
 <!-- ════════ PREV / NEXT ════════ -->
 <div style="border-top:1px solid var(--border);padding:28px 0;">
   <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
@@ -727,6 +791,7 @@ NEXUS_ICE_SERVERS=<span class="str">'[{"urls":"stun:stun.l.google.com:19302"},
       <li><a href="#api">REST · WS API</a></li>
       <li><a href="#relay">시그널링 릴레이</a></li>
       <li><a href="#handshake">WebRTC 핸드셰이크</a></li>
+      <li><a href="#trace">흐름 추적</a></li>
     </ul></div>
     <div class="footer-col"><h4>연락처</h4><ul>
       <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>
@@ -735,7 +800,7 @@ NEXUS_ICE_SERVERS=<span class="str">'[{"urls":"stun:stun.l.google.com:19302"},
   </div>
   <div class="footer-bottom">
     <span>© 2026 한국전자기술연구원(KETI) 지능로보틱스연구센터. All rights reserved.</span>
-    <span>NEXUS · SYNAPSE Platform · v0.0.1</span>
+    <span>NEXUS · SYNAPSE Platform · v0.12.0</span>
   </div>
 </footer>
 <script>function toggleMenu(){document.getElementById('mobileMenu').classList.toggle('open');}</script>

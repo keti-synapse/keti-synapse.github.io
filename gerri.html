@@ -376,6 +376,11 @@
     </div>
     <div class="prose mt-32">
       <div class="note">
+        <span class="s"><b>capability는 한 번에 하나만 돈다 — 락으로 못 박았다.</b></span> <span class="s">계약은 capability가 “<span class="nb">수신 루프 스레드에서</span> <strong>동기</strong> 실행”을 전제하는데, <span class="nb">그 스레드는</span> <strong>관제망(피어)마다 하나</strong>다(<code class="inline">and-rx-&lt;tag&gt;</code>) — <span class="nb">오퍼레이터가 2명이면</span> <span class="nb">같은 sub의 capability가</span> <strong>동시에</strong> 들어온다. <span class="nb">직렬화하는 장치가</span> <span class="nb">아무 데도 없었고,</span> <span class="nb">실측으로</span> <span class="nb">6스레드가</span> <span class="nb">같은 capability를</span> <span class="nb">동시에 돌렸다.</span></span> <span class="s"><code class="inline">_capability_lock</code>(<strong>RLock</strong>)이 sub 디스패치와 base 자기 capability를 <span class="nb">같은 락으로 묶는다</span> — <span class="nb">재진입 가능이어야 하는 이유는</span> <span class="nb">capability 안에서</span> <span class="nb">다른 capability를 부르는 경로</span>(미션·두뇌)가 <span class="nb">같은 스레드로 들어오기 때문이다</span>(<span class="nb">비재진입 Lock이면</span> 교착).</span> <span class="s">⛔ <strong>STOP은 이 락을 타지 않는다</strong> — <code class="inline">_handle_for_self</code>가 <span class="nb">dispatch 전에 분기한다.</span> <strong><span class="nb">느린 capability 뒤에서</span> <span class="nb">기다리는 STOP은</span> <span class="nb">STOP이 아니다.</span></strong></span>
+      </div>
+    </div>
+    <div class="prose mt-32">
+      <div class="note">
         <span class="s"><b>반환은 언제나 synapse Result다.</b></span> <span class="s">성공은 <code class="inline">Result.ok(message="", **data)</code>, 실패는 <code class="inline">Result.fail(error, message="")</code>이다.</span> <span class="s"><code class="inline">@property capability</code>는 self + 모든 sub의 것을 <code class="inline">{"common":[…], "custom":[…]}</code>로 종합해 <span class="nb">status에</span> <span class="nb">노출한다</span> — 관제 UI는 <span class="nb">이 목록만</span> 보고 <span class="nb">무엇을</span> <span class="nb">시킬 수 있는지</span> 안다.</span>
       </div>
     </div>
@@ -454,6 +459,11 @@
     ])</code></pre>
       </div>
       <p class="figcaption"><b>Figure 6.</b> 실제 RobotMission 예시. <code class="inline">cap</code>·<code class="inline">wait_input</code>·<code class="inline">notify</code> 헬퍼로 Task 시퀀스를 <span class="nb">간결히</span> <span class="nb">정의한다.</span> 미션은 Base의 <code class="inline">self.missions</code> 카탈로그에 등록되어 <span class="nb">NEXUS가</span> <span class="nb">트리거할 수 있다.</span></p>
+
+    </div>
+
+    <div class="prose mt-24">
+      <div class="note"><b>카탈로그는 <em>식별자·표시이름·설명</em> 셋을 싣는다:</b> <span class="s"><code class="inline">available_missions</code>가 <span class="nb">종전에</span> dict <strong>키</strong>(<code class="inline">name</code>)만 실어, <span class="nb">한국어 이름이 이미 있는데도</span> <span class="nb">발행 경계에서 버려졌다</span> — 콕핏이 <code class="inline">fetch — 물건을 집어서…</code>를 띄웠고 <span class="nb">설명은 한국어인데</span> <strong>제목만 코드 식별자</strong>였다(사용자가 <code class="inline">fetch</code>를 “패치”로 읽었다).</span> <span class="s"><span class="nb">지금은</span> <code class="inline">{name, label, description}</code>이다. ⚠️ <code class="inline">name</code>은 <strong>바꾸지 않는다</strong> — <code class="inline">mission.trigger</code>가 <span class="nb">그 값으로 되쏘기 때문이고,</span> <span class="nb">표시용은 따로 싣는다</span>(<code class="inline">label</code>이 <span class="nb">식별자와 같으면</span> <span class="nb">빈 문자열</span> — 같은 말을 두 번 쓰지 않는다). <span class="nb">두뇌는 이미</span> <code class="inline">mission_specs</code>로 <span class="nb">같은 규약을 쓰고 있었다</span> — <span class="nb">콘솔만 못 받고 있었다.</span></span></div>
     </div>
   </div>
 </section>
@@ -828,13 +838,13 @@
               <tr><td class="mono">입력 ①  마이크</td><td><code class="inline">MicListener</code>(발화 분할) → <code class="inline">FasterWhisperSTT</code> → <code class="inline">handle_transcript</code>. <span class="nb">로봇이 말하는 동안 들어온 소리는</span> <strong>캡처 시점에</strong> 폐기한다(에코)</td></tr>
               <tr><td class="mono">입력 ②  텍스트</td><td>콕핏 💬 → <code class="inline">ai_chat {text}</code> capability → <code class="inline">handle_text</code>. <span class="nb">마이크 없는 로봇·시끄러운 현장·원격 콘솔용</span></td></tr>
               <tr><td class="mono">두뇌</td><td><code class="inline">VoiceBrain.decide</code> — <span class="nb">백엔드는</span> <code class="inline">gerri.vision.backends</code>를 <strong>텍스트 전용</strong>으로 재사용한다(<code class="inline">auto</code> = 키 있으면 SDK, 없으면 claude CLI 구독)</td></tr>
-              <tr><td class="mono">출력 <em>하나</em></td><td>말하기 → <code class="inline">publish_speech()</code> → <code class="inline">status.extension.speech</code>. <span class="nb">status 워처가 그걸 읽어</span> TTS한다 — <strong><span class="nb">발화의 단일 소스</span></strong>(콕핏 말풍선도 같은 자리)</td></tr>
+              <tr><td class="mono">출력 <em>하나</em></td><td>말하기 → <code class="inline">publish_speech()</code> → <code class="inline">status.extension.speech</code>. <span class="nb">status 워처가 그걸 읽어</span> TTS한다 — <strong><span class="nb">발화의 단일 소스</span></strong>(콕핏 말풍선도 같은 자리). ⚠️ <span class="nb">슬롯이 하나라</span> <strong><span class="nb">마지막에 쓴 것이 이긴다</span></strong> → <span class="nb">발화는</span> <span class="nb">모았다 보내지 않고</span> <code class="inline">on_say</code> 콜백으로 <strong><span class="nb">나오는 즉시</span></strong> 흘려보낸다</td></tr>
               <tr><td class="mono">실행</td><td>capability 디스패치 <span class="nb">또는</span> 미션 트리거. <span class="nb">둘 다</span> <span class="nb">아래 안전 계약을</span> <span class="nb">코드가 강제한다</span></td></tr>
             </tbody>
           </table>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 13.</b> <span class="nb">AI 인터페이스 파이프라인.</span> <code class="inline">handle_text</code>는 <strong>말하지 않고</strong> <span class="nb">답변 문자열만 돌려주며,</span> <span class="nb">발행은</span> <code class="inline">ai_chat</code>이 한다 — <span class="nb">직접 say와</span> <span class="nb">워처 say가 겹치면</span> <strong>이중 발화</strong>가 된다. <span class="nb">배선은 러너 한 곳이다</span>(<code class="inline">VoiceService(...)</code> + <code class="inline">sub.attach_chat(...)</code>).</p>
+      <p class="figcaption"><b>Figure 13.</b> <span class="nb">AI 인터페이스 파이프라인.</span> <code class="inline">handle_text</code>는 <strong>스스로 TTS를 부르지 않고</strong> <code class="inline">on_say</code> 콜백으로 <span class="nb">발화를 흘려보내며</span>(<span class="nb">콜백을 안 주면</span> <span class="nb">종전대로 마지막 발화를 반환</span> — 구 배선 호환), <span class="nb">실제 발행은</span> <code class="inline">ai_chat</code>이 한다 — <span class="nb">직접 say와</span> <span class="nb">워처 say가 겹치면</span> <strong>이중 발화</strong>가 된다. <span class="nb">배선은 러너 한 곳이다</span>(<code class="inline">VoiceService(...)</code> + <code class="inline">sub.attach_chat(...)</code>).</p>
     </div>
 
     <div class="prose">
@@ -847,6 +857,10 @@
       <div class="note mt-20"><b>안전 계약 ③ — 동작류는 capability가 아니라 <em>미션</em>으로:</b> <span class="s"><span class="nb">여러 단계짜리 요청은</span> <span class="nb">미션이다.</span> 다만 <strong><span class="nb">시퀀스는 사람이 짜고</span> <span class="nb">두뇌는 인자만 채운다</span></strong> — "프링글스 잡아줘" → <code class="inline">fetch(대상=프링글스)</code>. <span class="nb">위험 동작은</span> <span class="nb">미션 안</span> <code class="inline">wait_input</code>이 <span class="nb">되묻고 나서야 지나간다</span>(<code class="inline">fetch</code> = 인식 → <strong>확인</strong> → 집기 → 건네기 → 복귀).</span> <span class="s"><span class="nb">인자를 못 채운 채</span> <span class="nb">미션을 걸면</span> <code class="inline">decide</code>가 <strong>막고 되묻는다</strong> — <span class="nb">안 막으면</span> <code class="inline">"$대상"</code>이 <span class="nb">문자열 그대로</span> capability까지 흘러 <span class="nb">팔이 엉뚱한 곳으로 간다.</span> <span class="nb">필수 인자 목록은</span> <span class="nb">미션 정의에서</span> <strong>자동 추출</strong>된다.</span></div>
 
       <div class="note mt-20"><b>비용이 드는 지점은 <em>LLM 앞에서</em> 막는다:</b> <span class="s"><span class="nb">이름 호출 게이트가</span> <strong>LLM 앞</strong>에 있어 <span class="nb">호출되지 않은 발화는</span> <span class="nb">비용이 0이다.</span> <span class="nb">그 밖에</span> <span class="nb">침묵 게이트·바지-인·</span><span class="nb">발화 처리 후 큐 플러시가</span> <span class="nb">실마이크 밀림을 잡는다.</span></span> <span class="s"><span class="nb">캡처 백엔드는</span> <code class="inline">sounddevice</code>가 기본이고, PipeWire에서 <span class="nb">무음이 잡히는 환경은</span> <code class="inline">parec</code>로 <span class="nb">우회한다.</span></span></div>
+
+      <div class="note mt-20"><b>발행 <em>순서</em>가 대화를 끊었다 — 추임새가 답을 덮었다:</b> <span class="s">두뇌가 추임새("확인해볼게요")를 만들고 <code class="inline">describe_status</code> 같은 <strong>동기</strong> capability가 <span class="nb">dispatch 중에</span> <span class="nb">진짜 답을</span> <code class="inline">extension.speech</code>에 쓰는데, <span class="nb">호출자가</span> <strong>다 끝나고</strong> <span class="nb">추임새를 발행해</span> <span class="nb">답을 덮었다</span> — <span class="nb">대화가</span> "<span class="nb">확인해볼게요</span>"에서 끝났다.</span> <span class="s">⚠️ <span class="nb">그래서</span> <strong><span class="nb">어떤 건 되고</span> <span class="nb">어떤 건 안 되는 것처럼</span> 보였다</strong> — <code class="inline">describe_scene</code>은 워커라 <span class="nb">답이 늦게 도착해</span> <span class="nb">우연히 살아남았다.</span> <span class="nb">지금은</span> <strong>추임새 → (dispatch) → 답</strong> 순서가 <span class="nb">자연히 지켜진다.</span></span></div>
+
+      <div class="note mt-20"><b>TTS 없음은 <em>고장이 아니다</em>:</b> <span class="s">TTS를 <span class="nb">선택으로 만들면서</span> <span class="nb">재생 루프를 안 고쳐,</span> <span class="nb">발화마다</span> <code class="inline">AttributeError</code> 트레이스백이 <span class="nb">로그를 덮었다</span> — <strong><span class="nb">트레이스백이</span> <span class="nb">진짜 결함을 덮는다.</span></strong></span> <span class="s"><span class="nb">지금은</span> <span class="nb">TTS가 없으면</span> <strong>조용히 건너뛴다</strong>(발화 텍스트는 <span class="nb">이미</span> <code class="inline">extension.speech</code>로 나갔다). "<span class="nb">TTS 실패</span>"는 <span class="nb">고장을 뜻하는 말이라</span> <span class="nb">정상 구성(텍스트 전용)에 쓰면</span> <span class="nb">다음 사람이</span> <span class="nb">원인을 거기서 찾는다</span> — <strong>폴백은 상태를 구분해 말한다.</strong></span></div>
 
       <div class="note mt-20"><b>⚠️ 두뇌를 수신 스레드에서 돌리면 로봇이 끊긴다:</b> <span class="s">capability는 <span class="nb">게이트웨이</span> <strong>수신 스레드</strong>에서 불리는데 <span class="nb">두뇌는 1~3초 걸린다.</span> <span class="nb">그동안</span> <span class="nb">status 발행·명령 수신이 멈춰</span> WS가 끊기고 <span class="nb">WebRTC 영상까지 죽었다</span>(실기 실측: <span class="nb">말 걸 때마다 끊김</span>).</span> <span class="s"><code class="inline">_start_mission</code>과 <span class="nb">같은 규약으로</span> <span class="nb">데몬 스레드에 뺐고,</span> <span class="nb">중복 진입은</span> <code class="inline">chat_busy</code>로 <span class="nb">거부한다.</span> <span class="nb">이 문제의 일반해는</span> <span class="nb">AND 데몬화다</span>(<a href="and.html">AND</a> 참조) — <span class="nb">거기서 송수신 자체를</span> <span class="nb">워커 스레드로 끊었다.</span></span></div>
     </div>
@@ -865,11 +879,50 @@
     <div class="prose">
       <div class="note"><b>생략 계약(<code class="inline">_omit_unchanged</code>) — 안 바뀐 블록은 안 보낸다:</b> <span class="s"><code class="inline">robot_info</code>가 <span class="nb">와이어의</span> <strong>61%</strong>인데 <span class="nb">거의 안 변한다.</span> <span class="nb">소비자(NEXUS registry·콕핏)는</span> <span class="nb">"온 블록은 그대로, 안 온 블록은 직전 것 유지"로</span> 병합한다.</span> <span class="s">⚠️ digest가 <strong>블록 통째</strong>로 걸리므로 <span class="nb">무거운 정적 메타와</span> <span class="nb">가벼운 런타임 값이</span> <span class="nb">같은 블록에 있으면</span> <span class="nb">후자가 바뀔 때마다</span> <span class="nb">전자까지 끌려 나온다</span> — 실측: <span class="nb">토글 하나</span>(~30B 변경)가 <code class="inline">robot_info</code> 3,869B <span class="nb">전체를 재전송,</span> <strong>약 130배</strong>다.</span></div>
 
-      <div class="note mt-20"><b>소멸 툼스톤 — 생략과 소멸은 다르다:</b> <span class="s"><span class="nb">진행 표시</span>(<code class="inline">capability_info</code>)처럼 <span class="nb">끝나면 키가 사라지는 블록은,</span> <span class="nb">와이어에서</span> <span class="nb">"안 바뀜"과</span> <span class="nb">"없어짐"이 구분되지 않아</span> <span class="nb">소비자 병합 캐시에</span> <strong>영구 고착</strong>됐다.</span> <span class="s"><span class="nb">직전에 보냈던 블록이 없어지면</span> <span class="nb">명시적</span> <code class="inline">None</code>을 <span class="nb">한 번 실어</span> <strong>삭제를 표현</strong>한다 — <span class="nb">전체 프레임·부분 프레임 공통이다</span>(소멸 시점이 <span class="nb">전체 전송 틱이면</span> <span class="nb">툼스톤을 영영 못 보내는</span> <span class="nb">창이 있었다).</span></span></div>
+      <div class="note mt-20"><b>그래서 착지점을 <em>슬롯</em>으로 갈랐다 — 정적/동적:</b> <span class="s"><span class="nb">새 정적 자기기술은</span> <code class="inline">robot_info.extension</code>(<code class="inline">self.robot_info_extension</code>), <span class="nb">런타임에 바뀌는 설정값</span>(옆잡기 토글·status 주기·티칭 파일 목록)은 <code class="inline">robot_state.extension.settings</code>(<code class="inline">self.robot_state_settings</code>)다 — <code class="inline">robot_state</code>는 <span class="nb">어차피 매 틱 나가므로</span> <span class="nb">거기 두면</span> <span class="nb">위의 130배 증폭이 사라진다.</span></span> <span class="s"><span class="nb">레거시</span> <code class="inline">robot_info_extra</code>는 <strong>최상위</strong>에 얹는데 그것이 세 가지를 깬다 — ① <strong>소멸 불가</strong>(키 단위 merge + 블록 단위 툼스톤이라 <span class="nb">한 번 실린 최상위 키는</span> <span class="nb">소비자 캐시에 영구 잔존</span>) ② <strong>각도 정규화 우회</strong>(<code class="inline">to_standard_angles</code>는 <code class="inline">robot_state</code>만 접는다 → <span class="nb">조용한 57.3배</span>) ③ static/dynamic 혼동.</span> <span class="s"><span class="nb">그래도</span> <code class="inline">robot_info_extra</code>를 <strong>살려 뒀다</strong> — <span class="nb">모든</span> <code class="inline">tag_*</code>가 <span class="nb">의존하고 있어</span> <span class="nb">지금 끊으면 전 로봇이 깨진다</span>(3박자 ADD→SWITCH→REMOVE의 <strong>ADD</strong>). <span class="nb">콘솔은 이미</span> <em>extension 우선 → 최상위 폴백</em>으로 읽으므로 <span class="nb">로봇은 지금 바로 옮겨도 된다.</span></span></div>
+
+      <div class="note mt-20"><b>소멸 툼스톤 — 생략과 소멸은 다르다:</b> <span class="s"><span class="nb">진행 표시</span>(<code class="inline">capability_info</code>)처럼 <span class="nb">끝나면 키가 사라지는 블록은,</span> <span class="nb">와이어에서</span> <span class="nb">"안 바뀜"과</span> <span class="nb">"없어짐"이 구분되지 않아</span> <span class="nb">소비자 병합 캐시에</span> <strong>영구 고착</strong>됐다.</span> <span class="s"><span class="nb">직전에 보냈던 블록이 없어지면</span> <span class="nb">명시적</span> <code class="inline">None</code>을 <span class="nb">한 번 실어</span> <strong>삭제를 표현</strong>한다 — <span class="nb">전체 프레임·부분 프레임 공통이다</span>(소멸 시점이 <span class="nb">전체 전송 틱이면</span> <span class="nb">툼스톤을 영영 못 보내는</span> <span class="nb">창이 있었다).</span></span> <span class="s">⚠️ <strong><span class="nb">계약의 절반은 소비자에게 있다.</span></strong> 콘솔의 병합이 <code class="inline">{...prev, ...value}</code>라 <strong>블록이 사라지지 않아</strong> 끝난 <code class="inline">capability_info</code>(진행 표시)가 <span class="nb">콕핏에 영구 고착됐고,</span> <span class="nb">생략이 걸린 틱의</span> <span class="nb">빈 껍데기</span> <code class="inline">robot_info</code>를 <span class="nb">병합 전에 읽어</span> version·robot_shape가 <span class="nb">통째로 날아갔다.</span> <span class="nb">규칙 본체를</span> <strong>한 벌</strong>로 합쳐(<code class="inline">mergeStatusBlocks</code>) 대시보드와 콕핏이 <span class="nb">같은 함수를 쓴다</span> — <span class="nb">같은 규칙의 독립 구현이</span> <span class="nb">여러 벌이면</span> <span class="nb">그중 하나는 반드시</span> <span class="nb">툼스톤을 빼먹는다.</span></span></div>
 
       <div class="note mt-20"><b>RMI는 델타를 내보낸다:</b> <span class="s"><span class="nb">로컬 화면 브로드캐스트를</span> <span class="nb">완전본으로 두면</span> <span class="nb">생략 계약의 이득이</span> <span class="nb">이 경로에서만 사라진다.</span> <span class="nb">실측(유휴)</span> <strong>5,105B → 1,107B</strong>(중앙값 78% 감소), 47.5 → 11.4 KB/s. <span class="nb">버려지던 76%가</span> <span class="nb">안 바뀌는</span> <code class="inline">robot_info</code>였다.</span> <span class="s"><span class="nb">병합은 화면이 하고,</span> <span class="nb">캐시는 완전본으로 남겨</span> <span class="nb">신규·재접속 클라이언트의</span> <span class="nb">기준선으로 쓴다.</span></span></div>
 
       <div class="note mt-20"><b>🎞️ mcap 상시 녹화 — 팀 규칙이라 <em>기본 ON</em>:</b> <span class="s"><code class="inline">gerri/recording/mcap_bridge.py</code>가 <span class="nb">새 채널 없이</span> <code class="inline">Topic.Robot.STATUS</code>를 <span class="nb">(생략 <strong>전</strong>) 구독한다.</span> <span class="nb">콜백은</span> <em>직렬화 + 큐 + 즉시 반환</em>만 하고 <span class="nb">디스크는 전용 워커가 만진다</span> — <span class="nb">발행 스레드 추가비용</span> <strong>약 0.08 ms/건</strong>(10Hz 예산의 0.08%), <span class="nb">그래서 켜둔다.</span></span> <span class="s"><span class="nb">드롭은</span> <span class="nb">실시간성 우선(reject-new)이고</span> <span class="nb">누적 건수를 로그와</span> <span class="nb">파일 안</span> <code class="inline">recording.stats</code>에 <span class="nb">남긴다</span> — <strong><span class="nb">조용한 드롭은 없다.</span></strong> <span class="nb">영상은 비용 자릿수가</span> <span class="nb">200배라 안 넣었다.</span> <span class="nb">패키지가 없어도</span> <span class="nb">로봇은 그대로 뜬다</span>(<span class="nb">이유를 로그로 말하고</span> <span class="nb">녹화만 끈다</span>).</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 흐름 추적 발행기(trace) ════════ -->
+<section class="section" id="trace">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Flow Observability · 기본 꺼짐</span>
+      <h2 class="section-title">◈ 흐름 추적 발행기 — <span class="nb">hop을 줍는 곳은</span> <span class="nb">이미 있는 초크포인트뿐</span></h2>
+      <p class="section-lead"><span class="s">계약(<code class="inline">TraceHop</code>·<code class="inline">TraceBatch</code>·토픽별 정책)은 <a href="synapse.html#trace">synapse</a>가 정본이고, <code class="inline">gerri/trace.py</code>는 <strong>로봇측 발행기</strong>뿐이다 — <span class="nb">어디서 hop을 줍고,</span> <span class="nb">얼마나 접어서,</span> <span class="nb">얼마나 자주 보내는가.</span></span> <span class="s"><span class="nb">집계와 화면은</span> <a href="nexus.html#trace">NEXUS</a>가 맡는다.</span></p>
+    </div>
+
+    <div class="figure">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th style="width:290px;">계기를 얹은 자리(단일 초크포인트)</th><th>무엇이 실리나</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">_and_/daemon.py :: _log_raw</td><td>AND의 TX/RX — 노드 <code class="inline">robot:{id}/and</code>. <span class="nb">이미 전 송수신이</span> <span class="nb">지나는 자리다.</span></td></tr>
+            <tr><td class="mono">base_controller :: _standardize_outgoing</td><td><code class="inline">normalized</code> · <code class="inline">dropped_fields</code> — <strong>“<span class="nb">내 필드가 왜</span> <span class="nb">콘솔에 안 보이지?</span>”</strong>에 답하는 데이터.</td></tr>
+            <tr><td class="mono">base_controller :: _on_external_message</td><td>명령이 <span class="nb">어느 sub의</span> <span class="nb">어느 capability로</span> 갔나.</td></tr>
+            <tr><td class="mono">base_controller :: __init__ / disconnect</td><td><code class="inline">enable(info)</code> / <code class="inline">disable()</code> — <span class="nb">러너가 넘긴</span> robot config가 <span class="nb">여기로 온다.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 14.</b> <strong>새 훅 포인트를 만들지 않았다</strong>(死코드 금지). 경로 테스트도 <span class="nb">모듈 함수를 직접 부르는 것이 아니라</span> <strong>실제 발행 경로로 메시지를 흘려보내</strong> 와이어에 hop이 실리는지 본다 — <span class="nb">위 지점 중 하나를 지우면</span> <span class="nb">그 테스트가 빨개진다.</span></p>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span></span><span></span><span></span></div><span class="code-label">robot.config.json — "trace" (기본 꺼짐)</span></div>
+<pre><code><span class="str">"trace"</span>: {<span class="str">"enabled"</span>: <span class="kw">false</span>, <span class="str">"batch_seconds"</span>: <span class="num">1.0</span>, <span class="str">"tick_seconds"</span>: <span class="num">1.0</span>}</code></pre>
+      </div>
+
+      <div class="note mt-24"><b>꺼진 상태의 와이어는 <em>바이트 하나도</em> 다르지 않다:</b> <span class="s">켜지지 않으면 <strong><span class="nb">아무것도 시작하지 않는다</span></strong> — 배치 스레드도 없고 <code class="inline">record()</code>는 <span class="nb">전역 bool 하나를 읽고</span> <span class="nb">즉시 돌아온다.</span></span> <span class="s"><code class="inline">enabled</code>는 <strong>엄격 판정</strong>이다(<code class="inline">true</code>/<code class="inline">1</code>/<code class="inline">yes</code>/<code class="inline">on</code>만) — <span class="nb">문자열</span> <code class="inline">"false"</code>가 truthy라서 <span class="nb">켜지는 사고를 막는다.</span> <strong><span class="nb">기본 꺼짐이</span> <span class="nb">이 기능의 1번 제약이라</span> <span class="nb">오탐 방향(켜짐)이 위험하다.</span></strong></span> <span class="s"><span class="nb">config로만 켠다</span> — CLI 플래그를 늘리지 않는다.</span></div>
+
+      <div class="note mt-20"><b>고빈도는 <em>틱</em>으로 접는다 — 판단은 synapse 한 곳에서:</b> <span class="s">정책은 <span class="nb">토픽별로</span> synapse가 <span class="nb">미리 고정해 두었고</span> 이 모듈은 그것을 <strong>읽어서</strong> 적용한다(<span class="nb">판단이 두 곳에 있으면</span> 드리프트한다). <strong>건별</strong>은 메시지마다 hop 1건, <strong>틱</strong>(<code class="inline">robot.status</code>·<code class="inline">command.teleop</code>)은 <code class="inline">(topic, node, direction)</code> 조합마다 <span class="nb">창당 요약 hop 1건</span>이고 <span class="nb">개별 메시지는 포기한다</span>(<code class="inline">uuid=""</code>, 남는 것은 <code class="inline">count</code>·창 평균 <code class="inline">latency_ms</code>·<code class="inline">dropped_fields</code> 합집합).</span> <span class="s">실측 근거 — teleop을 건별로 추적했더니 hop 트래픽이 <strong>원본 업링크의 148%</strong>였다.</span> <span class="s">창은 두 가지로 닫힌다 — ① <span class="nb">다음 메시지가</span> <code class="inline">tick_seconds</code>를 넘겨 도착할 때 ② <strong>배치가 나갈 때</strong>(②가 없으면 <span class="nb">흐름이 멎은 창이</span> <span class="nb">다음 메시지까지 붙들려</span> “<span class="nb">마지막 구간</span>”이 <span class="nb">영영 안 보인다</span>).</span></div>
     </div>
   </div>
 </section>
@@ -901,6 +954,7 @@
       <li><a href="#new-robot">새 로봇 추가</a></li>
       <li><a href="#vision">gerri.vision</a></li>
       <li><a href="#ai">AI 인터페이스</a></li>
+      <li><a href="#trace">흐름 추적</a></li>
     </ul></div>
     <div class="footer-col"><h4>연락처</h4><ul>
       <li><a href="mailto:khkim1207@keti.re.kr">khkim1207@keti.re.kr</a></li>

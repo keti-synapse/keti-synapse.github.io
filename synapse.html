@@ -106,7 +106,7 @@
     <div class="proj-name" style="color:var(--acc);">synapse</div>
     <div class="proj-full">The single message standard every component imports — definitions only, no execution.</div>
     <p class="proj-lead">
-      <span class="s">이기종 멀티로봇 플랫폼의 <strong style="color:var(--ink);">가장 안쪽 표준 레이어</strong>로, Topics·표준 메시지 6종·Enum 카탈로그·Pydantic v2 자료구조·미션 모델·<code class="inline">standardize()</code>를 <span class="nb">한 곳에 모은다.</span></span>
+      <span class="s">이기종 멀티로봇 플랫폼의 <strong style="color:var(--ink);">가장 안쪽 표준 레이어</strong>로, Topics·표준 메시지 6종·Enum 카탈로그·Pydantic v2 자료구조·미션 모델·<span class="nb">흐름 추적 계약</span>·<code class="inline">standardize()</code>를 <span class="nb">한 곳에 모은다.</span></span>
       <span class="s">철학은 단 하나, <strong style="color:var(--ink);">"정의만 한다"</strong>는 것이다.</span>
       <span class="s">실행 로직은 <span class="nb">바깥(tom_and_gerri·nexus)이</span> 가지며, 여기를 바꾸면 <span class="nb">전체가 흔들리므로</span> <span class="nb">가장 신중히</span> 관리한다.</span>
     </p>
@@ -120,7 +120,7 @@
       <span class="chip">__init__.py</span><span class="chip">topics.py</span><span class="chip">message.py</span>
       <span class="chip">enums.py</span><span class="chip">types.py</span><span class="chip">models.py</span>
       <span class="chip">standardize.py</span><span class="chip">builders.py</span><span class="chip">teleop_mapping.py</span>
-      <span class="chip">time_sync.py</span><span class="chip">missions.py</span><span class="chip">units.py</span><span class="chip">frames.py</span>
+      <span class="chip">time_sync.py</span><span class="chip">missions.py</span><span class="chip">units.py</span><span class="chip">frames.py</span><span class="chip">trace.py</span>
     </div>
   </div>
 </section>
@@ -194,6 +194,8 @@
 
     <div class="prose mt-32">
       <div class="note"><b>내부 토픽:</b> <span class="s"><code class="inline">Topic.Network.SEND/RECV</code>는 tom_and_gerri <span class="nb">내부 버스용으로</span> synapse에 <span class="nb">함께 정의되지만</span> <span class="nb">외부 표준 6종에는</span> 포함되지 않는다.</span> <span class="s">규칙은 동일하다 — 토픽은 언제나 <code class="inline">Topic.*</code>를 통한다.</span></div>
+
+      <div class="note mt-20"><b>관측 채널 <code class="inline">trace.hop</code> — 6종을 <em>보는</em> 부수 채널:</b> <span class="s"><code class="inline">Topic.Trace.HOP</code>은 <span class="nb">시스템을 움직이는</span> 위 6종과 <strong>성격이 다르다</strong> — <span class="nb">그 6종이 어디까지 갔는지를</span> <span class="nb">관측하는 채널이고</span> <strong>기본 꺼짐</strong>이다. <span class="nb">다만</span> <strong><span class="nb">와이어를 타므로</span></strong> <code class="inline">EXTERNAL_TOPICS</code> <span class="nb">카탈로그에 포함되고</span> <span class="nb">스키마·픽스처 검증 대상이다</span>(<a href="#trace">흐름 추적 계약</a>).</span> <span class="s"><span class="nb">그래서 카탈로그 테스트는</span> <span class="nb">숫자를 박지 않고</span> <strong>구성</strong>으로 검사한다 — <span class="nb">지키려는 성질은</span> “<span class="nb">6종이다</span>”가 아니라 <strong>“<span class="nb">동적 토픽이 없다</span>”</strong>이기 때문이다(시스템 6종 + 관측 1종).</span></div>
     </div>
   </div>
 </section>
@@ -266,7 +268,11 @@
               </div>
               <div class="dim-card">
                 <div class="dim-k">정적 메타를 최상위에 얹지 않는다</div>
-                <div class="dim-v"><span class="nb">모델이</span> <code class="inline">extra="allow"</code>라 <span class="nb">최상위에 실어도</span> <span class="nb">통과는 하지만</span> 세 가지가 깨진다 — <span class="nb">키 소멸 불가</span>(registry는 <span class="nb">키 단위 merge·</span><span class="nb">툼스톤은 블록 단위),</span> <span class="nb">각도 정규화 우회,</span> <span class="nb">static/dynamic 혼동.</span> <span class="nb">실측으로</span> <span class="nb">실기 한 대가</span> <span class="nb">비표준 키 15개를</span> <span class="nb">최상위에 싣고 있었다.</span></div>
+                <div class="dim-v"><span class="nb">모델이</span> <code class="inline">extra="allow"</code>라 <span class="nb">최상위에 실어도</span> <span class="nb">통과는 하지만</span> 세 가지가 깨진다 — <span class="nb">키 소멸 불가</span>(registry는 <span class="nb">키 단위 merge·</span><span class="nb">툼스톤은 블록 단위),</span> <span class="nb">각도 정규화 우회</span>(<code class="inline">to_standard_angles</code>는 <code class="inline">robot_state</code>만 접으므로 <span class="nb">rad 선언 로봇이</span> <span class="nb">최상위에 각도를 실으면</span> <strong><span class="nb">조용한 57.3배</span></strong>), <span class="nb">static/dynamic 혼동.</span> <span class="nb">실측으로</span> <span class="nb">실기 한 대가</span> <span class="nb">비표준 키 15개를</span> <span class="nb">최상위에 싣고 있었다.</span></div>
+              </div>
+              <div class="dim-card">
+                <div class="dim-k">런타임에 바뀌는 설정값 = <code class="inline">robot_state.extension.settings</code></div>
+                <div class="dim-v"><span class="nb">옆잡기 토글·status 주기·티칭 파일 목록처럼</span> <strong>런타임에 바뀌는</strong> 값을 static 블록인 <code class="inline">robot_info</code>에 쓰면, <span class="nb">생략 판정이</span> <strong>블록 전체의 digest</strong>라 <span class="nb">키 하나만 바뀌어도</span> <code class="inline">robot_info</code>가 <span class="nb">통째로 재전송된다</span> — 실측 <strong>≈130배 증폭</strong>. <code class="inline">robot_state</code>는 <span class="nb">어차피 매 틱 나가므로</span> <span class="nb">거기 두면 증폭이 사라진다.</span> ⚠️ <span class="nb">빈 값은</span> <code class="inline">None</code>이 아니라 <code class="inline">[]</code>·<code class="inline">false</code>·<code class="inline">0</code>으로 말한다.</div>
               </div>
             </div>
           </div>
@@ -555,6 +561,51 @@
         </div>
       </div>
       <p class="figcaption"><b>Figure 6.</b> <span class="nb">와이어 자릿수 정책</span>(<code class="inline">units.WIRE_DECIMALS</code>, <span class="nb">적용은 발행 경계 ②</span>). <code class="inline">float64</code>는 17자리를 <span class="nb">표현하지만</span> <strong><span class="nb">측정 정밀도는</span> <span class="nb">그 근처도 아니다</span></strong> — SE2 합성·<code class="inline">math.degrees</code>·<span class="nb">쿼터니언 변환이 남긴</span> <span class="nb">부동소수 꼬리가</span>(<code class="inline">-33.33006134969326</code>) <span class="nb">그대로 와이어에 실려</span> <span class="nb">로그와 콕핏에서</span> <span class="nb">사람에게 읽혔다.</span> <span class="nb">자릿수는 취향이 아니라</span> <strong>물리량</strong>이라 <span class="nb">단위별로 정한다.</span> <span class="nb">목적은</span> <span class="nb">거짓 정밀도 제거이지</span> <span class="nb">대역폭이 아니다</span>(실측 −1.6%).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 흐름 추적 계약(trace) ════════ -->
+<section class="section alt" id="trace">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Flow Observability Contract · 기본 꺼짐</span>
+      <h2 class="section-title">흐름 추적 계약 — <span class="nb">정의만 한다</span></h2>
+      <p class="section-lead"><span class="s">한 명령이 <span class="nb">운영자 → NEXUS → AND → base → sub → 메서드</span>를 지나는 동안 <span class="nb">어디서 무엇이 되었는지</span> <span class="nb">지금은 아무도</span> <span class="nb">한 화면에서 못 본다.</span></span><span class="s"><span class="nb">조각은 이미 전부</span> <span class="nb">와이어에 실려 다닌다</span>(<code class="inline">uuid</code>·<code class="inline">sender</code>/<code class="inline">receiver</code>·<code class="inline">timestamp</code>·<span class="nb">유한 열거된 토픽</span>) — <span class="nb">없던 것은</span> <strong><span class="nb">그 조각을 같은 이름으로</span> <span class="nb">주워 담을 그릇</span></strong> 하나뿐이었다.</span></p>
+    </div>
+
+    <div class="prose">
+      <p class="lead-para"><code class="inline">synapse/trace.py</code>는 <strong>그릇과 정책만</strong> 둔다 — <span class="nb">이 모듈에는</span> <strong>실행 함수가 없다.</strong> hop을 만드는 쪽은 <a href="gerri.html#trace">GERRI/AND</a>, 접는 쪽은 <a href="nexus.html#trace">NEXUS</a>다.</p>
+      <p><span class="nb">동결 레이어를 여는 근거는</span> <span class="nb">의존 방향이다</span> — 만드는 쪽(gerri)과 소비하는 쪽(nexus)이 <span class="nb">둘 다 Python이고</span> <strong>서로의 구현은 import하지 않는다</strong>. synapse에 두지 않으면 <span class="nb">같은 모델이</span> <span class="nb">빌더와 파서에</span> <span class="nb">손으로 복제되고</span> <span class="nb">드리프트한다.</span> (대조군: <code class="inline">/api/alignments</code>는 <span class="nb">만드는 쪽이</span> nexus_ui(JS)라 <span class="nb">synapse를 import할 수 없어서</span> NEXUS가 소유한다.) <strong>HTTP가 아니라 토픽인 이유</strong>는 기존 AND 전송 추상화를 그대로 쓰기 때문이다 — 덤으로 <span class="nb">NEXUS 없는</span> <span class="nb">콕핏 P2P(1:1)에서도</span> hop이 흐른다.</p>
+    </div>
+
+    <div class="figure mt-32">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th style="width:170px;">TraceHop 필드</th><th style="width:130px;">타입</th><th>의미</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">at</td><td class="mono">float</td><td>이 hop이 관측된 시각(<code class="inline">time.time()</code>)</td></tr>
+            <tr><td class="mono">node</td><td class="mono">str</td><td>참여자 — <code class="inline">operator:{id}</code> · <code class="inline">nexus</code> · <code class="inline">robot:{id}/and</code> · <code class="inline">robot:{id}/base</code> · <code class="inline">robot:{id}/{sub_id}</code>. <strong><span class="nb">발행측·집계측이</span> <span class="nb">같은 문법을 써야</span> <span class="nb">그래프가 하나로 접힌다.</span></strong></td></tr>
+            <tr><td class="mono">direction</td><td class="mono">str</td><td><code class="inline">"in"</code>(받음) · <code class="inline">"out"</code>(보냄)</td></tr>
+            <tr><td class="mono">topic</td><td class="mono">str</td><td>표준 토픽 중 하나(<code class="inline">trace.hop</code> 자신은 제외)</td></tr>
+            <tr><td class="mono">uuid</td><td class="mono">str</td><td><code class="inline">msg_info.uuid</code> — <strong>이것으로 end-to-end를 꿴다.</strong> 틱 hop은 빈 문자열</td></tr>
+            <tr><td class="mono">capability</td><td class="mono">str | None</td><td><code class="inline">command.capability</code>면 <span class="nb">어느 메서드로 갔나</span></td></tr>
+            <tr><td class="mono">normalized</td><td class="mono">bool | None</td><td>표준 정규화(<code class="inline">standardize</code>)를 거쳤나</td></tr>
+            <tr><td class="mono">dropped_fields</td><td class="mono">list[str]</td><td><span class="nb">정규화가 떨군</span> 필드 경로 — <strong>이 계약의 숨은 값</strong>이다(“<span class="nb">내 필드가 왜</span> <span class="nb">콘솔에 안 보이지?</span>”에 답한다)</td></tr>
+            <tr><td class="mono">latency_ms</td><td class="mono">float | None</td><td><span class="nb">같은 uuid의</span> <span class="nb">직전 hop 대비 지연.</span> 첫 hop이면 <code class="inline">None</code>, 틱이면 창 평균</td></tr>
+            <tr><td class="mono">count</td><td class="mono">int</td><td>이 hop이 대표하는 메시지 수 — 건별 1, <span class="nb">틱이면</span> <span class="nb">그 창의 건수</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figcaption"><b>Figure 7.</b> <code class="inline">TraceHop</code> — <span class="nb">메시지가 참여자 하나를</span> <span class="nb">지나간 사건 1건.</span> 전송 단위는 <code class="inline">TraceBatch</code>(<code class="inline">hops: list</code>)로, hop을 status에 얹지 않고 <strong>1초 주기 저빈도 배치</strong>로 따로 보낸다. <span class="nb">관용(Postel) 원칙으로</span> <code class="inline">direction</code> 등을 Literal로 좁히지 않고 <code class="inline">extra="allow"</code>를 둔다 — <span class="nb">오타 하나로</span> <span class="nb">배치가 통째 떨어지는 것보다</span> <span class="nb">이상한 값이 보이는 편이 낫다</span>(<span class="nb">관측 데이터로</span> <span class="nb">프로세스를 죽이지 않는다</span>).</p>
+    </div>
+
+    <div class="prose mt-32">
+      <div class="note"><b>관측이 대상을 바꾸면 안 된다 — 정책을 <em>미리</em> 고정한다:</b> <span class="s">표준 토픽을 <strong>빠짐없이</strong> 둘로 분류해 둔다 — <strong>건별</strong>(<code class="inline">command.capability</code>·<code class="inline">mission.trigger</code>·<code class="inline">mission.event</code>·<code class="inline">help.action</code>)은 메시지마다 hop 1건, <strong>틱</strong>(<code class="inline">robot.status</code>·<code class="inline">command.teleop</code>)은 <span class="nb">1초 창마다</span> 요약 hop 1건이다.</span> <span class="s">⚠️ <span class="nb">새 외부 토픽이 생기면</span> <span class="nb">둘 중 하나에 반드시 넣는다</span> — <span class="nb">안 넣으면 발행측이</span> “<span class="nb">정책 없음</span>”을 “<span class="nb">추적 안 함</span>”으로 읽어 <strong>조용히 누락</strong>된다(테스트가 잡는다). <code class="inline">trace.hop</code> 자신은 <strong>어디에도 넣지 않는다</strong> — hop이 hop을 낳는 무한 증폭 차단.</span></div>
+
+      <div class="note mt-20"><b>페이로드는 어느 정책에도 없다:</b> <span class="s">계약에 <code class="inline">payload</code> 필드를 <strong>두지 않은 것이 설계 결정</strong>이다 — ① 사용자 지침이 “<span class="nb">토픽 정도만</span>”이고 ② <span class="nb">페이로드를 실으면</span> <span class="nb">관측 트래픽이</span> <span class="nb">대상을 넘어서며</span> ③ <span class="nb">로봇 내부 원본은</span> <span class="nb">로컬 RMI에서</span> <span class="nb">서버 왕복 없이 본다.</span></span></div>
+
+      <div class="note mt-20"><b>기본 꺼짐이 1번 제약이다:</b> <span class="s"><code class="inline">robot.config.json</code>의 <code class="inline">trace</code> 섹션(<code class="inline">enabled</code>·<code class="inline">batch_seconds</code>·<code class="inline">tick_seconds</code>)으로만 켜진다 — <span class="nb">CLI 플래그를 늘리지 않는다.</span></span> <span class="s"><span class="nb">켜지 않으면</span> <code class="inline">trace.hop</code> 메시지는 <strong>한 건도 나가지 않고,</strong> <span class="nb">기존 발행 경로의</span> <span class="nb">바이트가 달라지지 않는다.</span> <code class="inline">robot_state.network</code>(지연 측정)와는 <span class="nb">완전히 별개 축이다.</span></span></div>
     </div>
   </div>
 </section>

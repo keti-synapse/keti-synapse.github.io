@@ -441,7 +441,7 @@
           <div class="comp-name" style="color:var(--syn);">synapse</div>
           <div class="comp-abbr">공통 표준 레이어 · pip 패키지</div>
           <div class="comp-desc"><span class="nb">모든 컴포넌트가</span> <span class="nb">import하는</span> <span class="nb">중심 표준.</span> Topics, Messages 6종, Enum 카탈로그, 자료구조, 미션 모델, <code class="inline">standardize()</code>를 <span class="nb">정의한다.</span> <span class="nb">정의만 하고</span> <span class="nb">실행 로직은 없다.</span></div>
-          <div class="comp-chips"><span class="chip">Topics</span><span class="chip">Messages·6</span><span class="chip">Enum 카탈로그</span><span class="chip">standardize()</span><span class="chip">단위(deg)</span></div>
+          <div class="comp-chips"><span class="chip">Topics</span><span class="chip">Messages·6</span><span class="chip">Enum 카탈로그</span><span class="chip">standardize()</span><span class="chip">단위(deg)</span><span class="chip">trace 계약</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--syn);">자세히 보기</span><span class="ar">↗</span></div>
       </a>
@@ -485,7 +485,7 @@
           <div class="comp-name" style="color:var(--nexus);">NEXUS</div>
           <div class="comp-abbr">플릿 관제 서버 · 게이트웨이</div>
           <div class="comp-desc"><span class="nb">N:N 다중로봇</span> <span class="nb">통합 관제</span> + <span class="nb">원격 접속</span> <span class="nb">게이트웨이.</span> <strong>FastAPI + Uvicorn</strong>, 상태는 <span class="nb">in-memory 레지스트리</span>(재시작 생존용 SQLite 스냅샷 영속 옵션). API-first. <code class="inline">python -m nexus</code> <span class="nb">단일 명령 기동.</span></div>
-          <div class="comp-chips"><span class="chip">FastAPI</span><span class="chip">/ws/{room}</span><span class="chip">API-first</span><span class="chip">Single-site</span></div>
+          <div class="comp-chips"><span class="chip">FastAPI</span><span class="chip">/ws/{room}</span><span class="chip">API-first</span><span class="chip">Single-site</span><span class="chip">흐름 추적 집계</span></div>
         </div>
         <div class="comp-foot"><span class="lk" style="color:var(--nexus);">자세히 보기</span><span class="ar">↗</span></div>
       </a>
@@ -689,7 +689,7 @@
       <div class="phase-item">
         <div class="phase-label" style="color:var(--gerri);">개입 · 트윈 · 비전 · 대화</div>
         <div class="phase-title">인간 개입 + 3D 트윈 + 비전 피킹 + AI 인터페이스</div>
-        <div class="phase-desc">A4 통합 개입 엔진(NEED_HELP→TELEOP takeover) · URDF/GLB 3D 트윈 콕핏 · IoT(엘리베이터·자동문) 연동 · <span class="nb">디텍션→OBB→파지계획</span> 공통 라이브러리와 <span class="nb">콕핏 클릭·박스 피킹</span> · <span class="nb">말과 글로 로봇을 부리는</span> <span class="nb">AI 인터페이스</span>(마이크·<code class="inline">ai_chat</code> → <span class="nb">같은 두뇌</span> → capability·미션).</div>
+        <div class="phase-desc">A4 통합 개입 엔진(NEED_HELP→TELEOP takeover) · URDF/GLB 3D 트윈 콕핏 · IoT(엘리베이터·자동문) 연동 · <span class="nb">디텍션→OBB→파지계획</span> 공통 라이브러리와 <span class="nb">콕핏 클릭·박스 피킹</span> · <span class="nb">말과 글로 로봇을 부리는</span> <span class="nb">AI 인터페이스</span>(마이크·<code class="inline">ai_chat</code> → <span class="nb">같은 두뇌</span> → capability·미션) · <span class="nb">한 명령의 end-to-end 경로를 보는</span> <strong>흐름 추적</strong>(<code class="inline">trace.hop</code> — 4레포 관통, <span class="nb">기본 꺼짐</span>).</div>
       </div>
       <div class="phase-item goal">
         <div class="phase-label" style="color:var(--acc-d);">SDK 🎯</div>

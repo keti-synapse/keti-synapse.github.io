@@ -132,7 +132,39 @@
   #content{ flex:1; display:flex; flex-direction:column; min-height:0; }
   /* 서버 설정 패널 */
   #configview{ flex:1; overflow:auto; padding:18px; }
-  #configview[hidden], #overview[hidden], #missionsview[hidden]{ display:none; }
+  #configview[hidden], #overview[hidden], #missionsview[hidden], #traceview[hidden]{ display:none; }
+  /* ── 흐름 보기(◈ trace) — 노드=참여자, 엣지=(source,target,topic) 별 관측 흐름. 기본 꺼짐 ── */
+  #traceview{ flex:1; overflow:auto; padding:18px; }
+  .trwrap{ max-width:1020px; }
+  .trwrap h2{ font-size:16px; color:var(--accent); margin:0 0 4px; }
+  .trlead{ font-size:12px; color:var(--dim); line-height:1.6; margin:0 0 14px; }
+  .trbar{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:12px; }
+  .trstate{ font-size:11px; padding:2px 9px; border-radius:10px; border:1px solid var(--line); color:var(--dim); }
+  .trstate.on{ color:var(--ok); border-color:var(--ok); }
+  .trgraph{ border:1px solid var(--line); border-radius:8px; background:var(--card); padding:10px; margin-bottom:12px; overflow-x:auto; }
+  .trgraph svg{ display:block; width:100%; min-width:640px; height:262px; }
+  .trnode rect{ fill:var(--card2); stroke:var(--line); }
+  .trnode.self rect{ stroke:var(--accent); }
+  .trnode text{ font-size:11px; fill:var(--ink); font-family:inherit; }
+  .trnode text.sub{ font-size:9.5px; fill:var(--dim); }
+  .tredge{ stroke:var(--line2, var(--line)); stroke-width:1.4; fill:none; }
+  .tredge.hot{ stroke:var(--accent); }
+  .tredge.pick{ stroke:var(--ok); stroke-width:2.2; }
+  .tredgelbl{ font-size:9.5px; fill:var(--dim); }
+  .trempty{ border:1px dashed var(--line); border-radius:8px; padding:22px; text-align:center; color:var(--dim); font-size:12.5px; line-height:1.7; }
+  .trtbl{ width:100%; border-collapse:collapse; font-size:11.5px; }
+  .trtbl th{ text-align:left; font-weight:600; color:var(--dim); padding:5px 7px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .trtbl td{ padding:5px 7px; border-bottom:1px solid var(--line); color:var(--ink2); vertical-align:top; }
+  .trtbl tr.sel td{ background:color-mix(in srgb, var(--accent) 10%, transparent); }
+  .trtbl td.mono, .trtbl td .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; }
+  .trdrop{ color:var(--busy); }
+  .trmsg{ display:flex; align-items:center; gap:8px; font-size:11.5px; padding:4px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .trmsg:hover{ color:var(--accent); }
+  .trmsg .u{ font-family:ui-monospace,Menlo,monospace; font-size:10.5px; color:var(--dim); }
+  .trhop{ display:flex; gap:8px; font-size:11.5px; padding:3px 0; }
+  .trhop .n{ min-width:190px; font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--ink); }
+  .trhop .d{ min-width:34px; color:var(--dim); }
+  .trhop .l{ color:var(--ink2); }
   .cfgwrap{ max-width:660px; }
   .cfgwrap h2{ font-size:16px; color:var(--accent); margin:0 0 14px; }
   .cfg{ border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px; background:var(--card); }
@@ -356,6 +388,8 @@
   #paramform{ background:var(--card); border:1px solid var(--accent); border-radius:10px; padding:16px; width:380px; max-width:92vw; max-height:86vh; overflow:auto; }
   #paramform h3{ margin:0 0 4px; font-size:15px; color:var(--accent); }
   #paramform .sub{ font-size:11px; color:var(--dim); margin-bottom:10px; }
+  /* 로봇이 광고한 capability_desc(한 줄 설명) — 이름만으론 뭘 하는지 모른다 */
+  #paramform .param-desc{ font-size:12px; color:var(--ink2); line-height:1.55; margin:0 0 8px; padding-left:9px; border-left:2px solid var(--line); }
   .param-row{ display:flex; align-items:center; gap:8px; margin:7px 0; }
   .param-row label{ width:96px; font-size:12px; color:var(--ink2); }
   .param-row input{ flex:1; min-width:0; background:var(--card2); border:1px solid var(--line); border-radius:5px; color:var(--ink); padding:5px 7px; font:inherit; }
@@ -549,8 +583,10 @@
   .chat-off{ font-size:11.5px; color:var(--off); }
   /* ── 로봇 미션 패널 — #/missions 의 플릿 미션(서버 REST)과 별개. 이건 mission.trigger 직송이다 */
   .rmission{ display:flex; align-items:center; gap:6px; margin:3px 0; }
-  .rmission b{ flex:1; font-weight:500; color:var(--ink); font-size:12px; }
-  .rmission button{ background:var(--card2); border:1px solid var(--line); color:var(--ink2); border-radius:5px; padding:3px 9px; font-size:11.5px; cursor:pointer; }
+  .rmission b{ font-weight:600; color:var(--ink); font-size:12px; }
+  /* 설명은 로봇이 available_missions[].description 으로 광고한 문장 — 제목(label)과 나란히 둔다 */
+  .rmission .rmdesc{ flex:1; min-width:0; font-size:11px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rmission button{ margin-left:auto; flex:none; background:var(--card2); border:1px solid var(--line); color:var(--ink2); border-radius:5px; padding:3px 9px; font-size:11.5px; cursor:pointer; }
   .rmission button:disabled{ opacity:.45; cursor:not-allowed; }
   /* 콘솔 자기 버전 배지 (semver — short SHA 였던 것을 0.6.0 에서 semver 로) */
   .uiver{ font:11px ui-monospace,monospace; color:var(--dim); border:1px solid var(--line); border-radius:9px; padding:1px 7px; white-space:nowrap; }
@@ -890,6 +926,7 @@
     <nav id="sidebar">
       <a class="navitem active" data-view="dashboard" title="대시보드"><span class="ni-ic">🛰</span><span class="ni-tx">대시보드</span></a>
       <a class="navitem" data-view="missions" title="플릿 미션"><span class="ni-ic">🚩</span><span class="ni-tx">플릿 미션</span></a>
+      <a class="navitem" data-view="trace" title="흐름 보기 — trace.hop 그래프(기본 꺼짐)"><span class="ni-ic">◈</span><span class="ni-tx">흐름 보기</span></a>
       <a class="navitem" id="navmapeditor" title="맵 에디터"><span class="ni-ic">🗺</span><span class="ni-tx">맵 에디터</span></a>
       <a class="navitem" data-view="config" title="서버 설정"><span class="ni-ic">⚙</span><span class="ni-tx">서버 설정</span></a>
       <span class="navspacer"></span>
@@ -950,6 +987,7 @@
         </div>
       </div>
       <div id="missionsview" hidden></div>
+      <div id="traceview" hidden></div>
     </div>
   </div>
 </div>
@@ -1058,6 +1096,35 @@
     boarding_state: [{ key: "code", type: "number" }],
     passage_state: [{ key: "code", type: "number" }],
   };
+  // robot_info.capability_desc — 로봇이 광고하는 **한 줄 설명**. 이름만으론 뭘 하는지 모른다
+  //   (미션은 available_missions[].description 으로 이미 문장을 달고 나오는데 capability 만 식별자였다).
+  //   실제 콘솔은 로봇이 실은 dict 를 그대로 그린다 — 데모는 정본 tag 로봇이 채운 값과 같은 톤으로 둔다.
+  const CAP_DESC = {
+    navigate_to_pose: "표준맵 좌표로 이동(경로 계획은 로봇이 한다)",
+    navigate_to_waypoint: "미리 등록한 지점 이름으로 이동",
+    velocity_ctrl: "속도 직접 지령 — 연속 조작(텔레옵)용",
+    dock: "충전 스테이션 진입", undock: "충전 스테이션 이탈",
+    joint_ctrl: "관절 각도 직접 지령(deg)", joint_preset: "저장된 관절 자세로 이동",
+    home_position: "홈 자세 복귀", cartesian_ctrl: "말단 자세(Pose3D) 지령",
+    gripper_ctrl: "그리퍼 개폐율(%) 지령", pan_tilt: "카메라 팬/틸트(deg)", pan_tilt_zoom: "카메라 팬/틸트/줌",
+    make_americano: "아메리카노 제조 시퀀스", order: "음료 1잔 주문(메뉴 코드)",
+    visual_pick: "영상 클릭 지점을 집는다(프리뷰 → 실행 2단계)",
+    box_pick: "영상에서 사각형으로 감싼 물체를 집는다",
+    ai_chat: "말/글로 지시 — 두뇌가 판단해 답하거나 실행한다",
+    speak: "지정한 문장을 말한다",
+    detect_mode: "디텍션 오버레이 on/off", pick_at: "베이스 좌표로 파지 실행",
+    set_grasp_tilt: "파지 접근 자세 3단(auto/위에서/옆에서)",
+    set_sam_refine: "SAM 마스크 정밀화 on/off", set_side_grasp: "옆물기 허용 on/off",
+    set_status_rate: "status 발행 주기 변경", set_footprint: "실측 풋프린트 치수 보고",
+    set_pose: "표시 pose 배치(정적 설비·수동 보정)",
+    relocate: "pose 추정 보정(맵 정렬 T 는 서버 소유라 안 건드린다)",
+    software_update: "git pull + 재시작(BUSY 면 거부)",
+    stop: "즉시 정지 — 큐를 우회하는 유일한 명령",
+    get_pose: "현재 pose 조회", get_battery: "배터리 조회", get_joints: "관절 각도 조회",
+    call: "엘리베이터 호출", go_to_floor: "지정 층으로 이동", open: "문 열기",
+    open_cancel: "열기 취소", queue_empty: "대기열 비움",
+    boarding_state: "탑승 상태 코드", passage_state: "통행 상태 코드",
+  };
   const RING = 120;
   // 신규(nexus_ui 6/30~7/1): 실측 풋프린트 치수(m) · 최소 렌더 px · RTS 고정 스킬 · 어택땅 드래그 임계
   const FOOT_CAT = { mobile: { w: 0.6, l: 0.8 }, manipulator: { w: 0.5, l: 0.5 }, camera: { w: 0.25, l: 0.25 }, humanoid: { w: 0.5, l: 0.6 }, station: { w: 0.5, l: 0.5 },
@@ -1141,9 +1208,13 @@
       mkRobot({ id: "mobile_02", cats: ["mobile"], map: "itp_1f", x: 22, y: 6, th: 92, state: "BUSY", bat: 64, srv: 35, inet: 70, op: 41, sx: 40, sy: 55 }),
       mkRobot({ id: "patrol_03", cats: ["mobile", "camera"], map: "itp_1f", x: 12, y: 17, th: 178, state: "TELEOP", bat: 71, srv: 18, inet: 33, op: 22, sx: 16, sy: 78 }),
       mkRobot({ id: "arm_01", cats: ["manipulator", "camera"], map: "itp_1f", x: 26, y: 11, th: 0, state: "IDLE", bat: 88, srv: 28, inet: 55, op: 36, sx: 66, sy: 26,
-        brain: true, missions: ["fetch", "handover", "teaching_play"], ft: { right: { tared: true, mag: 3.4, fx: 1.1, fy: -0.6, fz: 3.1 }, left: { tared: false, mag: null, bias_n: 233 } } }),
+        brain: true, missions: [{ name: "fetch", label: "가져다주기", description: "물건을 집어서 사람에게 건넨다" },
+          { name: "handover", label: "바로 가져다주기", description: "이미 쥔 물건을 건넨다" },
+          { name: "teaching_play", label: "티칭 녹화(마스터암)", description: "녹화한 궤적을 재생한다" }],
+        ft: { right: { tared: true, mag: 3.4, fx: 1.1, fy: -0.6, fz: 3.1 }, left: { tared: false, mag: null, bias_n: 233 } } }),
       mkRobot({ id: "humanoid_01", cats: ["mobile", "manipulator", "camera"], map: "itp_2f", x: 9, y: 9, th: 29, state: "NEED_HELP", bat: 38, srv: 120, inet: 210, op: 95, sx: 56, sy: 72, io: null,
-        brain: true, missions: ["fetch", "patrol_and_report"] }),
+        brain: true, missions: [{ name: "fetch", label: "가져다주기", description: "물건을 집어서 사람에게 건넨다" },
+          { name: "patrol_and_report", label: "", description: "순찰하며 이상을 보고한다" }] }),   // label 이 식별자와 같으면 빈 문자열(같은 말을 두 번 쓰지 않는다)
       mkRobot({ id: "arm_02", cats: ["manipulator"], map: "itp_2f", x: 22, y: 12, th: 0, state: "ERROR", bat: 51, srv: 40, inet: 88, op: 60, sx: 72, sy: 48,
         io: { is_alarm: true, severity: "critical", kind: "관절 과열", value: 78, unit: "°C" } }),
       mkRobot({ id: "agv_01", cats: ["mobile"], map: "wh_1f", x: 8, y: 18, th: 0, state: "BUSY", bat: 80, srv: 26, inet: 60, op: 33, sx: 30, sy: 40 }),
@@ -1313,6 +1384,8 @@
     if (!targets.length) { toast("선택된 로봇 없음"); return; }
     const msgs = targets.map((id) => { const msg = buildCommand(senderFor(), name, params, id); applyEffect(name, params, id); return msg; });
     console.log("[command.capability]", msgs);
+    // 흐름 추적 — 명령은 저빈도(사람이 누를 때만)라 건별 hop 을 만든다. 켜져 있을 때만 일한다
+    targets.forEach((id) => traceCommand(byId(id), name));
     toast(`▶ ${name} → ${targets.join(", ")}`);
     logline(`${name} → ${targets.join(", ")} · command.capability ${msgs.length}건`);
     render();
@@ -1542,7 +1615,7 @@
 
   // ===================================================================== 대시보드 레벨 전환 (L0 ↔ L1)
   function updateDashboardLevel() {
-    if (!$("#configview").hidden || !$("#missionsview").hidden) return;
+    if (!$("#configview").hidden || !$("#missionsview").hidden || !$("#traceview").hidden) return;
     const ov = STATE.ui.level === "overview" && STATE.ui.view !== "solo";
     $("#overview").hidden = !ov; $("#stage").hidden = ov; $("#hud").hidden = ov;
   }
@@ -2107,7 +2180,9 @@
   }
 
   function render() { renderMap(); renderRoster(); renderSelected(); renderCmd(); renderMinimap(); renderSummary(); renderConn(); if (ALIGN) renderGhost(); }
-  function renderDashboard() { renderConn(); renderSummary(); renderAlarms(); renderIoT(); if (STATE.ui.view === "solo") return; if (STATE.ui.level === "overview") renderOverview(); else render(); }
+  // ⚠️ 셸 뷰(설정·플릿미션·흐름보기)가 열려 있으면 대시보드를 다시 그리지 않는다 —
+  //   부팅 직후 `#/trace` 같은 딥링크로 들어오면 이 함수가 대시보드를 되살려 두 화면이 겹쳤다.
+  function renderDashboard() { renderConn(); renderSummary(); renderAlarms(); renderIoT(); if (STATE.ui.view === "solo") return; if (!$("#configview").hidden || !$("#missionsview").hidden || !$("#traceview").hidden) return; if (STATE.ui.level === "overview") renderOverview(); else render(); }
 
   // ===================================================================== 단축키
   window.addEventListener("keydown", (e) => {
@@ -2134,6 +2209,12 @@
   });
 
   // ===================================================================== PARAM FORM
+  // 폼 머리의 **한 줄 설명** — 명세 있는 폼·자유 JSON 폼 둘 다. 로봇이 안 광고하면 아무것도 그리지 않는다
+  // (없는 설명을 지어내면 그게 더 나쁘다 — 콘솔은 로봇이 실은 것만 그린다).
+  function capDescHtml(name) {
+    const d = CAP_DESC[name];
+    return d ? `<div class="param-desc">${esc(d)}</div>` : "";
+  }
   function pfOpen(name, targets) {
     const spec = CAP_SPEC[name], back = $("#paramback"), form = $("#paramform");
     const tgtLabel = targets.length === 1 ? targets[0] : `${targets.length}대`;
@@ -2141,7 +2222,7 @@
     const inCockpit = STATE.ui.view === "solo" && CK && targets.length === 1 && targets[0] === CK.robotId;
     if (inCockpit && hasJoints(byId(CK.robotId))) {
       if (name === "joint_preset") {
-        form.innerHTML = `<h3>${SKILL_ICON[name] || "📐"} ${esc(name)}</h3><div class="sub">대상: ${esc(tgtLabel)} · 선택 시 트윈에 미리보기</div>
+        form.innerHTML = `<h3>${SKILL_ICON[name] || "📐"} ${esc(name)}</h3>${capDescHtml(name)}<div class="sub">대상: ${esc(tgtLabel)} · 선택 시 트윈에 미리보기</div>
           <div class="param-row req"><label>name</label>
             <select id="pf_preset">${Object.keys(JOINT_PRESETS).map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}<option value="__custom__">직접 입력…</option></select></div>
           <div class="param-row" id="pf_custom_row" style="display:none"><label>직접</label><input id="pf_custom" type="text" placeholder="프리셋 이름"></div>
@@ -2157,7 +2238,7 @@
       }
       if (name === "joint_ctrl") {
         const cur = (CK.jointSim || [0, 0, 0]).slice(0, 3);
-        form.innerHTML = `<h3>${SKILL_ICON[name] || "🦾"} ${esc(name)}</h3><div class="sub">대상: ${esc(tgtLabel)} · 현재값 프리필 · 수정 즉시 트윈 미리보기(deg)</div>
+        form.innerHTML = `<h3>${SKILL_ICON[name] || "🦾"} ${esc(name)}</h3>${capDescHtml(name)}<div class="sub">대상: ${esc(tgtLabel)} · 현재값 프리필 · 수정 즉시 트윈 미리보기(deg)</div>
           ${cur.map((v, i) => `<div class="param-row"><label>${esc(JOINT_NAMES[i] || "j" + (i + 1))}</label><input data-jidx="${i}" type="number" step="0.5" value="${(v || 0).toFixed(1)}"><span class="punit">deg</span></div>`).join("")}
           <div class="param-err" id="pf_err"></div>
           <div class="param-actions"><button id="pf_cancel">취소</button><button class="go" id="pf_send">전송</button></div>`;
@@ -2187,7 +2268,7 @@
             value="${esc(p.default != null ? p.default : "")}" placeholder="${esc(ph)}"><span class="punit">${esc(p.unit || "")}</span></div>`;
       }
     }
-    form.innerHTML = `<h3>${SKILL_ICON[name] || "⚙️"} ${esc(name)}</h3><div class="sub">대상: ${esc(tgtLabel)} · command.capability</div>${rows}<div class="param-err" id="pf_err"></div><div class="param-actions"><button id="pf_cancel">취소</button><button class="go" id="pf_send">전송</button></div>`;
+    form.innerHTML = `<h3>${SKILL_ICON[name] || "⚙️"} ${esc(name)}</h3>${capDescHtml(name)}<div class="sub">대상: ${esc(tgtLabel)} · command.capability</div>${rows}<div class="param-err" id="pf_err"></div><div class="param-actions"><button id="pf_cancel">취소</button><button class="go" id="pf_send">전송</button></div>`;
     back.style.display = "flex";
     const first = form.querySelector("input"); if (first) first.focus();
     $("#pf_cancel").onclick = pfClose;
@@ -2327,7 +2408,7 @@
     //  · set_* 토글 → 상태 탭의 설정 칩 한 줄     · ai_chat → 💬 대화창(사용자가 {"text": …} 키를 알 필요 없다)
     //  · box_pick → 🎯 무장 상태의 드래그 제스처   · stop → 콕핏 바의 STOP
     const OWN_UI = ["stop", "ai_chat", "box_pick", "set_grasp_tilt", "set_sam_refine", "set_side_grasp"];
-    r.capabilities.filter((c) => !OWN_UI.includes(c)).forEach((name) => { const b = document.createElement("button"); b.className = "cockpit-skill"; b.textContent = name; b.onclick = () => { const spec = CAP_SPEC[name]; if (spec && spec.length === 0) dispatch(name, {}, [robotId]); else pfOpen(name, [robotId]); }; CK.els.skills.appendChild(b); });
+    r.capabilities.filter((c) => !OWN_UI.includes(c)).forEach((name) => { const b = document.createElement("button"); b.className = "cockpit-skill"; b.textContent = name; b.title = CAP_DESC[name] ? name + " — " + CAP_DESC[name] : name; b.onclick = () => { const spec = CAP_SPEC[name]; if (spec && spec.length === 0) dispatch(name, {}, [robotId]); else pfOpen(name, [robotId]); }; CK.els.skills.appendChild(b); });
     // 신규 패널 — 설정 칩 · 대화 · 로봇 미션 · FT · 오디오
     renderSetChips(); initChat(); renderRobotMissions(); renderFT();
     if (CK.els.audio && r.cats.includes("camera")) { CK.els.audio.hidden = false; ckLog("🔊 오디오 트랙 수신 — 오디오 실패가 영상을 막지 않는다(비디오 먼저 붙이고 오디오는 자체 try)"); }
@@ -2794,17 +2875,27 @@
     if (!r.missions || !r.missions.length) { pane.hidden = true; return; }
     pane.hidden = false;
     const running = CK.runMission || null;
-    list.innerHTML = r.missions.map((n) =>
-      `<div class="rmission"><b>${esc(n)}</b><button data-m="${esc(n)}" ${running ? "disabled" : ""}>${running === n ? "진행 중" : "실행"}</button></div>`).join("")
-      + (running ? `<div class="cockpit-dim" style="margin-top:5px;">▶ ${esc(running)} 진행 중 — 현재 task: ${esc(CK.runTask || "…")}</div>` : "");
+    list.innerHTML = r.missions.map((m) => {
+      // 표시는 **label 우선**, 없으면 식별자 폴백(구버전 로봇). ⚠️ 되쏘는 값은 그대로 `name` 이다 —
+      //   mission.trigger 가 그걸로 되쏘므로 data-m 은 안 바꾸고, title 에 식별자를 남겨 둘 다 볼 수 있게 한다.
+      //   (사용자가 `fetch` 를 "패치" 로 읽었다 — 운영자가 코드 식별자를 읽고 있었다.)
+      const shown = m.label || m.name;
+      return `<div class="rmission"><b title="${esc(m.name)}">${esc(shown)}</b>${m.description ? `<span class="rmdesc">${esc(m.description)}</span>` : ""}<button data-m="${esc(m.name)}" title="${esc(m.name)}" ${running ? "disabled" : ""}>${running === m.name ? "진행 중" : "실행"}</button></div>`;
+    }).join("")
+      + (running ? `<div class="cockpit-dim" style="margin-top:5px;">▶ ${esc(missionLabel(r, running))} 진행 중 — 현재 task: ${esc(CK.runTask || "…")}</div>` : "");
     list.querySelectorAll("[data-m]").forEach((b) => { b.onclick = () => {
       const name = b.dataset.m;
       CK.runMission = name; CK.runTask = "인식";
       console.log("[mission.trigger]", envelope(cfg.operatorId, "mission.trigger", { mission_name: name }, r.robot_id));
-      ckLog(`🎬 mission.trigger → ${name}`); renderRobotMissions();
+      ckLog(`🎬 mission.trigger → ${missionLabel(r, name)} (${name})`); renderRobotMissions();
       setTimeout(() => { if (CK) { CK.runTask = "확인"; renderRobotMissions(); } }, 2200);
-      setTimeout(() => { if (CK) { CK.runMission = null; CK.runTask = null; ckLog(`✓ ${name} 완료`); renderRobotMissions(); } }, 5200);
+      setTimeout(() => { if (CK) { CK.runMission = null; CK.runTask = null; ckLog(`✓ ${missionLabel(r, name)} 완료`); renderRobotMissions(); } }, 5200);
     }; });
+  }
+  // 표시이름 조회 — label 이 있으면 그것, 없으면 식별자(구버전 로봇 폴백)
+  function missionLabel(r, name) {
+    const m = (r.missions || []).find((x) => x && x.name === name);
+    return (m && m.label) || name;
   }
   // ---- 손목 힘(FT) — tared:false 면 게이지를 안 그린다(원시 바이어스를 힘으로 읽으면 안 된다) ----
   function renderFT() {
@@ -3040,6 +3131,225 @@
     el.querySelectorAll("[data-abort]").forEach((b) => b.onclick = () => { const run = RUNS.find((r) => r.run_id === b.dataset.abort); if (run) { run.state = "aborted"; Object.values(run.tasks).forEach((t) => { if (t.state === "running" || t.state === "pending") t.state = "aborted"; }); renderRuns(); } });
   }
 
+  // ===================================================================== 흐름 보기(◈ trace) — 기본 꺼짐
+  //  정본 nexus_ui `trace-panel.js` 의 데모판. 계약은 synapse(`TraceHop`/`TraceBatch`), 발행은 로봇(gerri/AND),
+  //  집계는 NEXUS(`/api/trace/graph` · `/ws/trace`)다. 데모는 서버가 없으니 **집계 결과를 시뮬레이션**한다.
+  //  ⚠️ 기본 꺼짐이 이 기능의 1번 제약이라 데모도 꺼진 상태로 시작한다 — 켜지 않으면 hop 이 한 건도 없고,
+  //     그때 화면은 **빈 그래프**다(에러가 아니다). 실물은 `robot.config.json` 의 `trace.enabled` 로 켠다.
+  const TRACE = { enabled: false, timer: null, nodes: new Map(), edges: new Map(), msgs: [], sel: null, seq: 0 };
+  const TRACE_RATE_WINDOW = 10, TRACE_MAX_MSGS = 12, TRACE_TICK_MS = 1000;   // 배치 주기 1s = 정본 기본값
+  const NODE_COL = { operator: 0, nexus: 1, and: 2, base: 3, sub: 4 };
+  function trNodeKind(id) {
+    if (id.startsWith("operator:")) return "operator";
+    if (id === "nexus") return "nexus";
+    if (id.endsWith("/and")) return "and";
+    if (id.endsWith("/base")) return "base";
+    return "sub";
+  }
+  function trTouchNode(id) {
+    const n = TRACE.nodes.get(id) || { id, kind: trNodeKind(id) };
+    n.seen = Date.now(); TRACE.nodes.set(id, n); return n;
+  }
+  // 엣지 키에 **topic 을 포함**한다 — 한 쌍에 50Hz status 와 가끔 오는 command 를 같이 담으면
+  // p50 도 "마지막 1건" 도 status 가 다 덮어써 의미가 사라진다(정본 nexus/trace.py 와 같은 이유).
+  function trEdge(src, dst, topic) {
+    const key = `${src}|${dst}|${topic}`;
+    let e = TRACE.edges.get(key);
+    if (!e) { e = { key, src, dst, topic, count: 0, buckets: [], lat: [], dropped: {}, last: null }; TRACE.edges.set(key, e); }
+    trTouchNode(src); trTouchNode(dst);
+    return e;
+  }
+  function trObserve(src, dst, topic, opts) {
+    const o = opts || {}, e = trEdge(src, dst, topic), sec = Math.floor(Date.now() / 1000), n = o.count || 1;
+    e.count += n;
+    const b = e.buckets[e.buckets.length - 1];
+    if (b && b[0] === sec) b[1] += n; else e.buckets.push([sec, n]);
+    while (e.buckets.length && e.buckets[0][0] < sec - TRACE_RATE_WINDOW) e.buckets.shift();
+    if (o.latency_ms != null && o.latency_ms >= 0) { e.lat.push(o.latency_ms); if (e.lat.length > 128) e.lat.shift(); }
+    (o.dropped_fields || []).forEach((p) => { e.dropped[p] = (e.dropped[p] || 0) + 1; });
+    e.last = { at: Date.now(), uuid: o.uuid || "", capability: o.capability || null, count: n };
+  }
+  // 정본은 창(60초) 고정 분모지만, 데모는 켠 직후부터 보게 되므로 **관측된 구간**으로 나눈다 —
+  // 고정 분모면 방금 켠 10Hz 스트림이 0.7/s 로 보여서 숫자가 거짓말을 한다(램프업 아티팩트).
+  function trRate(e) {
+    const sec = Math.floor(Date.now() / 1000);
+    const live = e.buckets.filter((b) => b[0] >= sec - TRACE_RATE_WINDOW);
+    if (!live.length) return 0;
+    const span = Math.max(1, Math.min(TRACE_RATE_WINDOW, sec - live[0][0] + 1));
+    return live.reduce((a, b) => a + b[1], 0) / span;
+  }
+  function trPct(arr, p) {
+    if (!arr.length) return null;
+    const s = [...arr].sort((a, b) => a - b);
+    return s[Math.min(s.length - 1, Math.floor((s.length - 1) * p))];
+  }
+  // 관측 대상 2대 — 팔 1대를 섞는다(정규화 탈락 필드는 status 경로에서만 생겨서, 팔이 없으면
+  // `dropped_fields` 열이 영영 비어 보인다. 그 열이 이 계약의 숨은 값이다)
+  function trRobots() {
+    const on = ROBOTS.filter((r) => r.base_state !== "OFFLINE");
+    const arm = on.find((r) => r.cats.includes("manipulator"));
+    return [...(arm ? [arm] : []), ...on.filter((r) => r !== arm)].slice(0, 2);
+  }
+  function trUuid() { return "0000".replace(/0/g, () => Math.floor(Math.random() * 16).toString(16)) + "-" + (++TRACE.seq).toString(16).padStart(4, "0"); }
+  // 한 배치(1s)만큼 hop 을 만든다 — 정책은 synapse 가 토픽별로 고정해 둔 그것을 그대로 따른다.
+  //   · 틱(robot.status·command.teleop) = 창당 요약 1건(count 에 창의 건수)  → 개별 uuid 없음
+  //   · 건별(command.capability 등)      = 메시지마다 hop, uuid 로 end-to-end 를 꿴다
+  function traceStep() {
+    if (!TRACE.enabled) return;
+    const rs = trRobots();
+    for (const r of rs) {
+      const and = `robot:${r.robot_id}/and`, base = `robot:${r.robot_id}/base`, sub = `robot:${r.robot_id}/main`;
+      const hz = 10, jit = () => +(2 + Math.random() * 6).toFixed(1);
+      // status: sub → base → and → nexus (틱). 정규화 탈락은 status 경로에서만 생긴다
+      trObserve(sub, base, "robot.status", { count: hz, latency_ms: jit() });
+      trObserve(base, and, "robot.status", { count: hz, latency_ms: jit(),
+        dropped_fields: r.cats && r.cats.includes("manipulator") ? ["robot_state.battery_state.percentage"] : [] });
+      trObserve(and, "nexus", "robot.status", { count: hz, latency_ms: +(r.network.server?.latency_ms || 25).toFixed(1) });
+    }
+    // teleop: 콕핏이 열려 있을 때만 흐른다(틱). 건별로 추적하면 hop 이 원본 업링크의 148% 였다 — 그래서 틱이다
+    if (CK && rs.length) {
+      const and = `robot:${CK.robotId}/and`;
+      trObserve(`operator:${cfg.operatorId}`, "nexus", "command.teleop", { count: 20, latency_ms: +(4 + Math.random() * 6).toFixed(1) });
+      trObserve("nexus", and, "command.teleop", { count: 20, latency_ms: +(8 + Math.random() * 12).toFixed(1) });
+    }
+    // 건별 명령 — 사람이 누를 때만 생기는 저빈도라 전량 추적해도 부하가 없다
+    if (rs.length && Math.random() < 0.28) {
+      const r = rs[Math.floor(Math.random() * rs.length)];
+      traceCommand(r, r.cats.includes("manipulator") ? "gripper_ctrl" : "navigate_to_pose");
+    }
+    if (!$("#traceview").hidden) renderTrace();
+  }
+  // 명령 1건의 end-to-end hop 체인 — 실제 명령을 누를 때도 부른다(dispatch 에서 호출)
+  function traceCommand(r, capability) {
+    if (!TRACE.enabled || !r) return;
+    const uuid = trUuid(), t0 = Date.now();
+    const chain = [
+      [`operator:${cfg.operatorId}`, "out", 0],
+      ["nexus", "in", 3 + Math.random() * 9],
+      ["nexus", "out", 0.4 + Math.random() * 0.8],
+      [`robot:${r.robot_id}/and`, "in", 9 + Math.random() * 22],
+      [`robot:${r.robot_id}/base`, "in", 0.6 + Math.random() * 1.6],
+      [`robot:${r.robot_id}/main`, "in", 1 + Math.random() * 4],
+    ];
+    const hops = []; let at = t0;
+    chain.forEach((c, i) => {
+      at += c[2];
+      hops.push({ node: c[0], direction: c[1], at, latency_ms: i ? +c[2].toFixed(1) : null,
+        topic: "command.capability", uuid, capability, normalized: c[0].endsWith("/base") ? true : null });
+      // 같은 노드끼리(in→out, 처리 시간)는 엣지로 만들지 않는다 — self-loop 이 그래프를 덮는다.
+      // 그 구간은 아래 uuid 타임라인에 그대로 남으므로 잃는 정보가 없다.
+      if (i && chain[i - 1][0] !== c[0]) trObserve(chain[i - 1][0], c[0], "command.capability", { latency_ms: +c[2].toFixed(1), uuid, capability });
+    });
+    TRACE.msgs.unshift({ uuid, capability, at: t0, hops });
+    if (TRACE.msgs.length > TRACE_MAX_MSGS) TRACE.msgs.pop();   // 링버퍼 — 최근 것만 남는다(없으면 404)
+  }
+  function traceToggle() {
+    TRACE.enabled = !TRACE.enabled;
+    if (!TRACE.enabled) { TRACE.nodes.clear(); TRACE.edges.clear(); TRACE.msgs = []; TRACE.sel = null; }
+    toast(TRACE.enabled ? "◈ 흐름 추적 켜짐 — 실물은 robot.config.json 의 trace.enabled" : "◈ 흐름 추적 꺼짐 — hop 이 한 건도 나가지 않는다");
+    renderTrace();
+  }
+  function buildTrace() {
+    const v = $("#traceview");
+    v.innerHTML = `<div class="trwrap">
+      <h2>◈ 흐름 보기</h2>
+      <p class="trlead">한 명령이 <b>운영자 → NEXUS → AND → base → sub</b> 를 지나는 동안 <b>어디서 무엇이 되었는지</b> 한 화면에서 본다.
+        노드 = 참여자, 엣지 = <span class="mono">(source, target, topic)</span> 별 관측 흐름. 계약은 synapse, 발행은 로봇, 집계는 NEXUS(<span class="mono">/api/trace/graph</span> · <span class="mono">/ws/trace</span>).
+        <b>기본 꺼짐</b> — 관측이 대상을 바꾸면 안 되므로 켠 로봇만 hop 을 보낸다.</p>
+      <div class="trbar">
+        <span class="trstate" id="trstate">꺼짐</span>
+        <button class="btn pri" id="trtoggle">추적 켜기</button>
+        <span style="font-size:11.5px;color:var(--dim)">데모는 서버가 없어 집계 결과를 시뮬레이션한다 · 틱(status·teleop)은 창당 1건으로 접고, 명령은 건별로 <span class="mono">uuid</span> 를 꿴다</span>
+      </div>
+      <div id="trbody"></div>
+    </div>`;
+    v.querySelector("#trtoggle").onclick = traceToggle;
+    renderTrace();
+  }
+  function renderTrace() {
+    const v = $("#traceview"); if (!v || v.hidden || !v.querySelector("#trbody")) return;
+    const st = v.querySelector("#trstate"), tg = v.querySelector("#trtoggle"), body = v.querySelector("#trbody");
+    st.textContent = TRACE.enabled ? "켜짐 · 로봇 " + trRobots().length + "대" : "꺼짐";
+    st.className = "trstate" + (TRACE.enabled ? " on" : "");
+    tg.textContent = TRACE.enabled ? "추적 끄기" : "추적 켜기";
+    if (!TRACE.edges.size) {
+      body.innerHTML = `<div class="trempty">${TRACE.enabled ? "hop 을 기다리는 중… (배치 주기 1초)" :
+        "빈 그래프다 — <b>에러가 아니다.</b><br>로봇이 <span class=\"mono\">trace.enabled</span> 를 켜지 않으면 <span class=\"mono\">trace.hop</span> 은 한 건도 나가지 않고,<br>꺼진 상태의 와이어는 이 기능이 없던 때와 <b>바이트 하나도 다르지 않다.</b>"}</div>`;
+      return;
+    }
+    const edges = [...TRACE.edges.values()].sort((a, b) => trRate(b) - trRate(a));
+    const sel = TRACE.sel ? TRACE.msgs.find((m) => m.uuid === TRACE.sel) : null;
+    const selEdges = new Set();
+    if (sel) sel.hops.forEach((h, i) => { if (i && sel.hops[i - 1].node !== h.node) selEdges.add(`${sel.hops[i - 1].node}|${h.node}|command.capability`); });
+    body.innerHTML = `<div class="trgraph">${trGraphSvg(edges, selEdges)}</div>
+      <div class="cfg" style="margin-bottom:12px"><h3>엣지 — 관측된 흐름</h3>
+        <div style="overflow-x:auto"><table class="trtbl"><thead><tr><th>source → target</th><th>topic</th><th>msg/s</th><th>p50 / p95</th><th>정규화 탈락</th><th>마지막</th></tr></thead><tbody>
+        ${edges.map((e) => {
+          const p50 = trPct(e.lat, 0.5), p95 = trPct(e.lat, 0.95), drops = Object.entries(e.dropped);
+          return `<tr class="${selEdges.has(e.key) ? "sel" : ""}"><td class="mono">${esc(e.src)} → ${esc(e.dst)}</td><td class="mono">${esc(e.topic)}</td>
+            <td>${trRate(e).toFixed(1)}</td><td>${p50 == null ? "—" : p50.toFixed(1) + " / " + p95.toFixed(1) + " ms"}</td>
+            <td>${drops.length ? `<span class="trdrop">${drops.map(([p, c]) => esc(p) + " ×" + c).join("<br>")}</span>` : "—"}</td>
+            <td class="mono">${e.last && e.last.uuid ? esc(e.last.uuid) : "틱 ×" + (e.last ? e.last.count : 0)}</td></tr>`;
+        }).join("")}
+        </tbody></table></div>
+        <div style="font-size:11px;color:var(--dim);margin-top:8px">엣지 키에 <span class="mono">topic</span> 을 포함한다 — 접어 보는 것은 소비자 몫이고 서버는 전체를 준다. <span class="trdrop">탈락 필드</span>는 “내 필드가 왜 콘솔에 안 보이지?”에 답하는 유일한 데이터다.</div>
+      </div>
+      <div class="cfg"><h3>최근 메시지 — uuid 로 꿴 end-to-end 타임라인</h3>
+        ${TRACE.msgs.length ? TRACE.msgs.map((m) => `<div class="trmsg" data-u="${esc(m.uuid)}"><b>${esc(m.capability)}</b><span class="u">${esc(m.uuid)}</span><span style="margin-left:auto;color:var(--dim)">${m.hops.length} hop · ${(m.hops[m.hops.length - 1].at - m.at).toFixed(1)}ms</span></div>`).join("")
+          : `<div style="font-size:12px;color:var(--dim)">아직 건별 명령이 없다 — 틱(status·teleop)은 <span class="mono">uuid</span> 를 갖지 않는다(창 요약이라 대표할 메시지가 없다).</div>`}
+        ${sel ? `<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px">
+          <div style="font-size:11.5px;color:var(--dim);margin-bottom:6px">${esc(sel.uuid)} — 같은 노드 안의 in→out(처리 시간)도 여기엔 남는다</div>
+          ${sel.hops.map((h) => `<div class="trhop"><span class="n">${esc(h.node)}</span><span class="d">${h.direction}</span><span class="l">${h.latency_ms == null ? "첫 hop" : "+" + h.latency_ms + " ms"}${h.capability ? " · " + esc(h.capability) : ""}${h.normalized ? " · normalized" : ""}</span></div>`).join("")}
+        </div>` : ""}
+      </div>`;
+    body.querySelectorAll("[data-u]").forEach((el) => { el.onclick = () => { TRACE.sel = TRACE.sel === el.dataset.u ? null : el.dataset.u; renderTrace(); }; });
+  }
+  function trGraphSvg(edges, selEdges) {
+    // 레이어 배치(operator → nexus → and → base → sub). 힘기반 배치가 아니라 **결정적 레이어**다 —
+    // 흐름의 방향이 왼→오른쪽으로 고정돼야 "어디까지 갔나"를 한눈에 읽는다.
+    const cols = [[], [], [], [], []];
+    [...TRACE.nodes.values()].forEach((n) => cols[NODE_COL[n.kind]].push(n));
+    const W = 1040, H = 262, bw = 126, bh = 34, gap = (W - bw - 28) / 4, pos = new Map();
+    cols.forEach((list, ci) => {
+      const x = 14 + ci * gap;
+      list.sort((a, b) => a.id.localeCompare(b.id)).forEach((n, i) => {
+        const y = list.length === 1 ? (H - bh) / 2 : 26 + i * ((H - bh - 52) / Math.max(1, list.length - 1));
+        pos.set(n.id, { x, y, n });
+      });
+    });
+    // 같은 노드쌍에 토픽이 여러 개면(nexus→and 에 teleop·capability) 라벨이 겹친다 → 쌍마다 세로로 계단식 배치
+    // ⚠️ 키는 **방향을 무시한** 노드쌍이다 — status(base→and)와 command(and→base)는 서로 반대 방향인데
+    //    중점이 같아서 방향을 넣으면 두 라벨이 정확히 겹쳐 읽을 수 없는 글자가 된다(실측으로 잡음).
+    const byPair = new Map();
+    edges.forEach((e) => { const k = [e.src, e.dst].sort().join("|"); (byPair.get(k) || byPair.set(k, []).get(k)).push(e); });
+    let lines = "", labels = "";
+    byPair.forEach((list) => {
+      list.forEach((e, i) => {
+        const a = pos.get(e.src), b = pos.get(e.dst); if (!a || !b) return;
+        const dy = (i - (list.length - 1) / 2) * 15;
+        const x1 = a.x + bw, y1 = a.y + bh / 2, x2 = b.x, y2 = b.y + bh / 2;
+        const cls = selEdges.has(e.key) ? "pick" : (trRate(e) >= 5 ? "hot" : "");
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 + dy;
+        lines += `<path class="tredge ${cls}" d="M${x1.toFixed(1)},${y1.toFixed(1)} C${(x1 + 26).toFixed(1)},${my.toFixed(1)} ${(x2 - 26).toFixed(1)},${my.toFixed(1)} ${(x2 - 7).toFixed(1)},${y2.toFixed(1)}" marker-end="url(#trarrow)"/>`;
+        labels += `<text class="tredgelbl" x="${mx.toFixed(1)}" y="${(my - 4).toFixed(1)}" text-anchor="middle">${esc(trShortTopic(e.topic))} ×${trRate(e) >= 1 ? trRate(e).toFixed(0) : trRate(e).toFixed(1)}</text>`;
+      });
+    });
+    let boxes = "";
+    pos.forEach(({ x, y, n }) => {
+      const own = n.kind === "operator";
+      const short = n.id.startsWith("robot:") ? n.id.slice(6) : n.id;
+      boxes += `<g class="trnode ${own ? "self" : ""}"><rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="7"/>
+        <text x="${x + 8}" y="${y + 15}">${esc(short.length > 19 ? short.slice(0, 18) + "…" : short)}</text>
+        <text class="sub" x="${x + 8}" y="${y + 27}">${esc(n.kind)}</text></g>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="흐름 그래프">
+      <defs><marker id="trarrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" style="fill:var(--dim)"/></marker></defs>
+      ${lines}${labels}${boxes}</svg>`;
+  }
+  // 라벨은 좁은 열 간격에 들어가야 한다 — 도메인 접두어를 떼고 짧게(전체 이름은 아래 엣지 표에 있다)
+  function trShortTopic(t) { return { "robot.status": "status", "command.teleop": "teleop", "command.capability": "cap", "mission.trigger": "m.trigger", "mission.event": "m.event", "help.action": "help" }[t] || t; }
+
   // ===================================================================== 해시 라우팅 (화면 단계 = URL)
   // 정본 nexus_ui 0.6.1 규약 — `#/` `#/map/<id>` `#/robot/<id>` `#/missions` `#/config`.
   // 뒤로가기·새로고침·링크 공유가 된다. 콕핏은 모달이라 닫을 때 히스토리를 되감는다.
@@ -3047,6 +3357,7 @@
   function currentRoute() {
     if (STATE.ui.view === "solo" && STATE.solo.robotId) return "#/robot/" + STATE.solo.robotId;
     if (_shellView === "missions") return "#/missions";
+    if (_shellView === "trace") return "#/trace";
     if (_shellView === "config") return "#/config";
     if (STATE.ui.level === "map" && STATE.ui.mapId) return "#/map/" + STATE.ui.mapId;
     return "#/";
@@ -3076,6 +3387,7 @@
       }
       if (CK) closeCockpit();
       if (h === "#/missions") { _shellView = "missions"; showShellView("missions"); return; }
+      if (h === "#/trace") { _shellView = "trace"; showShellView("trace"); return; }
       if (h === "#/config") { _shellView = "config"; showShellView("config"); return; }
       _shellView = "dashboard";
       if (mMap) { const id = decodeURIComponent(mMap[1]); if (mapById(id)) { showShellView("dashboard"); enterMap(id); return; } }
@@ -3088,8 +3400,10 @@
     _shellView = v;
     document.querySelectorAll(".navitem[data-view]").forEach((n) => n.classList.toggle("active", n.dataset.view === v));
     $("#missionsview").hidden = true; if (missionsTimer) { clearInterval(missionsTimer); missionsTimer = null; }
+    $("#traceview").hidden = true;   // 수집(TRACE.timer)은 뷰와 무관하게 돈다 — 서버측 집계와 같은 성질
     if (v === "config") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = false; renderConfig(); return; }
     if (v === "missions") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = true; $("#missionsview").hidden = false; buildMissions(); missionsTimer = setInterval(tickMissions, 600); return; }
+    if (v === "trace") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = true; $("#traceview").hidden = false; buildTrace(); syncHash(); return; }
     $("#configview").hidden = true; updateDashboardLevel();
     if (STATE.ui.level === "map") { render(); renderMinimap(); } else renderOverview();
     syncHash();
@@ -3240,6 +3554,8 @@
   renderDashboard();
   logline(`NEXUS 관제 — 시뮬레이션 시작 · 로봇 ${ROBOTS.length}대 등록`);
   setInterval(step, 90);
+  // 흐름 추적 수집 — 켜져 있을 때만 일한다(꺼짐이면 bool 하나 읽고 즉시 반환). 배치 주기는 정본과 같은 1초
+  TRACE.timer = setInterval(traceStep, TRACE_TICK_MS);
 })();
 </script>
 </body>

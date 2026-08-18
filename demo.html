@@ -898,7 +898,7 @@
   <header>
     <button id="navtoggle" title="메뉴 표시/숨김">☰</button>
     <h1>◈ NEXUS 관제</h1>
-    <span class="uiver" title="서버가 서빙 중인 콘솔 버전 — status 의 nexus_ui 값은 그 로봇 머신의 클론 기준이라 다를 수 있다">ui 0.12.0</span>
+    <span class="uiver" title="서버가 서빙 중인 콘솔 버전 — status 의 nexus_ui 값은 그 로봇 머신의 클론 기준이라 다를 수 있다">ui 0.12.1</span>
     <div id="summarybar"></div>
     <span class="hint">클릭=선택 · 드래그=박스선택 · Shift=토글 · 우클릭=이동 · 더블클릭/F=콕핏(1:1) · S=정지 · Ctrl+1~9 그룹</span>
     <span class="srv"><label>서버</label><input id="srvurl" placeholder="시뮬레이션(서버 없음)" title="데모 — 서버 연결 불필요" /><button id="srvgo">연결</button></span>
@@ -1319,6 +1319,19 @@
     return { x: tx + c * rx - s * ry, y: ty + s * rx + c * ry, yaw: wrapDeg(tt + (poseYaw(rawPose) || 0)) };
   }
   const wrapDeg = (d) => { let a = d; while (a > 180) a -= 360; while (a < -180) a += 360; return a; };
+  function inverseStandard(wx, wy, T) {          // 표준 world(m) → 로봇 raw 프레임(m). applyStandard 의 역: raw = R(-tθ)·(world − t)
+    if (!Array.isArray(T) || T.length < 2) return null;
+    const tx = T[0] || 0, ty = T[1] || 0, tt = T[2] || 0;
+    const c = Math.cos(tt * D2R), s = Math.sin(tt * D2R);     // tθ=**deg** — applyStandard 와 같은 관용(기계 경계에서 1회)
+    const dx = wx - tx, dy = wy - ty;
+    return { x: c * dx + s * dy, y: -s * dx + c * dy };
+  }
+  function alignPt(pt, T) {                     // raw 점(m) → 표준맵 world(m). applyStandard 의 점 버전(yaw 없음)
+    const tt = (Array.isArray(T) ? Number(T[2]) : 0) || 0;
+    const c = Math.cos(tt * D2R), s = Math.sin(tt * D2R);
+    const x = Number(pt.x) || 0, y = Number(pt.y) || 0;
+    return { x: c * x - s * y + ((Array.isArray(T) && Number(T[0])) || 0), y: s * x + c * y + ((Array.isArray(T) && Number(T[1])) || 0) };
+  }
   function worldToPixel(x, y, m) {
     const [ox = 0, oy = 0] = m.origin || [], res = m.resolution || 0.05, h = m.height || 0;
     return { px: (x - ox) / res, py: (h - 1) - (y - oy) / res };
@@ -1703,7 +1716,8 @@
   function robotWorldPath(r) {                    // 표준맵 world(m) 좌표의 {global, local} 경로점
     if (!r || !r.target || r.base_state === "OFFLINE" || !r.standardMapId) return null;
     const std = applyStandard(r.pose, r.toStandard) || { x: r.pose.x, y: r.pose.y };
-    const sx = std.x, sy = std.y, tx = r.target.x, ty = r.target.y, dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy);
+    const tw = alignPt(r.target, r.toStandard);   // target 은 **raw 프레임**(계약) — 정본 alignPt 처럼 T 로 투영해야 경로만 다른 각도로 어긋나지 않는다
+    const sx = std.x, sy = std.y, tx = tw.x, ty = tw.y, dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy);
     if (d < 0.5) return null;
     const gN = Math.max(2, Math.min(24, Math.round(d / 1.2))), global = [];
     for (let i = 0; i <= gN; i++) { const t = i / gN; global.push({ x: sx + dx * t, y: sy + dy * t }); }
@@ -2005,8 +2019,9 @@
       if (a.dragged && cur) hw = Math.atan2(cur.y - ty, cur.x - tx) * R2D;  // 목표→커서: 도착 시 바라볼 방향
       else { const std = applyStandard(r.pose, r.toStandard) || r.pose; hw = Math.atan2(ty - std.y, tx - std.x) * R2D; }  // auto: 목표를 향함
       const thetaRaw = wrapAng(hw - (r.toStandard ? r.toStandard[2] : 0));   // 표준맵 회전 성분 제거 → raw θ
-      r.target = { x: tx, y: ty, theta: thetaRaw }; r.base_state = "BUSY";
-      return buildCommand(senderFor(), "navigate_to_pose", { x: +fmt(tx), y: +fmt(ty), theta: +fmt(thetaRaw) }, r.robot_id);
+      const raw = inverseStandard(tx, ty, r.toStandard) || { x: tx, y: ty };  // x·y 도 raw 프레임이다(θ만 접으면 정렬된 로봇이 딴 곳으로 간다)
+      r.target = { x: raw.x, y: raw.y, theta: thetaRaw }; r.base_state = "BUSY";
+      return buildCommand(senderFor(), "navigate_to_pose", { x: +fmt(raw.x), y: +fmt(raw.y), theta: +fmt(thetaRaw) }, r.robot_id);
     });
     console.log("[command.capability]", msgs);
     toast(`🧭 navigate_to_pose ${a.dragged ? "· θ 지정" : "· 목표 향함"} → ${a.movers.map((r) => r.robot_id).join(", ")}`);
@@ -2051,8 +2066,9 @@
       const off = (i - (movers.length - 1) / 2) * 0.6, tx = clamp(w.x + off, 0.5, mw - 0.5), ty = clamp(w.y, 0.5, mh - 0.5);
       const std = applyStandard(r.pose, r.toStandard) || r.pose, hw = Math.atan2(ty - std.y, tx - std.x) * R2D;
       const thetaRaw = wrapAng(hw - (r.toStandard ? r.toStandard[2] : 0));
-      r.target = { x: tx, y: ty, theta: thetaRaw }; r.base_state = "BUSY";
-      return buildCommand(senderFor(), "navigate_to_pose", { x: +fmt(tx), y: +fmt(ty), theta: +fmt(thetaRaw) }, r.robot_id);
+      const raw = inverseStandard(tx, ty, r.toStandard) || { x: tx, y: ty };
+      r.target = { x: raw.x, y: raw.y, theta: thetaRaw }; r.base_state = "BUSY";
+      return buildCommand(senderFor(), "navigate_to_pose", { x: +fmt(raw.x), y: +fmt(raw.y), theta: +fmt(thetaRaw) }, r.robot_id);
     });
     console.log("[command.capability]", msgs);
     toast(`🅰 navigate_to_pose → ${movers.map((r) => r.robot_id).join(", ")}`);
@@ -3505,7 +3521,7 @@
       }
       // busy 타임아웃
       if (r.busyUntil && Date.now() > r.busyUntil && r.base_state === "BUSY" && !r.target) { r.base_state = "IDLE"; r.busyUntil = 0; }
-      // navigate target (world meters)
+      // navigate target — **raw 프레임(m)**. r.pose 도 raw 라 그대로 비교한다(화면은 applyStandard 가 표준맵으로 올린다)
       if (r.target) {
         const dx = r.target.x - r.pose.x, dy = r.target.y - r.pose.y, d = Math.hypot(dx, dy);
         if (d < 0.3) { r.pose.x = r.target.x; r.pose.y = r.target.y; r.target = null; r.base_state = "IDLE"; }

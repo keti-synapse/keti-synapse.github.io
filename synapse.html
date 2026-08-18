@@ -505,7 +505,7 @@
 </section>
 
 <!-- ════════ ANGLE UNIT STANDARD ════════ -->
-<section class="section alt">
+<section class="section alt" id="units">
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Units · v0.6 Milestone</span>
@@ -543,6 +543,8 @@
       <div class="note mt-20"><b><code class="inline">robot_info.angle_unit</code> — 선언이지 변환 요청이 아니다:</b> <span class="s">rad로 <span class="nb">작업하는 로봇은</span> <code class="inline">"rad"</code> <span class="nb">한 줄만 선언하면</span> <span class="nb">코드는 끝까지</span> <span class="nb">rad로 써도 된다</span> — <span class="nb">프레임워크가</span> <span class="nb">발행 시점에 접는다.</span> <span class="nb">미선언은</span> <strong>deg로 간주</strong>한다(<span class="nb">전환 이전 로봇도</span> <span class="nb">안전하게 흡수</span>).</span> <span class="s">⚠️ <span class="nb">틀리게 선언하면</span> <span class="nb">그 로봇만</span> 57.3배 어긋난다. <span class="nb">1순위는 여전히</span> <span class="nb">로봇이 표준(deg)으로</span> <span class="nb">맞춰 송출하는 것이다.</span></span></div>
 
       <div class="note mt-20"><b>deg 세계에서 단위 오류는 <em>조용하다</em>:</b> <span class="s">rad 값(0.785)이 <span class="nb">deg 필드에 새어도</span> "유효한 작은 각도"라 <span class="nb">파싱·범위검사를</span> <span class="nb">통과하고</span> <span class="nb">동작만 미세하게 어긋난다</span> — <span class="nb">rad 표준이었을 땐</span> <span class="nb">deg 값 45가</span> <span class="nb">범위 밖이라 시끄러웠다.</span></span> <span class="s"><span class="nb">그래서</span> <code class="inline">standardize()</code>가 <strong>rad 리터럴</strong>(π 배수)과 <strong>크기 밴드</strong>(비영값이 전부 |v|&lt;2π)를 <span class="nb">경고한다.</span></span></div>
+
+      <div class="note mt-20"><b>이관에서 남는 쪽은 <em>소비자가 아니라 생산자</em>다:</b> <span class="s">2026-07-27 전환에서 <span class="nb">각도를</span> <strong><span class="nb">읽는 쪽</span></strong>(<code class="inline">applyStandard</code>·<code class="inline">poseYaw</code>·<code class="inline">wrap</code>)은 <span class="nb">한 번에 옮겨졌지만,</span> <strong><span class="nb">만드는 쪽</span></strong>이 rad로 <span class="nb">남아 3주 동안</span> <span class="nb">조용히 깨진 채였다</span>(<span class="nb">콘솔에서 6곳</span> — 2026-08-18 <code class="inline">nexus_ui 0.12.1</code>에서 정리).</span> <span class="s"><span class="nb">읽는 쪽은</span> <span class="nb">틀리면 화면이 즉시 이상해져</span> <span class="nb">이관이 강제되는데,</span> <span class="nb">만드는 쪽은</span> <code class="inline">Math.cos</code>·<code class="inline">atan2</code>가 <span class="nb">rad를 요구하는</span> <strong><span class="nb">기계 경계라</span></strong> <span class="nb">코드가 종전 그대로도 돌아간다</span> — <span class="nb">증상은</span> <span class="nb">입력 크기에 비례해서만</span> <span class="nb">나타난다</span>(<span class="nb">정렬 마법사가</span> raw <code class="inline">(8, 5, −45°)</code> 로봇을 <code class="inline">(10,10)</code>에 <span class="nb">찍으면</span> <code class="inline">(21.3, 19.3)</code> — <span class="nb">대각선 14.6m 튄다</span>).</span> <span class="s">⚠️ <span class="nb">위의</span> <code class="inline">standardize()</code> 경고는 <span class="nb">Python 발행 경계에만 있다</span> — <span class="nb">콘솔(JS) 내부 계산은</span> <span class="nb">그 그물을 안 지나므로</span> <span class="nb">단위 경계를 <strong>테스트로</strong> 고정해야 한다</span>(<code class="inline">test_angle_units.js</code>: <span class="nb">왕복 50조합 +</span> <span class="nb">"지워도 예외가 안 나는"</span> <span class="nb">경계 4곳을 원문에서 확인</span>).</span></div>
     </div>
 
     <div class="figure mt-32">

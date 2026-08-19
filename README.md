@@ -12,12 +12,15 @@ KETI 지능로보틱스연구센터 · STAR TEAM.
 | `synapse.html` | 공통 표준 레이어 (메시지·Enum·자료구조·미션 모델) |
 | `tom.html` · `and.html` · `gerri.html` | 온-로봇 측 (물리 HW · 네트워크 데몬 · 제어 SW + COCKPIT) |
 | `nexus.html` | 플릿 관제 서버 |
-| `demo.html` | 체험해보기 — nexus_ui 통합 관제 콘솔 재현(사이트 오버뷰 · 플릿 RTS · 1:1 콕핏 · 플릿 미션, 백엔드 없는 시뮬레이션) |
+| `demo.html` | 체험해보기 — nexus_ui 통합 관제 콘솔 재현(사이트 오버뷰 · 플릿 RTS · 1:1 콕핏 · 플릿 미션 · 흐름 보기(trace), 백엔드 없는 시뮬레이션) |
 | `style.css` | 공통 스타일 (논문 페이지 톤) |
 
 ## 배포
 순수 정적 HTML/CSS — 빌드 없음. GitHub Pages(main 브랜치 루트)에서 그대로 서빙됩니다.
 로컬 미리보기: `python3 -m http.server 8000`
+
+> `demo.html` 의 3D(맵 관제 ⧊ 3D · 콕핏 디지털 트윈)는 `esm.sh` 에서 three.js 를 받아옵니다.
+> 오프라인이면 3D 토글이 토스트로 안내되고 트윈은 2D SVG 로 폴백합니다 — 나머지 기능은 그대로 동작합니다.
 
 ---
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

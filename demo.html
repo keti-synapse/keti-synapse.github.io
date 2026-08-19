@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NEXUS 관제 — 사이트 대시보드 · 맵 관제 · 콕핏 | SYNAPSE</title>
+<meta name="description" content="SYNAPSE 체험해보기 — NEXUS 통합 관제 콘솔(사이트 대시보드 · 플릿 RTS 맵 관제 · 1:1 콕핏 · 플릿 미션 · 흐름 보기)을 백엔드 없이 단일 파일로 재현한 시뮬레이션. KETI 지능로보틱스연구센터 STAR TEAM.">
 <!--
   체험해보기 — nexus_ui 통합 관제 콘솔을 백엔드 없이 그대로 재현한 시뮬레이션(단일 파일).
   실제 nexus_ui(index.html + app.js + cockpit.js …)의 디자인(KETI 톤)과 기능을 거의 1:1로 옮겼다:
@@ -25,8 +26,12 @@
       operatorId: "op-demo", iceServers: [{ urls: "stun:stun.l.google.com:19302" }], mapUrl: "",
       clickMove: true,   // 맵 클릭 이동(어택땅·우클릭) — 데모는 체험 위해 기본 ON(실제 콘솔은 안전상 OFF, 서버설정에서 끌 수 있음)
     };
-    try { if (localStorage.getItem("nexus_demo.clickMove") === "0") window.__NEXUS__.clickMove = false; } catch (_) {}
-    if ((localStorage.getItem("nexus_ui.theme") || "dark") === "light")
+    // localStorage 는 프라이빗 모드·쿠키 차단에서 **접근만 해도** 던진다 — 데모 전체가 안 뜨면 안 되므로 전부 감싼다.
+    var ls = null; try { ls = window.localStorage; } catch (_) {}
+    var get = function (k) { try { return ls && ls.getItem(k); } catch (_) { return null; } };
+    window.__NEXUS_LS__ = { get: get, set: function (k, v) { try { if (ls) ls.setItem(k, v); } catch (_) {} } };
+    if (get("nexus_demo.clickMove") === "0") window.__NEXUS__.clickMove = false;
+    if ((get("nexus_ui.theme") || "dark") === "light")
       document.documentElement.setAttribute("data-theme", "light");
   })();
 </script>
@@ -974,7 +979,7 @@
           <section class="cfg">
             <h3>안전 · 조작</h3>
             <label class="cf">맵 클릭 이동 허용 (A 어택땅 · 우클릭) <input type="checkbox" id="cfgclickmove" style="width:auto" /></label>
-            <div class="cfg-status">끄면 맵 클릭/우클릭 이동 명령이 차단됩니다 (기본 꺼짐 — 오조작 방지).</div>
+            <div class="cfg-status">끄면 맵 클릭/우클릭 이동 명령이 차단됩니다. 데모는 체험을 위해 기본 켜짐 — 실제 콘솔은 오조작 방지로 기본 꺼짐입니다.</div>
           </section>
           <section class="cfg">
             <h3>WebRTC ICE (서버 /api/ice)</h3>
@@ -1131,6 +1136,8 @@
     elevator: { w: 0.4, l: 0.4 }, door: { w: 0.9, l: 0.2 }, light: { w: 0.2, l: 0.2 }, sensor: { w: 0.2, l: 0.2 } };
   const MIN_FP = 12, FIXED_SKILLS = ["navigate_to_pose", "stop"], MOVE_DRAG_PX = 8;
   const cfg = window.__NEXUS__;
+  // 저장소 안전 래퍼 — 프라이빗 모드/쿠키 차단에서는 localStorage 접근 자체가 던진다(헤드에서 만들어 둔 것 재사용).
+  const LS = window.__NEXUS_LS__ || { get: () => null, set: () => {} };
 
   // ===================================================================== 표준맵 합성 (점유격자 PNG dataURL)
   // 실제 nexus_ui 는 서버에서 점유격자 PNG 를 받아 테마 톤으로 리맵한다. 데모는 동일한 회색조(벽=흑/자유=백/미지=회)를
@@ -1257,8 +1264,8 @@
     groups: loadGroups(),
     solo: { robotId: null, latency: { server: [], internet: [], operator: [] }, rtt: 26 },
   };
-  function loadGroups() { try { return JSON.parse(localStorage.getItem("nexus_demo.groups") || "{}"); } catch (_) { return {}; } }
-  function saveGroups() { try { localStorage.setItem("nexus_demo.groups", JSON.stringify(STATE.groups)); } catch (_) {} }
+  function loadGroups() { try { return JSON.parse(LS.get("nexus_demo.groups") || "{}") || {}; } catch (_) { return {}; } }
+  function saveGroups() { LS.set("nexus_demo.groups", JSON.stringify(STATE.groups)); }
   const sel = STATE.selection;
 
   // ===================================================================== BUILDERS (synapse 메시지 미러)
@@ -1383,6 +1390,12 @@
     else if (name === "undock") { r.base_state = "BUSY"; r.busyUntil = Date.now() + 1200; }
     else if (name === "make_americano") { r.base_state = "BUSY"; r.busyUntil = Date.now() + 2600; }
     else if (name === "set_footprint") { const cur = r.foot || FOOT_CAT[r.cats[0]] || FOOT_CAT.mobile; r.foot = { w: params.width != null ? +params.width : cur.w, l: params.length != null ? +params.length : cur.l }; }
+    // set_* 설정 — 콕핏 칩 말고 일반 스킬 폼으로 보내도 같은 상태를 갱신한다(폼은 select 라 값이 문자열로 온다)
+    else if (name === "set_grasp_tilt") { if (r.settings && params.mode) r.settings.grasp_tilt = String(params.mode); }
+    else if (name === "set_sam_refine" || name === "set_side_grasp") {
+      const key = name === "set_sam_refine" ? "sam_refine" : "side_grasp";
+      if (r.settings && params.on != null) r.settings[key] = (params.on === true || params.on === "true");
+    }
     else if (name === "set_pose") { if (params.x != null) r.pose.x = +params.x; if (params.y != null) r.pose.y = +params.y; if (params.theta != null) r.pose.theta = +params.theta; r.target = null; }
     else if (name === "call" || name === "go_to_floor") { const io = ioState(r); if (io) { const f = +params.floor; if (!Number.isNaN(f)) { io.direction = f > (io.floor || 0) ? "up" : f < (io.floor || 0) ? "down" : "idle"; io.floor = f; io.door = "closed"; } } }
     else if (name === "open") { const io = ioState(r); if (io) { if (r.cats[0] === "door") io.state = "open"; else io.door = "open"; } }
@@ -1705,7 +1718,9 @@
         u.classList.add("hasfp");
       } else u.classList.remove("hasfp");
       if (yaw != null && !std) { dir.style.display = ""; dir.style.transform = `translateX(-50%) rotate(${(-yaw).toFixed(0)}deg)`; } else dir.style.display = "none";
-      const sig = u.querySelector(".usig"), ss = unitSignalSVG(r.network); sig.innerHTML = ss.svg; sig.title = ss.title;
+      // 신호막대는 값이 바뀔 때만 다시 그린다 — 매 틱 innerHTML 을 갈아끼우면 유닛 수만큼 레이아웃이 튄다
+      const sig = u.querySelector(".usig"), ss = unitSignalSVG(r.network);
+      if (sig.dataset.sig !== ss.title) { sig.dataset.sig = ss.title; sig.innerHTML = ss.svg; sig.title = ss.title; }
       if (isIot(r)) { const tg = u.querySelector(".tag"); if (tg) tg.textContent = r.robot_id + " · " + ioSummary(r); }
     }
   }
@@ -1973,6 +1988,12 @@
   window.addEventListener("mousemove", (e) => { if (!panDrag) return; const v = STATE.ui.mapView; v.panX = panDrag.px + (e.clientX - panDrag.sx); v.panY = panDrag.py + (e.clientY - panDrag.sy); applyView(); });
   window.addEventListener("mouseup", () => { if (panDrag) { panDrag = null; map.style.cursor = ""; } });
   map.addEventListener("auxclick", (e) => { if (e.button === 1) e.preventDefault(); });
+  // 창 밖에서 버튼을 떼면 mouseup 이 안 온다 — 남은 드래그 상태가 다음 클릭을 삼키므로 포커스 상실 시 전부 정리한다.
+  window.addEventListener("blur", () => {
+    if (drag) { drag = null; selbox.style.display = "none"; }
+    if (panDrag) { panDrag = null; map.style.cursor = ""; }
+    if (atk) { atk = null; movearrow.style.display = "none"; }
+  });
 
   // ---- 우클릭 = navigate_to_pose 이동 명령(선택된 모바일 로봇) ----
   function screenToWorld(cx, cy, m) {                 // #map 화면px → 표준맵 world(m). #maprot 변환(translate·rotate·scale) 역적용.
@@ -2053,8 +2074,17 @@
     if (!m) { toast("표준맵을 먼저 여세요"); return; }
     const rect = map.getBoundingClientRect(), w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top, m);
     if (A.kind === "place") {
-      if (!byId(A.robotId)) return;
+      const dev = byId(A.robotId); if (!dev) return;
+      // '설치'는 **다른 맵으로 옮기는** 조작이다 — 좌표만 바꾸면 유닛이 현재 맵에 안 뜨고
+      // 옛 맵 기준으로 pose 만 덮여 조용히 어긋난다. 소속 맵(standard_map_id)까지 같이 옮긴다.
+      if (A.install && dev.standardMapId !== m.map_id) {
+        dev.standardMapId = m.map_id;
+        dev.toStandard = [0, 0, 0];
+        dev.map = { standard_map_id: m.map_id, to_standard: [0, 0, 0] };
+        console.log("[POST /api/alignments]", { robot_id: dev.robot_id, standard_map_id: m.map_id, to_standard: dev.toStandard });
+      }
       dispatch("set_pose", { x: +fmt(w.x), y: +fmt(w.y), theta: 0 }, [A.robotId]);
+      _iotSig = "";   // 설치 결과(📍 배지)를 드로어에 즉시 반영
       return;
     }
     // kind === "move" (어택땅)
@@ -2102,6 +2132,8 @@
     const wiz = $("#alignwiz"), A = ALIGN;
     if (!A) { wiz.hidden = true; renderGhost(); return; }
     const r = byId(A.robotId), m = currentMap();
+    if (!r) { ALIGN = null; wiz.hidden = true; renderGhost(); return; }   // 로봇이 사라졌으면 마법사도 접는다
+    const solved = A.step === "done" && Array.isArray(A.T);
     const stepTxt = A.step === "place" ? "① 로봇이 실제 있는 위치를 클릭" : A.step === "aim" ? "② 로봇 정면(바라보는) 방향을 클릭" : "✓ 변환 계산됨 — 저장하세요";
     const raw = `raw (${fmt(r.pose.x)}, ${fmt(r.pose.y)}, ${(poseYaw(r.pose) || 0).toFixed(0)}°)`;
     const Ttxt = A.T ? `T = [${fmt(A.T[0])}, ${fmt(A.T[1])}, ${A.T[2].toFixed(1)}°]` : "—";
@@ -2110,16 +2142,16 @@
       <div class="awstep">${stepTxt}</div>
       <div class="awrow">${raw}</div>
       <div class="awt">${Ttxt}</div>
-      ${A.step === "done" ? `<label>θ° 미세조정 <input id="awtheta" type="number" step="1" value="${A.T[2].toFixed(0)}"></label>` : ""}
+      ${solved ? `<label>θ° 미세조정 <input id="awtheta" type="number" step="1" value="${A.T[2].toFixed(0)}"></label>` : ""}
       <div class="awbtns">
-        <button class="pri" id="awsave" ${A.step === "done" ? "" : "disabled"}>저장</button>
+        <button class="pri" id="awsave" ${solved ? "" : "disabled"}>저장</button>
         <button id="awreset">다시</button><button id="awdel">정렬삭제</button><button id="awcancel">취소</button>
       </div>`;
     wiz.hidden = false;
     $("#awcancel").onclick = () => { ALIGN = null; renderAlign(); };
     $("#awreset").onclick = () => { ALIGN = { robotId: A.robotId, step: "place", place: null, aim: null, T: null }; renderAlign(); };
     $("#awdel").onclick = () => { r.toStandard = [0, 0, 0]; if (r.map) r.map.to_standard = [0, 0, 0]; console.log("[DELETE /api/alignments]", r.robot_id); toast("정렬 삭제 → identity"); ALIGN = null; renderAlign(); render(); };
-    $("#awsave").onclick = () => { if (!A.T) return; r.toStandard = [A.T[0], A.T[1], A.T[2]]; if (r.map) r.map.to_standard = r.toStandard.slice(); console.log("[POST /api/alignments]", { robot_id: r.robot_id, standard_map_id: m.map_id, to_standard: r.toStandard }); toast("✓ 정렬 저장됨"); ALIGN = null; renderAlign(); render(); };
+    $("#awsave").onclick = () => { if (!A.T || !m) return; r.toStandard = [A.T[0], A.T[1], A.T[2]]; if (r.map) r.map.to_standard = r.toStandard.slice(); console.log("[POST /api/alignments]", { robot_id: r.robot_id, standard_map_id: m.map_id, to_standard: r.toStandard }); toast("✓ 정렬 저장됨"); ALIGN = null; renderAlign(); render(); };
     const awt = $("#awtheta"); if (awt) awt.oninput = () => { const d = +awt.value; if (!Number.isNaN(d)) { A.T[2] = d; wiz.querySelector(".awt").textContent = `T = [${fmt(A.T[0])}, ${fmt(A.T[1])}, ${d.toFixed(1)}°]`; renderGhost(); } };
     renderGhost();
   }
@@ -2461,7 +2493,8 @@
     const boxEl = () => { let e = camWrap.querySelector(".cockpit-cam-box"); if (!e) { e = document.createElement("div"); e.className = "cockpit-cam-box"; camWrap.appendChild(e); } return e; };
     const clearBox = () => { const e = camWrap.querySelector(".cockpit-cam-box"); if (e) e.remove(); };
     CK.cam.addEventListener("pointerdown", (ev) => {
-      if (!CK.vpick || !byId(CK.robotId).capabilities.includes("box_pick")) return;
+      const rr = byId(CK.robotId);
+      if (!CK.vpick || !rr || !rr.capabilities.includes("box_pick")) return;
       const rc = CK.cam.getBoundingClientRect();
       bx = { x0: ev.clientX - rc.left, y0: ev.clientY - rc.top, x1: ev.clientX - rc.left, y1: ev.clientY - rc.top, moved: false, rc };
     });
@@ -2811,13 +2844,12 @@
   // 입력 → axes[8] (cockpit-core 매핑 그대로)
   function gatherInput() {
     const ax = new Array(8).fill(0), bt = new Array(16).fill(0);
-    if (CK.preset !== "mouse" || true) {   // 주행 키는 두 프리셋 공통
-      if (keys.has("KeyW")) ax[1] += 1; if (keys.has("KeyS")) ax[1] -= 1;
-      if (keys.has("KeyA")) ax[0] -= 1; if (keys.has("KeyD")) ax[0] += 1;
-      if (keys.has("ArrowRight")) ax[2] += 1; if (keys.has("ArrowLeft")) ax[2] -= 1;
-      if (keys.has("ArrowUp")) ax[3] += 1; if (keys.has("ArrowDown")) ax[3] -= 1;
-      if (keys.has("ShiftLeft") || keys.has("ShiftRight")) ax[5] = 1;
-    }
+    // 주행·시점 키는 두 프리셋 공통(마우스 프리셋은 시점만 마우스로 덮어쓴다)
+    if (keys.has("KeyW")) ax[1] += 1; if (keys.has("KeyS")) ax[1] -= 1;
+    if (keys.has("KeyA")) ax[0] -= 1; if (keys.has("KeyD")) ax[0] += 1;
+    if (keys.has("ArrowRight")) ax[2] += 1; if (keys.has("ArrowLeft")) ax[2] -= 1;
+    if (keys.has("ArrowUp")) ax[3] += 1; if (keys.has("ArrowDown")) ax[3] -= 1;
+    if (keys.has("ShiftLeft") || keys.has("ShiftRight")) ax[5] = 1;
     if (CK.preset === "mouse") { ax[2] += CK.mouse.pan; ax[3] += CK.mouse.tilt; }   // 마우스 = 시점(팬/틸트)
     if (CK.dpad.lin) ax[1] += CK.dpad.lin; if (CK.dpad.ang) ax[0] += -CK.dpad.ang;
     ax[4] = CK.reach || 0;   // 마우스 휠 → reach / 카메라 줌
@@ -2870,8 +2902,8 @@
     box.hidden = !chips.length; box.innerHTML = chips.join("");
     box.querySelectorAll("[data-bool]").forEach((el) => { el.onclick = () => {
       const k = el.dataset.bool, next = !(r.settings || {})[k];
-      dispatch("set_" + k, { on: next }, [r.robot_id]);
-      r.settings[k] = next; renderSetChips();
+      dispatch("set_" + k, { on: next }, [r.robot_id]);   // 상태 반영은 applyEffect 한 곳에서만(중복 갱신 금지)
+      renderSetChips();
       if (k === "side_grasp" && !next && (r.settings || {}).grasp_tilt === "horizontal")
         ckLog("⚠ 수평인데 옆물기가 꺼졌다 — set_grasp_tilt 은 손목 자세만 덮고 파지 계획은 grasp_plan 이 정한다(세운 물체는 top-down 으로 남는다)");
     }; });
@@ -2880,7 +2912,7 @@
       const order = ["auto", "vertical", "horizontal"], cur = (r.settings || {}).grasp_tilt || "auto";
       const next = order[(order.indexOf(cur) + 1) % order.length];
       dispatch("set_grasp_tilt", { mode: next }, [r.robot_id]);
-      r.settings.grasp_tilt = next; renderSetChips();
+      renderSetChips();
       // 로봇이 grasp_tilt_band 를 준다 — "수직 (0°)" 는 거짓말이다(대역 안에서 IK 가 고른다)
       if (next !== "auto") ckLog(`🎚 ${TILT_LABEL[next]} — 대역 ${next === "vertical" ? "0~45°" : "45~90°"} 안에서 IK 가 고른다`);
     };
@@ -3010,7 +3042,7 @@
     const draw = (k, color, dash) => { const arr = STATE.solo.latency[k]; if (arr.length < 2) return; g.strokeStyle = color; g.lineWidth = 1.4; g.setLineDash(dash); g.beginPath(); let pen = false; const step = W / (RING - 1); arr.forEach((p, i) => { if (p.ms == null) { pen = false; return; } const x = W - (arr.length - 1 - i) * step, y = H - (p.ms / max) * (H - 4) - 2; if (!pen) { g.moveTo(x, y); pen = true; } else g.lineTo(x, y); }); g.stroke(); };
     draw("server", cssVar("--ok"), []); draw("internet", cssVar("--help"), [5, 3]); draw("operator", cssVar("--accent2"), [1, 3]); g.setLineDash([]);
   }
-  function drawCam(r, axes) {
+  function drawCam(axes) {
     const cv = CK.cam, ctx = cv.getContext("2d");
     const rect = cv.getBoundingClientRect();                 // 매 프레임 self-size(레이아웃 타이밍 무관 — 0폭 방지)
     if (rect.width && (cv.width !== Math.round(rect.width) || cv.height !== Math.round(rect.height))) { cv.width = rect.width; cv.height = rect.height; }
@@ -3368,7 +3400,8 @@
 
   // ===================================================================== 해시 라우팅 (화면 단계 = URL)
   // 정본 nexus_ui 0.6.1 규약 — `#/` `#/map/<id>` `#/robot/<id>` `#/missions` `#/config`.
-  // 뒤로가기·새로고침·링크 공유가 된다. 콕핏은 모달이라 닫을 때 히스토리를 되감는다.
+  // 뒤로가기·새로고침·링크 공유가 된다. 콕핏은 모달이라 닫을 때 replaceState 로 주소만 갈아끼운다
+  // (history.back() 이면 콕핏에 딥링크로 들어온 사용자가 사이트 밖으로 튕긴다).
   let _shellView = "dashboard", _routing = false;
   function currentRoute() {
     if (STATE.ui.view === "solo" && STATE.solo.robotId) return "#/robot/" + STATE.solo.robotId;
@@ -3414,11 +3447,13 @@
   // ===================================================================== 셸 (사이드바 · 뷰 전환 · 설정)
   function showShellView(v) {
     _shellView = v;
+    // 맵을 떠나면 3D 캔버스를 내린다 — 숨겨도 requestAnimationFrame 루프는 계속 돌아 GPU 를 먹는다(backToOverview 와 같은 규칙)
+    if (v !== "dashboard") disable3D();
     document.querySelectorAll(".navitem[data-view]").forEach((n) => n.classList.toggle("active", n.dataset.view === v));
     $("#missionsview").hidden = true; if (missionsTimer) { clearInterval(missionsTimer); missionsTimer = null; }
     $("#traceview").hidden = true;   // 수집(TRACE.timer)은 뷰와 무관하게 돈다 — 서버측 집계와 같은 성질
-    if (v === "config") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = false; renderConfig(); return; }
-    if (v === "missions") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = true; $("#missionsview").hidden = false; buildMissions(); missionsTimer = setInterval(tickMissions, 600); return; }
+    if (v === "config") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = false; renderConfig(); syncHash(); return; }
+    if (v === "missions") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = true; $("#missionsview").hidden = false; buildMissions(); missionsTimer = setInterval(tickMissions, 600); syncHash(); return; }
     if (v === "trace") { $("#stage").hidden = true; $("#hud").hidden = true; $("#overview").hidden = true; $("#configview").hidden = true; $("#traceview").hidden = false; buildTrace(); syncHash(); return; }
     $("#configview").hidden = true; updateDashboardLevel();
     if (STATE.ui.level === "map") { render(); renderMinimap(); } else renderOverview();
@@ -3434,7 +3469,7 @@
   function toggleTheme() {
     const toLight = document.documentElement.getAttribute("data-theme") !== "light";
     if (toLight) document.documentElement.setAttribute("data-theme", "light"); else document.documentElement.removeAttribute("data-theme");
-    localStorage.setItem("nexus_ui.theme", toLight ? "light" : "dark");
+    LS.set("nexus_ui.theme", toLight ? "light" : "dark");
     const tb = $("#themebtn"); if (tb) tb.textContent = toLight ? "☀" : "◐";
     _mapTint.clear(); _miniUrl = "";   // 테마 톤 맵 캐시 무효화
     if (STATE.ui.map3d) {              // 3D 는 생성 시점 CSS 변수를 읽어 고정 — 재생성으로 리컬러
@@ -3448,15 +3483,15 @@
   }
   function setupShell() {
     const app = $("#app");
-    if (localStorage.getItem("nexus_demo.navCollapsed") === "1") app.classList.add("nav-collapsed");
-    $("#navtoggle").addEventListener("click", () => { app.classList.toggle("nav-collapsed"); localStorage.setItem("nexus_demo.navCollapsed", app.classList.contains("nav-collapsed") ? "1" : "0"); setTimeout(renderMinimap, 170); });
+    if (LS.get("nexus_demo.navCollapsed") === "1") app.classList.add("nav-collapsed");
+    $("#navtoggle").addEventListener("click", () => { app.classList.toggle("nav-collapsed"); LS.set("nexus_demo.navCollapsed", app.classList.contains("nav-collapsed") ? "1" : "0"); setTimeout(renderMinimap, 170); });
     document.querySelectorAll(".navitem[data-view]").forEach((it) => it.addEventListener("click", () => showShellView(it.dataset.view)));
     $("#navmapeditor").addEventListener("click", (e) => { e.preventDefault(); toast("맵 에디터는 실제 NEXUS 콘솔에서 제공됩니다 (데모 제외)"); });
     $("#themebtn").addEventListener("click", toggleTheme);
     $("#themebtn").textContent = document.documentElement.getAttribute("data-theme") === "light" ? "☀" : "◐";
     $("#cfgtheme").addEventListener("click", toggleTheme);
     const cm = $("#cfgclickmove");
-    if (cm) { cm.checked = !!cfg.clickMove; cm.addEventListener("change", () => { cfg.clickMove = cm.checked; try { localStorage.setItem("nexus_demo.clickMove", cm.checked ? "1" : "0"); } catch (_) {} toast(cm.checked ? "맵 클릭 이동 허용됨" : "🔒 맵 클릭 이동 꺼짐"); }); }
+    if (cm) { cm.checked = !!cfg.clickMove; cm.addEventListener("change", () => { cfg.clickMove = cm.checked; LS.set("nexus_demo.clickMove", cm.checked ? "1" : "0"); toast(cm.checked ? "맵 클릭 이동 허용됨" : "🔒 맵 클릭 이동 꺼짐"); }); }
     $("#cfgapply").addEventListener("click", () => toast("데모 — 서버 설정은 시뮬레이션에서 적용되지 않습니다"));
     // 서버 입력(데모)
     $("#srvgo").addEventListener("click", () => toast("데모 — 서버 연결 없이 동작하는 시뮬레이션입니다"));
@@ -3464,7 +3499,9 @@
     // 맵 셀렉터
     const ms = $("#mapsel");
     ms.innerHTML = ['<option value="">맵 없음(추상 그리드)</option>'].concat(MAPS.map((it) => `<option value="${it.map.map_id}">${esc(it.site)}·${esc(it.building)}·${esc(it.floor)} — ${esc(it.map.map_id)}</option>`)).join("");
-    ms.addEventListener("change", () => { STATE.ui.mapId = ms.value || null; if (STATE.ui.level === "map") renderMap(); });
+    // 셀렉터로 맵을 바꿔도 카드 클릭과 **같은 경로**를 탄다 — 예전엔 mapId 만 갈아끼워서
+    // URL 해시가 이전 맵에 남고(새로고침하면 딴 맵으로 복귀) 줌/회전도 이월됐다.
+    ms.addEventListener("change", () => enterMap(ms.value || null));
     $("#tooverview").addEventListener("click", backToOverview);
     $("#maprotbtn").addEventListener("click", () => { STATE.ui.mapRot = ((STATE.ui.mapRot || 0) + 1) % 4; STATE.ui.mapView = { zoom: 1, panX: 0, panY: 0 }; renderMap(); });
     // 맵 관제 3D 보기(뷰 전용) — 벽 압출 + 전 로봇 상태색 마커 + 경로. 선택/명령/정렬은 2D 로 복귀.
@@ -3496,8 +3533,8 @@
     ab.addEventListener("click", (e) => { e.stopPropagation(); ap.hidden = !ap.hidden; if (window.__ac && window.__ac.state === "suspended") window.__ac.resume(); });
     document.addEventListener("click", (e) => { if (!ap.hidden && !$("#alarmwrap").contains(e.target)) ap.hidden = true; });
     const mute = $("#almmute"), tts = $("#almtts");
-    mute.checked = localStorage.getItem("nexus_demo.almMute") === "1"; mute.addEventListener("change", () => localStorage.setItem("nexus_demo.almMute", mute.checked ? "1" : "0"));
-    tts.checked = localStorage.getItem("nexus_demo.almTts") === "1"; tts.addEventListener("change", () => localStorage.setItem("nexus_demo.almTts", tts.checked ? "1" : "0"));
+    mute.checked = LS.get("nexus_demo.almMute") === "1"; mute.addEventListener("change", () => LS.set("nexus_demo.almMute", mute.checked ? "1" : "0"));
+    tts.checked = LS.get("nexus_demo.almTts") === "1"; tts.addEventListener("change", () => LS.set("nexus_demo.almTts", tts.checked ? "1" : "0"));
   }
   window.addEventListener("resize", () => { if (STATE.ui.view === "solo") resizeCockpit(); else { renderMinimap(); if (STATE.ui.mapId && STATE.ui.level === "map") renderMap(); } });
 
@@ -3516,7 +3553,8 @@
         r.vel = { l: lin, a: ang };
         r.pose.theta = wrapDeg(r.pose.theta + ang); r.pose.x += Math.cos(r.pose.theta * D2R) * lin; r.pose.y += Math.sin(r.pose.theta * D2R) * lin;
         clampPose(r);
-        if (lin || ang) r.battery.percentage = Math.max(0, (r.battery.percentage ?? 50) - 0.02);
+        // 배터리 미보고(percentage=null) 로봇은 그대로 둔다 — 없던 값을 시뮬이 지어내면 배지가 '정보 없음'에서 숫자로 바뀐다
+        if ((lin || ang) && r.battery && r.battery.percentage != null) r.battery.percentage = Math.max(0, r.battery.percentage - 0.02);
         continue;
       }
       // busy 타임아웃
@@ -3532,7 +3570,7 @@
     }
     // 콕핏 렌더
     if (CK) {
-      drawCam(byId(CK.robotId), CK.axes); updateInputHUD(CK.axes, CK.buttons);
+      drawCam(CK.axes); updateInputHUD(CK.axes, CK.buttons);
       if (CK.twin) { const t2 = tick * 0.03; CK.jointSim = [Math.sin(t2) * 34, Math.sin(t2 * 0.8) * 29 - 17, Math.sin(t2 * 1.3) * 23 + (CK.reach || 0) * 34]; if (tick % 2 === 0) updateTwin(CK.jointSim); }
       // 디텍 후보 + 선택(pick) → 트윈 3D 마커/OBB + 카메라 시야 프러스텀.
       // 디텍 토글·선택 좌표가 바뀔 때만 다시 세팅(매 프레임 재생성 금지 — 정본의 sync/position 분리 원칙).

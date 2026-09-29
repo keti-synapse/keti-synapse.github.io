@@ -388,12 +388,13 @@
           <div class="arch-label">구현 레이어</div>
           <div class="arch-nodes">
             <a href="gerri.html"   class="arch-node tom_n">🖥️ tom_and_gerri <span>단일 로봇 제어 코어</span></a>
-            <a href="nexus.html"   class="arch-node nexus_n">🗄️ nexus <span>플릿 관제 서버</span></a>
+            <a href="nexus.html"   class="arch-node nexus_n">🗄️ nexus <span>관제 · 인증 · 제어 세션 · 입장 승인</span></a>
+            <div class="arch-node gray">🔗 synapse-signaling <span>독립 WebRTC 시그널링</span></div>
             <a href="gerri.html#cockpit" class="arch-node cockpit_n">🕹️ COCKPIT <span>1:1 조작 UI</span></a>
             <div class="arch-node gray">📊 nexus_ui <span>N:N 대시보드</span></div>
           </div>
         </div>
-        <div class="arch-flow"><div class="v"></div><span><code class="inline">import synapse</code> — 모두가 이 표준에 의존</span></div>
+        <div class="arch-flow"><div class="v"></div><span><code class="inline">synapse</code> — 관제·로봇·UI의 메시지 계약 (독립 signaling은 import하지 않음)</span></div>
         <div class="arch-layer" style="margin-bottom:0;">
           <div class="arch-label">표준 · 중심 (안쪽) — 가장 안정적으로 관리</div>
           <div class="arch-nodes">
@@ -509,8 +510,8 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Communication</span>
-      <h2 class="section-title">3-Way Hybrid 통신</h2>
-      <p class="section-lead"><span class="s">NEXUS는 <span class="nb">시그널링 중계와</span> <span class="nb">대시보드 캐시만</span> 담당한다.</span><span class="s">1:1 원격조작의 <span class="nb">제어·미디어 데이터는</span> WebRTC P2P로 직결되어 <span class="nb">NEXUS를 거치지</span> 않는다.</span></p>
+      <h2 class="section-title">관제 · 시그널링 · WebRTC 통신</h2>
+      <p class="section-lead">NEXUS는 관제·인증·상태 레지스트리·제어 세션·입장 승인을 담당하고, <strong>synapse-signaling</strong>이 WebRTC 연결 협상을 중계한다. 영상·오디오·teleop는 WebRTC peer 사이로 전달하며, 직결이 어려우면 별도 TURN을 거친다.</p>
     </div>
     <div class="figure">
       <div class="figure-frame">
@@ -520,11 +521,11 @@
             <div class="ti">사용자 / COCKPIT</div>
             <div class="su">웹 브라우저<br>WebRTC Client</div>
           </div>
-          <div class="comm-conn"><div class="comm-line"></div><div class="comm-lbl">WS 시그널링 (idle)</div></div>
+          <div class="comm-conn"><div class="comm-line"></div><div class="comm-lbl">HTTP / WS 관제</div></div>
           <div class="comm-box hl">
             <div class="ic">🗄️</div>
             <div class="ti" style="color:var(--acc-d);">NEXUS</div>
-            <div class="su">시그널링 중계<br>상태 캐시</div>
+            <div class="su">관제 · 인증 · 상태<br>제어 세션 · 입장 승인</div>
           </div>
           <div class="comm-conn"><div class="comm-line"></div><div class="comm-lbl">WS 지속 연결</div></div>
           <div class="comm-box">
@@ -536,26 +537,30 @@
         <div class="p2p-row">
           <div class="p2p-pill">🧑‍💻 사용자</div>
           <div class="p2p-dash"></div>
-          <div class="p2p-label">WebRTC P2P 직결<br>모든 데이터·미디어·제어 (NEXUS 안 거침)</div>
+          <div class="p2p-label">WebRTC peer 사이<br>영상 · 오디오 · teleop (직결 / 별도 TURN)</div>
           <div class="p2p-dash"></div>
           <div class="p2p-pill">🖥️ TOM (로봇)</div>
         </div>
         <div class="comm-notes">
           <div class="comm-note">
             <div class="k">NEXUS ↔ TOM</div>
-            <div class="v">WebSocket <strong>지속 연결</strong>(<code class="inline">/ws/{robot_id}</code>). status·mission_event 푸시, 명령 수신, 시그널링 중계. <span class="nb">TOM이 outbound로 접속.</span></div>
+            <div class="v">WebSocket <strong>지속 연결</strong>(<code class="inline">/ws/{robot_id}</code>). status·mission_event 푸시, 관제 명령·제어 세션 수신. TOM이 outbound로 접속.</div>
           </div>
           <div class="comm-note">
             <div class="k">사용자 ↔ NEXUS</div>
-            <div class="v">WebSocket <strong>시그널링·핑퐁만</strong>. WebRTC 핸드셰이크 후 <span class="nb">거의 idle.</span> 실제 데이터는 <span class="nb">P2P로 직결.</span></div>
+            <div class="v">HTTP / WebSocket으로 인증·관제·제어 세션·입장 승인을 처리한다.</div>
           </div>
           <div class="comm-note hl">
-            <div class="k">사용자 ↔ TOM (P2P)</div>
-            <div class="v"><strong>WebRTC 직결</strong>. 카메라·오디오·DataChannel. 저지연 제어. NEXUS는 <span class="nb">데이터 흐름에서 빠진다.</span> <span class="nb">대칭 NAT·사내망처럼</span> <span class="nb">직결이 안 서는 현장은</span> TURN(coturn) 릴레이로 폴백 — <span class="nb">크리덴셜은</span> <code class="inline">/api/ice</code>가 <span class="nb">통화 직전에</span> <span class="nb">발급하는</span> <span class="nb">시간제한 값이다.</span></div>
+            <div class="k">사용자 / TOM ↔ synapse-signaling</div>
+            <div class="v">별도 WebSocket <code class="inline">/ws/{room}</code>으로 ready / leave · SDP / ICE만 중계한다. 미디어·teleop·상태 캐시는 담당하지 않는다.</div>
+          </div>
+          <div class="comm-note hl">
+            <div class="k">사용자 ↔ TOM (WebRTC)</div>
+            <div class="v"><strong>WebRTC</strong>로 카메라·오디오·DataChannel을 전달한다. NEXUS와 synapse-signaling은 이 데이터 경로에 들어가지 않는다. <span class="nb">대칭 NAT·사내망처럼</span> <span class="nb">직결이 안 서는 현장은</span> TURN(coturn) 릴레이로 폴백 — <span class="nb">크리덴셜은</span> <code class="inline">/api/ice</code>가 <span class="nb">통화 직전에</span> <span class="nb">발급하는</span> <span class="nb">시간제한 값이다.</span></div>
           </div>
         </div>
       </div>
-      <p class="figcaption"><b>Figure 4.</b> <span class="nb">3-Way Hybrid</span> <span class="nb">통신 구조.</span> 시그널링은 <span class="nb">NEXUS가</span> <em>sender/receiver만 보고</em> JSON을 <span class="nb">그대로 중계하며,</span> <span class="nb">핸드셰이크 이후</span> <span class="nb">제어·미디어는</span> <span class="nb">P2P로 빠진다.</span></p>
+      <p class="figcaption"><b>Figure 4.</b> NEXUS 관제와 독립 시그널링을 분리한다. synapse-signaling은 sender / receiver를 보고 연결 협상만 중계하며, WebRTC 데이터는 peer 사이에서 직결 또는 별도 TURN으로 전달된다.</p>
     </div>
 
     <div class="section-head mt-48">

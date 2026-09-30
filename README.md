@@ -9,6 +9,7 @@ KETI 지능로보틱스연구센터 · STAR TEAM.
 | 페이지 | 내용 |
 |---|---|
 | `index.html` | 플랫폼 개요 · 아키텍처 · 컴포넌트 · 통신 · 미션 |
+| `architecture.html` | 승인된 아키텍처 요약 · 통신 흐름 · 공통 계약 · 서버 Architecture Studio 입구 |
 | `synapse.html` | 공통 표준 레이어 (메시지·Enum·자료구조·미션 모델) |
 | `tom.html` · `and.html` · `gerri.html` | 온-로봇 측 (물리 HW · 네트워크 데몬 · 제어 SW + COCKPIT) |
 | `nexus.html` | 플릿 관제 서버 |
@@ -18,6 +19,8 @@ KETI 지능로보틱스연구센터 · STAR TEAM.
 ## 배포
 순수 정적 HTML/CSS — 빌드 없음. GitHub Pages(main 브랜치 루트)에서 그대로 서빙됩니다.
 로컬 미리보기: `python3 -m http.server 8000`
+
+아키텍처 요약과 조직 프로필의 미리보기는 큰 기능 업데이트나 구조 변경 때 함께 갱신합니다. 작은 중간 버전·패치마다 다시 게시하지 않습니다. 상세 구조는 [Architecture Studio](https://rockcraft.xyz/architecture-studio/)에서 봅니다.
 
 > `demo.html` 의 3D(맵 관제 ⧊ 3D · 콕핏 디지털 트윈)는 `esm.sh` 에서 three.js 를 받아옵니다.
 > 오프라인이면 3D 토글이 토스트로 안내되고 트윈은 2D SVG 로 폴백합니다 — 나머지 기능은 그대로 동작합니다.
